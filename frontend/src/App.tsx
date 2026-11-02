@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { accessToken, authConfig, restoreSession, signIn, signOut } from "./auth";
 
 type Row = Record<string, any>;
 type Page =
@@ -45,6 +46,18 @@ const labels: Record<string, string> = {
   producto: "Producto",
   official: "Oficial",
   demo: "Demostración",
+  new: "Nuevo",
+  modified: "Modificado",
+  unchanged: "Sin cambios",
+  owner: "responsable",
+  description: "descripción",
+  model: "modelo",
+  part_number: "número de parte",
+  technical: "características técnicas",
+  use: "uso previsto",
+  tariff_code: "fracción arancelaria",
+  nico: "NICO",
+  parent_id: "subfamilia",
 };
 const text = (value: any) =>
   value == null || value === "" ? "—" : String(value);
@@ -293,7 +306,7 @@ export default function App() {
   );
   const [me, setMe] = useState<Row | null>(null),
     [authError, setAuthError] = useState(""),
-    [platformAuthChecked, setPlatformAuthChecked] = useState(false),
+    [authOptions, setAuthOptions] = useState<Row>({}),
     [token, setToken] = useState(""),
     [tokenDraft, setTokenDraft] = useState(""),
     [role, setRole] = useState("administrador"),
@@ -323,11 +336,15 @@ export default function App() {
     ),
     canReview = ["revisor", "administrador"].includes(me?.role || ""),
     admin = me?.role === "administrador";
+  const loadGeneration = useRef(0);
   const request = useCallback(
     async (path: string, method = "GET", body?: Row) => {
       const headers: Record<string, string> = {};
       if (body) headers["Content-Type"] = "application/json";
-      if (token) headers.Authorization = `Bearer ${token}`;
+      let currentToken: string;
+      try { currentToken = await accessToken(token); }
+      catch (e) { setMe(null); setAuthError((e as Error).message); throw e; }
+      if (currentToken) headers.Authorization = `Bearer ${currentToken}`;
       if (dev) headers["X-Dev-Role"] = role;
       const response = await fetch(`/api${path}`, {
         method,
@@ -335,6 +352,7 @@ export default function App() {
         ...(body ? { body: JSON.stringify(body) } : {}),
       });
       if (!response.ok) {
+        if (response.status === 401) { setMe(null); setAuthError("Inicia sesión para continuar."); }
         let message = `${response.status}: No se pudo completar la solicitud`;
         try {
           const e = await response.json();
@@ -368,24 +386,33 @@ export default function App() {
     void loadMe();
   }, [loadMe]);
   useEffect(() => {
-    if (!authError || token || platformAuthChecked) return;
-    setPlatformAuthChecked(true);
-    void fetch("/.auth/me")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((entries) => {
-        const aad =
-          Array.isArray(entries) &&
-          entries.find(
-            (entry: Row) =>
-              entry.provider_name === "aad" &&
-              typeof entry.access_token === "string",
-          );
-        if (aad) setToken(aad.access_token);
-      })
-      .catch(() => {
-        /* Token store is optional; backend remains the identity authority. */
-      });
-  }, [authError, token, platformAuthChecked]);
+    let disposed = false;
+    void authConfig().then(async config => {
+      if (!disposed) setAuthOptions(config);
+      const restored = await restoreSession();
+      if (restored && !disposed) setToken(restored);
+    }).catch(e => { if (!disposed) setAuthError((e as Error).message); });
+    return () => { disposed = true; };
+  }, []);
+  const loadReference = useCallback(async (path: string) => {
+    let combined: Row[] = [];
+    for (let p = 1; ; p++) {
+      const next = await request(`${path}?page=${p}&page_size=200`);
+      combined = combined.concat(array(next));
+      if (combined.length >= next.total || !array(next).length) return combined;
+    }
+  }, [request]);
+  const refreshSources = useCallback(async () => {
+    setSources(await loadReference('/sources'));
+  }, [loadReference]);
+  useEffect(() => {
+    if (me) void refreshSources().catch(e => setError((e as Error).message));
+  }, [me, refreshSources]);
+  // Only hierarchy and relation pickers need a catalogue. Never load it on polling.
+  useEffect(() => {
+    if (!me || !['catalog','relation'].includes(modal || '')) return;
+    void loadReference('/catalog').then(setCatalog).catch(e => setError((e as Error).message));
+  }, [me, modal, loadReference]);
   useEffect(() => {
     const fn = () => {
       const found = pages.find(
@@ -399,6 +426,7 @@ export default function App() {
   const load = useCallback(
     async (quiet = false) => {
       if (!me) return;
+      const generation = ++loadGeneration.current;
       if (!quiet) setBusy(true);
       setError("");
       try {
@@ -422,28 +450,15 @@ export default function App() {
                 : page === "Productos"
                   ? `/catalog?${params}`
                   : `/jobs?page=${listPage}&page_size=20`;
-        const allPages = async (path: string) => {
-          let combined: Row[] = [];
-          for (let p = 1; ; p++) {
-            const next = await request(`${path}?page=${p}&page_size=200`);
-            combined = combined.concat(array(next));
-            if (combined.length >= next.total || !array(next).length)
-              return combined;
-          }
-        };
-        const [main, src, cat] = await Promise.all([
-          request(endpoint),
-          allPages("/sources"),
-          allPages("/catalog"),
-        ]);
+        const main = await request(endpoint);
+        if (generation !== loadGeneration.current) return;
         setData(main || {});
-        setSources(array(src));
-        setCatalog(array(cat));
+        if (page === "Inicio") setSources(main.sources || []);
         if (page === "Fuentes y ejecuciones") setJobs(array(main));
       } catch (e) {
         setError((e as Error).message);
       } finally {
-        setBusy(false);
+        if (generation === loadGeneration.current) setBusy(false);
       }
     },
     [me, request, page, query, status, source, kind, origin, listPage, general],
@@ -458,15 +473,25 @@ export default function App() {
       !jobs.some((j) => ["queued", "running"].includes(j.status))
     )
       return;
-    const id = window.setInterval(() => void load(true), 2500);
-    return () => clearInterval(id);
-  }, [jobs, page, load]);
+    let disposed = false;
+    let timeout: number;
+    const poll = async () => {
+      if (document.visibilityState === 'visible') {
+        await load(true);
+        if (!disposed) await refreshSources().catch(() => {});
+      }
+      if (!disposed) timeout = window.setTimeout(poll, 5000);
+    };
+    timeout = window.setTimeout(poll, 5000);
+    return () => { disposed = true; clearTimeout(timeout); };
+  }, [jobs, page, load, refreshSources]);
   useEffect(() => {
     if (!notice) return;
     const id = window.setTimeout(() => setNotice(""), 6000);
     return () => clearTimeout(id);
   }, [notice]);
   const navigate = (next: Page) => {
+    loadGeneration.current++;
     setPage(next);
     setData({});
     location.hash = encodeURIComponent(next);
@@ -490,6 +515,8 @@ export default function App() {
       const result = await request(path, method, body);
       setNotice(success);
       await load(true);
+      if (path.startsWith('/sources')) await refreshSources();
+      if (path.startsWith('/catalog')) setCatalog([]);
       return result;
     } catch (e) {
       setError((e as Error).message);
@@ -513,7 +540,10 @@ export default function App() {
     setError("");
     try {
       const headers: Record<string, string> = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
+      let currentToken: string;
+      try { currentToken = await accessToken(token); }
+      catch (e) { setMe(null); setAuthError((e as Error).message); throw e; }
+      if (currentToken) headers.Authorization = `Bearer ${currentToken}`;
       if (dev) headers["X-Dev-Role"] = role;
       const response = await fetch(`/api/versions/${version.id}/evidence`, {
         headers,
@@ -534,7 +564,7 @@ export default function App() {
   const sourceName = (id: any) =>
     sources.find((s) => s.id === id)?.name || text(id);
   const catalogName = (id: any) =>
-    catalog.find((s) => s.id === id)?.name || "Relevancia por evaluar";
+    catalog.find((s) => s.id === id)?.name || `Registro ${id ?? "general"}`;
   const toolbar = (
     <div className="toolbar">
       <div className="search">
@@ -748,34 +778,22 @@ export default function App() {
             <div className="auth-panel">
               <Icon name="shield" size={28} />
               <h2>Acceso requerido</h2>
-              <p>
-                Inicia sesión con tu cuenta corporativa o proporciona un token
-                de acceso para esta aplicación.
-              </p>
-              <a
-                className="button primary"
-                href="/.auth/login/aad?post_login_redirect_uri=/"
-              >
-                Iniciar sesión con Microsoft
-              </a>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setToken(tokenDraft);
-                }}
-              >
-                <input
-                  type="password"
-                  aria-label="Token de acceso"
-                  placeholder="Token de acceso (solo en memoria)"
-                  value={tokenDraft}
-                  onChange={(e) => setTokenDraft(e.target.value)}
-                />
+              <p>Usa tu cuenta corporativa para consultar y revisar publicaciones.</p>
+              {(authOptions.client_id || authOptions.app_service) ? (
+                <button className="button primary" onClick={() => void signIn().catch(e => setAuthError((e as Error).message))}>
+                  Iniciar sesión con Microsoft
+                </button>
+              ) : <p>Falta configurar Microsoft Entra para esta instalación.</p>}
+              {authOptions.development && <form onSubmit={e => { e.preventDefault(); setToken(tokenDraft); }}>
+                <input type="password" aria-label="Token de acceso" placeholder="Token de prueba (solo en memoria)"
+                  value={tokenDraft} onChange={e => setTokenDraft(e.target.value)} />
                 <button className="button secondary">Acceder</button>
-              </form>
+              </form>}
               <small>{authError}</small>
             </div>
           )}
+          {me && !dev && <button className="text-button" onClick={() => void signOut().catch(e => setError((e as Error).message))}>Cerrar sesión</button>}
+          {data.reevaluations_pending > 0 && <p className="message warning">Hay {data.reevaluations_pending} registros de catálogo pendientes de reevaluación. El trabajador los procesa por lotes.</p>}
           {error && (
             <div className="message error" role="alert">
               <div>
@@ -1171,7 +1189,7 @@ export default function App() {
                           {label(p.kind)}
                           <small>
                             {p.parent_id
-                              ? catalogName(p.parent_id)
+                              ? p.parent_name || `Registro ${p.parent_id}`
                               : "Nivel principal"}
                           </small>
                         </td>
@@ -1186,7 +1204,7 @@ export default function App() {
                           {p.missing_fields?.length ? (
                             <span className="incomplete">
                               Faltan {p.missing_fields.length} campos
-                              <small>{p.missing_fields.join(", ")}</small>
+                              <small>{p.missing_fields.map(label).join(", ")}</small>
                             </span>
                           ) : (
                             <Badge value="completed">Completa</Badge>
@@ -1231,7 +1249,7 @@ export default function App() {
                         <h2>{s.name}</h2>
                         <small>
                           {s.active
-                            ? `Cada ${s.frequency_hours || 24} h · frecuencia deseada`
+                            ? `Cada ${s.frequency_hours || 24} h · ${s.schedule_enabled ? "programación habilitada" : "programación desactivada"}`
                             : "Desactivada"}
                         </small>
                       </div>
@@ -1394,8 +1412,8 @@ export default function App() {
               </section>
               <p className="footnote">
                 Todos los horarios se muestran en America/Mexico_City. Los
-                registros se conservan en UTC. La frecuencia deseada requiere un
-                programador externo configurado.
+                registros se conservan en UTC. La programación requiere el trabajador
+                con programación habilitada y la configuración de cada fuente.
               </p>
             </>
           )}
@@ -1496,7 +1514,9 @@ export default function App() {
               <p className="subtle">Sin relaciones registradas.</p>
             )}
             {canReview && (
-              <details className="proposal-form">
+              <details className="proposal-form" onToggle={e => {
+                if (e.currentTarget.open) void loadReference('/catalog').then(setCatalog).catch(e => setError((e as Error).message));
+              }}>
                 <summary>Proponer relación con una familia o producto</summary>
                 <form
                   className="form-grid"
@@ -1728,7 +1748,7 @@ export default function App() {
                 },
                 "Registro del catálogo guardado",
               );
-              if (result) setModal(null);
+              if (result) { setModal(null); setNotice('Catálogo guardado. La reevaluación quedó en cola; mantén activo el trabajador.'); }
             }}
           >
             <div className="form-tip full">
@@ -2032,6 +2052,9 @@ export default function App() {
                   frequency_hours: Number(f.get("frequency_hours")),
                   active: f.get("enabled") === "on",
                   coverage: f.get("coverage"),
+                  expected_terms: split(f.get("expected_terms")),
+                  schedule_enabled: f.get("schedule_enabled") === "on",
+                  schedule_start: f.get("schedule_start") || null,
                 },
                 "Configuración de fuente guardada",
               );
@@ -2048,7 +2071,8 @@ export default function App() {
               </Field>
               <Field label="Conector">
                 <select name="kind" defaultValue={edit?.kind || "dof"}>
-                  <option value="dof">DOF / SIDOF</option>
+                  <option value="dof">DOF · descubrimiento diario</option>
+                  <option value="sidof">SIDOF · documentos conocidos</option>
                   <option value="platiica">PLATIICA · fichas conocidas</option>
                   <option value="snice">SNICE · enlaces conocidos</option>
                 </select>
@@ -2059,6 +2083,9 @@ export default function App() {
                   defaultValue={(edit?.urls || []).join("\n")}
                   rows={4}
                 />
+              </Field>
+              <Field label="Referencias esperadas (separadas por coma)" full>
+                <input name="expected_terms" defaultValue={(edit?.expected_terms || []).join(', ')} placeholder="Ej. NOM-014-ENER-2025" />
               </Field>
               <Field label="Frecuencia deseada (horas)">
                 <input
@@ -2078,6 +2105,14 @@ export default function App() {
                 />
                 Activa
               </label>
+              <label className="checkbox full">
+                <input type="checkbox" name="schedule_enabled" defaultChecked={edit?.schedule_enabled || false} />
+                Habilitar consultas automáticas de esta fuente
+              </label>
+              <Field label="Inicio de cobertura automática">
+                <input type="date" name="schedule_start" defaultValue={edit?.schedule_start || ""} />
+              </Field>
+              <p className="subtle full">Requiere el trabajador con programación habilitada. Los periodos incompletos se retoman antes de avanzar.</p>
               <Field label="Cobertura y límites" full>
                 <textarea
                   name="coverage"
@@ -2237,6 +2272,29 @@ export default function App() {
                 Periodo parcial. Existe un punto de continuación; este trabajo
                 no representa cobertura completa.
               </div>
+            )}
+            {(jobDetail.documents || []).length > 0 && (
+              <>
+                <h3>Documentos observados en esta ejecución</h3>
+                <p>Incluye documentos sin cambios. Cada consulta conserva la versión que observó.</p>
+                <div className="table-wrap">
+                  <table>
+                    <thead><tr><th>Documento</th><th>Resultado</th><th>Evidencia</th></tr></thead>
+                    <tbody>{jobDetail.documents.map((document: Row, index: number) => (
+                      <tr key={`${document.official_id}-${index}`}>
+                        <td>
+                          <button className="link-button" onClick={() => { setJobDetail(null); void openPublication(document.publication_id); }}>
+                            {document.official_id}
+                          </button>
+                          <small>Publicación: {fmt(document.published_on, true)}</small>
+                        </td>
+                        <td>{label(document.outcome)}</td>
+                        <td><button className="button secondary small" onClick={() => void download({id:document.version_id, media_type:document.media_type})}>Descargar</button></td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              </>
             )}
             {(jobDetail.runs || []).length > 0 && (
               <>

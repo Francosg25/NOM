@@ -74,6 +74,20 @@ def test_unknown_empty_index_is_not_no_changes():
     assert batch.continuation["day"] == DAY.isoformat()
 
 
+def test_self_link_does_not_turn_unknown_index_into_success():
+    html = f'<a href="{INDEX}">Inicio</a><p>Formato desconocido</p>'.encode()
+    batch = collect('dof', [BASE], DAY, DAY, fetcher=lambda _: FetchResult(html))
+    assert not batch.complete and batch.errors
+    assert not batch.documents
+
+
+def test_dof_note_outside_requested_period_keeps_interval_pending():
+    other_day = date(2025, 6, 2)
+    batch = collect('dof', [BASE], other_day, other_day, fetcher=dof_fetch)
+    assert not batch.complete and not batch.documents
+    assert 'fuera del periodo' in batch.errors[0]
+
+
 def test_explicit_no_publication_finishes_configured_day():
     batch = collect("dof", [BASE], DAY, DAY, fetcher=lambda _: FetchResult(b"<p>No hay publicaciones</p>"))
     assert batch.complete and not batch.documents and not batch.errors
@@ -182,6 +196,16 @@ def test_download_size_is_bounded():
         fetcher = SafeFetcher(client=client, interval=0, resolve_dns=False, max_bytes=20)
         with pytest.raises(CollectionError, match="límite"):
             fetcher(BASE)
+
+
+def test_compressed_response_is_decoded_once():
+    import gzip
+    def respond(request):
+        if request.url.path == '/robots.txt': return httpx.Response(404)
+        return httpx.Response(200,headers={'content-encoding':'gzip','content-type':'text/html'},content=gzip.compress(b'<main>Norma controlada</main>'))
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        result = SafeFetcher(client=client,interval=0,resolve_dns=False)(BASE)
+        assert result.body == b'<main>Norma controlada</main>'
 
 
 def test_continuation_cannot_be_reused_for_different_period():

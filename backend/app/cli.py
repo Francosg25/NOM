@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 import time
 from datetime import date
@@ -19,17 +20,32 @@ from .storage import get_storage
 INITIAL_SOURCES = (
     ("DOF / SIDOF", "dof", ["https://www.dof.gob.mx/index.php"],
      "Índice diario DOF: descubrimiento de notas y enlaces de edición visibles. Validación en vivo pendiente; no cubre cambios no enlazados ni garantiza todas las ediciones."),
-    ("PLATIICA", "platiica", [],
-     "Seguimiento de fichas conocidas configuradas por un administrador. Sin URLs de fichas aún; no descubre todo el catálogo."),
-    ("SNICE", "snice", [],
-     "Seguimiento de URLs explícitas de publicaciones o índices verificados. Sin canales validados aún; no se presupone cobertura de la portada."),
+    ("PLATIICA", "platiica", ['https://platiica.economia.gob.mx/normalizacion/nom-014-ener-2025/'],
+     "Ficha NOM-014-ENER-2025 del piloto. Seguimiento de texto y enlaces, no descubrimiento global. Descarga por validar en esta instalación."),
+    ("SNICE", "snice", ['https://www.snice.gob.mx/cs/avi/snice/seguridad.normatividad.html'],
+     "Página de normatividad NOM del piloto. Conserva cambios de texto y enlaces; no consolida automáticamente el Anexo 2.4.1."),
+    ("SIDOF · documento de referencia", 'sidof', ['https://sidof.segob.gob.mx/notas/docFuente/5758923'],
+     "Documento conocido NOM-014-ENER-2025 del piloto; comprobar descarga y evidencia. No sustituye el descubrimiento diario DOF."),
 )
 
 
 def init_sources(db):
     for name, kind, urls, coverage in INITIAL_SOURCES:
         if db.scalar(select(Source).where(Source.kind == kind)) is None:
-            db.add(Source(name=name, kind=kind, urls=urls, coverage=coverage, active=True))
+            terms = ['NOM-014-ENER-2025'] if kind in ('platiica','sidof') else ['Anexo 2.4.1'] if kind == 'snice' else []
+            db.add(Source(name=name, kind=kind, urls=urls, coverage=coverage, active=True,expected_terms=terms))
+    db.commit()
+
+
+def configure_pilot_sources(db):
+    """Fill only empty configurations. Never overwrite an administrator's URLs."""
+    init_sources(db)
+    for name, kind, urls, coverage in INITIAL_SOURCES:
+        source = db.scalar(select(Source).where(Source.kind == kind).order_by(Source.id))
+        if not source.urls:
+            source.urls, source.coverage = urls, coverage
+            source.expected_terms = ['NOM-014-ENER-2025'] if kind in ('platiica','sidof') else ['Anexo 2.4.1'] if kind == 'snice' else []
+            db.add(Audit(actor='cli-operador',action='configurar_piloto',entity_type='sources',entity_id=str(source.id),after={'urls':urls}))
     db.commit()
 
 
@@ -74,6 +90,14 @@ def main():
     sub.add_parser("init-sources", help="Registrar fuentes iniciales de forma idempotente")
     sub.add_parser("reevaluate", help="Proponer relaciones nuevas con el catálogo actual sin alterar decisiones existentes")
     sub.add_parser("demo", help="Cargar muestra sintética únicamente en base de demostración separada")
+    sub.add_parser('configure-pilot', help='Completar fuentes vacías con las URLs verificables del piloto, sin sobrescribir configuración')
+    sub.add_parser('pilot-catalog', help='Cargar borradores de familias públicas JE, sin inventar PN, fracción ni responsable')
+    verify = sub.add_parser('validate-sources', help='Consulta real, persistencia, integridad y comparación contra IDs esperados')
+    verify.add_argument('--start', type=date.fromisoformat, required=True)
+    verify.add_argument('--end', type=date.fromisoformat, required=True)
+    verify.add_argument('--expected', type=Path, help='JSON: {"dof": ["DOF:..."]}; inventario manual del periodo')
+    verify.add_argument('--output', type=Path, default=Path('data/validation.json'))
+    verify.add_argument('--max-batches', type=int, default=10)
     enq = sub.add_parser("enqueue", help="Solicitar una revisión persistente")
     enq.add_argument("source_id", type=int)
     enq.add_argument("--start", type=date.fromisoformat)
@@ -84,6 +108,7 @@ def main():
     mode.add_argument("--once", action="store_true", help="Ejecutar un trabajo y terminar")
     mode.add_argument("--poll", action="store_true", help="Atender la cola hasta recibir una señal de parada")
     worker.add_argument("--interval", type=int, default=3)
+    worker.add_argument('--schedule', action='store_true', help='Atender programación habilitada; exige SCHEDULER_ENABLED=true')
     args = parser.parse_args()
     if args.command == "init-db":
         from alembic import command
@@ -103,6 +128,24 @@ def main():
         elif args.command == "demo":
             demo(db)
             print("Muestra sintética cargada en base de demostración separada.")
+        elif args.command == 'configure-pilot':
+            configure_pilot_sources(db)
+            print('URLs del piloto configuradas; se preservaron configuraciones existentes. Programación sin activar.')
+        elif args.command == 'pilot-catalog':
+            from .pilot import seed_catalog
+            print(f'Borradores públicos añadidos: {seed_catalog(db)}. Faltan datos reales y revisión del responsable JE.')
+        elif args.command == 'validate-sources':
+            from .verification import validate_expected, verify_sources
+            if not 1 <= args.max_batches <= 100: parser.error('--max-batches debe estar entre 1 y 100')
+            try:
+                expected = validate_expected(json.loads(args.expected.read_text(encoding='utf-8')) if args.expected else {})
+            except (ValueError, OSError) as exc:
+                parser.error(str(exc))
+            report = verify_sources(db, get_storage(), args.start, args.end, expected, args.max_batches)
+            args.output.parent.mkdir(parents=True,exist_ok=True)
+            args.output.write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+            print(json.dumps(report,ensure_ascii=False,indent=2))
+            sys.exit(0 if report['passed'] else 2)
         elif args.command == "enqueue":
             continuation = None
             start, end = args.start, args.end
@@ -114,11 +157,18 @@ def main():
             job = request_job(db, args.source_id, "cli-operador", start, end, continuation)
             print(f"Trabajo {job.id}: {job.status}; periodo {job.period_start} a {job.period_end}.")
         elif args.command == "worker":
+            from .operations import advance_schedule, reevaluate_batch, schedule_due
+            if args.schedule and not get_settings().scheduler_enabled:
+                parser.error('--schedule requiere SCHEDULER_ENABLED=true; habilite también cada fuente y su fecha inicial')
             if not 1 <= args.interval <= 60:
                 parser.error("--interval debe estar entre 1 y 60 segundos")
             try:
                 while True:
+                    if args.schedule: schedule_due(db)
                     job = run_once(db)
+                    advance_schedule(db,job)
+                    reevaluation = reevaluate_batch(db)
+                    if reevaluation: print(f'Reevaluación: {reevaluation}',flush=True)
                     if job:
                         print(f"{job.id} {job.status}: revisados={job.reviewed_count} nuevos={job.new_count} modificados={job.modified_count} errores={job.error_count}", flush=True)
                     if args.once:

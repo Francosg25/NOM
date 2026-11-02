@@ -87,6 +87,8 @@ def test_local_auth_requires_explicit_enable(monkeypatch):
 def production_config(**overrides):
     config = dict(environment='production', database_url='postgresql+psycopg://user:password@db.example/nom?sslmode=verify-full',
                   storage_backend='azure', azure_storage_account_url='https://storage.blob.core.windows.net',
+                  entra_client_id='87654321-1234-1234-1234-123456789012',
+                  entra_scopes='api://nom-monitor/access_as_user',
                   entra_tenant_id=TENANT, entra_audience=AUDIENCE, dev_auth_enabled=False, demo_mode=False)
     config.update(overrides)
     return Settings(_env_file=None, **config)
@@ -107,3 +109,9 @@ def test_production_misconfiguration_is_rejected(overrides):
 
 def test_production_configuration_accepts_required_services():
     assert production_config().environment == 'production'
+
+
+def test_production_requires_working_login_path_configuration():
+    with pytest.raises(ValidationError, match='inicio de sesión'):
+        production_config(entra_client_id='', entra_scopes='')
+    assert production_config(entra_client_id='', entra_scopes='', entra_app_service_auth=True).environment == 'production'

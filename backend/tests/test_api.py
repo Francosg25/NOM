@@ -71,6 +71,87 @@ def test_empty_dashboard_and_protected_routes(api):
     assert client.get('/api/does-not-exist', headers=READER).status_code == 404
 
 
+def test_catalog_save_enqueues_without_scanning_archive(api):
+    from app.models import Reevaluation
+    from app.operations import reevaluate_batch
+    from sqlalchemy import event
+    client,sessions,_,_=api
+    _,_,pub_id,_,_=seed(sessions)
+    with sessions() as db:
+        version=Version(publication_id=pub_id,content='nuevo criterio',content_hash='x')
+        db.add(version);db.flush();db.get(Publication,pub_id).current_version_id=version.id;db.commit()
+    queries=[]
+    engine=sessions.kw['bind']
+    def record(conn,cursor,statement,parameters,context,many): queries.append(statement.lower())
+    event.listen(engine,'before_cursor_execute',record)
+    try:
+        response=client.post('/api/catalog',headers=ADMIN,json={'kind':'familia','name':'Nueva','keywords':['nuevo criterio']})
+    finally: event.remove(engine,'before_cursor_execute',record)
+    assert response.status_code==201
+    assert not any('from publications' in sql for sql in queries)
+    with sessions() as db:
+        assert db.scalar(select(Reevaluation).where(Reevaluation.catalog_id==response.json()['id']))
+        assert reevaluate_batch(db)['created']==1
+    assert client.get('/api/reevaluations',headers=READER).json()['pending']==0
+
+
+def test_search_matches_models_and_current_document_content(api):
+    client,sessions,_,_=api
+    _,catalog_id,pub_id,_,_=seed(sessions)
+    with sessions() as db:
+        db.get(CatalogItem,catalog_id).model='MODEL-UNIQUE'
+        version=Version(publication_id=pub_id,content='texto-unico-interno',content_hash='x')
+        db.add(version);db.flush();db.get(Publication,pub_id).current_version_id=version.id;db.commit()
+    assert client.get('/api/catalog?q=MODEL-UNIQUE',headers=READER).json()['total']==1
+    assert client.get('/api/publications?q=texto-unico-interno',headers=READER).json()['total']==1
+
+
+def test_source_schedule_requires_valid_start_and_urls(api):
+    client,_,_,_=api
+    source={'kind':'sidof','name':'Referencia','urls':['https://sidof.segob.gob.mx/notas/docFuente/5758923']}
+    assert client.post('/api/sources',headers=ADMIN,json={**source,'schedule_enabled':True}).status_code==422
+    created=client.post('/api/sources',headers=ADMIN,json=source)
+    assert created.status_code==201
+    enabled=client.patch(f'/api/sources/{created.json()["id"]}',headers=ADMIN,json={'schedule_enabled':True,'schedule_start':'2025-06-02'})
+    assert enabled.status_code==200 and enabled.json()['schedule_enabled']
+    assert client.patch(f'/api/sources/{created.json()["id"]}',headers=READER,json={'schedule_enabled':False}).status_code==403
+
+
+def test_public_auth_configuration_has_no_secrets(api):
+    client,_,_,_=api
+    result=client.get('/api/auth/config')
+    assert result.status_code==200
+    assert set(result.json())=={'tenant_id','client_id','scopes','app_service','development'}
+
+
+@pytest.mark.parametrize('kind,url', [
+    ('dof', 'https://sidof.segob.gob.mx/notas/5758923'),
+    ('dof', 'https://www.dof.gob.mx/nota_detalle.php?codigo=5758923'),
+    ('platiica', 'https://platiica.economia.gob.mx/'),
+    ('snice', 'https://www.snice.gob.mx/'),
+])
+def test_source_form_rejects_incompatible_index_or_homepage(api, kind, url):
+    client, _, _, _ = api
+    assert client.post('/api/sources', headers=ADMIN, json={'name':'Fuente', 'kind':kind, 'urls':[url]}).status_code == 422
+
+
+def test_publication_list_query_count_does_not_grow_with_rows(api):
+    from sqlalchemy import event
+    client,sessions,_,_=api
+    source_id,_,_,_,_=seed(sessions)
+    with sessions() as db:
+        for i in range(30):
+            db.add(Publication(source_id=source_id,official_id=f'perf-{i}',url='',title=f'Muestra {i}'))
+        db.commit()
+    engine=sessions.kw['bind'];counts=[]
+    def record(*args): counts.append(1)
+    event.listen(engine,'before_cursor_execute',record)
+    try:
+        assert client.get('/api/publications?page_size=25',headers=READER).json()['total']==31
+    finally: event.remove(engine,'before_cursor_execute',record)
+    assert len(counts)<=5
+
+
 def test_catalog_hierarchy_incomplete_data_soft_disable_and_audit(api):
     client, sessions, _, _ = api
     family = client.post('/api/catalog', headers=ADMIN, json={'kind':'familia','name':'Ventilación'}).json()
@@ -87,7 +168,7 @@ def test_catalog_hierarchy_incomplete_data_soft_disable_and_audit(api):
     assert client.get('/api/catalog?active=true', headers=READER).json()['total'] == 2
     with sessions() as db:
         assert db.get(CatalogItem, product['id']) is not None
-        changes = db.scalars(select(Audit).where(Audit.entity_type == 'catalog')).all()
+        changes = db.scalars(select(Audit).where(Audit.entity_type == 'catalog').order_by(Audit.id)).all()
         assert len(changes) == 4
         assert all(row.actor == 'dev:administrador' for row in changes)
         assert changes[-1].before['active'] is True and changes[-1].after['active'] is False
@@ -183,6 +264,30 @@ def test_persistent_job_request_no_in_memory_execution_and_duplicates(api):
         from app.models import Job
         assert db.get(Job, first.json()['id']).status == 'queued'
     assert client.post('/api/jobs', headers=REVIEWER, json={**body,'period_end':'2019-12-31'}).status_code == 422
+
+
+def test_job_detail_retains_observed_version_after_later_updates(api):
+    from app.collectors import Batch, Document
+    from app.jobs import request_job, run_once
+    client, sessions, _, store = api
+    source_id, _, _, _, _ = seed(sessions)
+    day = date(2025, 6, 2)
+    with sessions() as db:
+        first = request_job(db, source_id, 'tester', day, day)
+        ids = [first.id]
+        for content in ('Contenido A', 'Contenido B'):
+            doc = Document('DOF:10001', 'https://www.dof.gob.mx/nota_detalle.php?codigo=10001',
+                'Muestra de ensayo', content, day, raw=content.encode())
+            run_once(db, storage=store, collector=lambda *a, **kw: Batch([doc], True, None, 'Cobertura controlada'))
+            if content == 'Contenido A':
+                ids.append(request_job(db, source_id, 'tester', day, day).id)
+    first = client.get(f'/api/jobs/{ids[0]}', headers=READER).json()
+    second = client.get(f'/api/jobs/{ids[1]}', headers=READER).json()
+    assert first['coverage'] == 'Cobertura controlada'
+    assert first['documents'][0]['official_id'] == 'DOF:10001'
+    assert first['documents'][0]['version_id'] != second['documents'][0]['version_id']
+    old_version = first['documents'][0]['version_id']
+    assert client.get(f'/api/versions/{old_version}/evidence', headers=READER).content == b'Contenido A'
 
 
 def test_verified_effective_dates_only_and_detection_vs_publication(api):

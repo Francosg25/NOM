@@ -6,13 +6,15 @@ se agotó la cola de esa consulta configurada. No significa cobertura normativa 
 
 ## Estado de validación
 
-El 2 de noviembre de 2026 el entorno negó la conexión HTTPS a
-`www.dof.gob.mx/robots.txt`: el proxy devolvió `CONNECT 403 Forbidden` (Envoy).
-No hubo respuesta del servidor oficial y no se intentó eludir la restricción.
-Las pruebas del parser usan muestras sintéticas identificadas como tales; no son
-capturas descargadas de publicaciones oficiales. La validación en vivo de DOF,
-PLATIICA y SNICE queda **pendiente**. Tampoco se tuvo acceso al archivo
-`NOM_Monitor_Piloto.zip`; no se afirma haber revisado sus tres URLs.
+El 2 de noviembre de 2026 se consultó el ZIP del piloto y el programa descargó
+las tres URLs concretas de SIDOF, PLATIICA y SNICE. Se guardaron las capturas
+originales en el almacén de evidencia, se verificó su SHA-256 al recuperarlas y se repitió la consulta sin
+crear versiones duplicadas. Los informes están en [aceptación](PILOT_ACCEPTANCE.md).
+El índice diario DOF sigue pendiente: robots.txt devolvió HTTP 503, no se eludió
+ese fallo y el resultado global no se marca como aprobado. Las muestras sintéticas
+y los extractos de capturas oficiales están separados en los tests. En el
+repositorio público estos extractos están reducidos y usan HTML mínimo preparado
+para pruebas; no incluyen los metadatos ni contactos de las respuestas íntegras.
 
 Antes de habilitar una fuente en producción se deben permitir los destinos
 oficiales necesarios, verificar sus condiciones de uso y robots, guardar muestras
@@ -48,16 +50,14 @@ Seguimiento de **fichas/documentos concretos** configurados por el administrador
 en `platiica.economia.gob.mx`. No hay descubrimiento global de nuevas fichas.
 La URL normalizada es la identidad provisional cuando no existe un identificador
 oficial extraíble; no se presenta ese identificador técnico como número de NOM.
-Una portada sin ruta no se admite como sustituto de una ficha. Deben configurarse
-las URLs reales del piloto o fichas verificadas antes de usar este canal.
+Una portada sin ruta no se admite como sustituto de una ficha. Se configura la ficha real del piloto NOM-014-ENER-2025. Se pueden agregar otras fichas verificadas, sin asumir cobertura global.
 
 ## SNICE
 
 Seguimiento de **publicaciones concretas HTML o PDF** en `www.snice.gob.mx` o
 `snice.gob.mx`. No se implementó un feed no verificado ni se afirma descubrir
 todas sus novedades. No se considera la portada un inventario de publicaciones.
-Se deben registrar enlaces oficiales específicos y confirmar el canal autorizado
-de novedades antes de ampliar el descubrimiento. Los periodos registrados para
+Se configura la página de normatividad del piloto, que no equivale a descargar el Anexo 2.4.1. Registrar enlaces específicos y confirmar un canal de novedades antes de ampliar el descubrimiento. Los periodos registrados para
 estos monitores indican cuándo se solicitó la comprobación, no una búsqueda
 retrospectiva garantizada del portal.
 
@@ -103,3 +103,20 @@ Para habilitar validación en vivo se requieren, según URLs configuradas:
 `www.dof.gob.mx`, `dof.gob.mx`, `sidof.segob.gob.mx`,
 `platiica.economia.gob.mx`, `www.snice.gob.mx`, `snice.gob.mx`.
 Agregar dominios al borrador no aplica permisos a la instancia en ejecución.
+
+## SIDOF conocido, referencias esperadas y proxy
+
+El conector `sidof` consulta `https://sidof.segob.gob.mx/notas/docFuente/5758923`
+con identidad `DOF:5758923`. Conserva el documento de referencia y no intenta
+usarlo como índice diario ni inventa una API. El cuerpo descargado no contiene
+una fecha explícita de publicación: se conserva desconocida, aunque PLATIICA
+sí informa su fecha en un campo identificable.
+
+Las fuentes conocidas incluyen referencias esperadas. Si una página deja de
+contenerlas, el trabajador conserva el fallo y no sustituye la evidencia válida
+por una portada u otra respuesta. Las referencias se incluyen en la instantánea
+del trabajo y en el control de reanudación.
+
+Con `SOURCE_DNS_MODE=local` se comprueba DNS local público. `proxy` requiere
+un proxy configurado en el entorno que resuelva y controle destinos. Los hosts,
+TLS y redirecciones siguen restringidos. Véase PILOT_ACCEPTANCE.md.

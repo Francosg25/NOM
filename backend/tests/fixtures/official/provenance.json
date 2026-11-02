@@ -1,0 +1,38 @@
+[
+  {
+    "file": "platiica.html",
+    "url": "https://platiica.economia.gob.mx/normalizacion/nom-014-ener-2025/",
+    "official_id": "URL:https://platiica.economia.gob.mx/normalizacion/nom-014-ener-2025/",
+    "captured_at": "2026-11-02T22:19:29.959302",
+    "title": "NOM-014-ENER-2025",
+    "published_on": "2025-06-02",
+    "original_capture_sha256": "f294846b5e86f7f299a029330cee992108e3d028cf567a33c9ee2336e7368509",
+    "fixture_sha256": "dc9003ba588525df71bce2fbd5e708abeb42ad971fc2be8dc07ce9a7da4e5bdc",
+    "fixture_type": "sanitized_text_extract",
+    "note": "Extracto de texto público; estructura HTML mínima preparada para pruebas. No es la respuesta HTML íntegra ni valida su estructura original."
+  },
+  {
+    "file": "snice.html",
+    "url": "https://www.snice.gob.mx/cs/avi/snice/seguridad.normatividad.html",
+    "official_id": "URL:https://www.snice.gob.mx/cs/avi/snice/seguridad.normatividad.html",
+    "captured_at": "2026-11-02T22:19:34.810346",
+    "title": "NOM´s: Normatividad",
+    "published_on": null,
+    "original_capture_sha256": "fb429b23ba02ae860e5b0a2269fcaeeac6f65fb7d9d3211c83e324b7b9b3b8bd",
+    "fixture_sha256": "33cf3485373a8b9d819b93d6f1f567e12af449ac6eb32d57aceee89dab2eaa25",
+    "fixture_type": "sanitized_text_extract",
+    "note": "Extracto de texto público; estructura HTML mínima preparada para pruebas. No es la respuesta HTML íntegra ni valida su estructura original."
+  },
+  {
+    "file": "sidof.html",
+    "url": "https://sidof.segob.gob.mx/notas/docFuente/5758923",
+    "official_id": "DOF:5758923",
+    "captured_at": "2026-11-02T22:19:39.912573",
+    "title": "NORMA Oficial Mexicana NOM014ENER2025, Eficiencia energética de motores eléctricos de corriente alterna, monofásicos, de inducción, tipo jaula de ardilla, enfriados con aire, en potencia nominal de 0.180 kW a 2.238 kW. Límites, método de prueba y marcado.",
+    "published_on": null,
+    "original_capture_sha256": "11799e3c45c72fde99e42be78c56822bae8750b97279404714d9540aeb24ed32",
+    "fixture_sha256": "32df0953a43c23c7fc499490dfda8113896283bd4d930fed4f0c09cd8e0edb84",
+    "fixture_type": "sanitized_text_extract",
+    "note": "Extracto de texto público; estructura HTML mínima preparada para pruebas. No es la respuesta HTML íntegra ni valida su estructura original."
+  }
+]

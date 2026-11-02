@@ -9,7 +9,7 @@ Este documento prepara el despliegue; no publica ni crea recursos. Antes de desp
 5. Salida HTTPS a las fuentes, robots.txt y condiciones de acceso; DNS, proxy corporativo y CA de confianza. Nunca desactivar TLS ni sortear CAPTCHA.
 6. Dónde correr el trabajador, reinicios, supervisión y frecuencia. No activar programación hasta validar una consulta manual y un periodo retrospectivo.
 
-Para Entra, configurar tokens de acceso **v2** para la API (`api.requestedAccessTokenVersion=2` en su registro), audiencia exactamente igual a `ENTRA_AUDIENCE` y tenant GUID en `ENTRA_TENANT_ID`. Definir y asignar los tres roles de aplicación indicados. Los tokens de identidad de otro cliente no sustituyen el token de acceso para la API. Si se usa el token store de App Service, confirmar scopes y que `/.auth/me` entregue ese token de acceso; el backend seguirá comprobando firma, emisor, audiencia, tenant, expiración y roles. Si ese flujo no se configura, la interfaz admite pegar un token en memoria para una prueba controlada; no implementa adquisición interactiva MSAL por sí sola.
+Para Entra, configurar tokens de acceso **v2** para la API (`api.requestedAccessTokenVersion=2` en su registro), audiencia exactamente igual a `ENTRA_AUDIENCE` y tenant GUID en `ENTRA_TENANT_ID`. Definir y asignar los tres roles de aplicación indicados. Los tokens de identidad de otro cliente no sustituyen el token de acceso para la API. Si se usa el token store de App Service, confirmar scopes y que `/.auth/me` entregue ese token de acceso; el backend seguirá comprobando firma, emisor, audiencia, tenant, expiración y roles. La interfaz integra MSAL: configurar ENTRA_CLIENT_ID y ENTRA_SCOPES para adquisición interactiva y renovación. No se ofrece pegar tokens como flujo de producción.
 
 ## Compilación y paquete
 
@@ -40,7 +40,7 @@ Configurar el directorio de trabajo/puerto según el mecanismo de despliegue rea
 
 ## Trabajador y programación: decisión pendiente
 
-El trabajador usa el mismo PostgreSQL y Blob que la API. Primero levantar el consumidor de cola en un proceso supervisado y solicitar el trabajo manual desde la aplicación. Comprobar el identificador, progreso persistente, evidencia y resultados.
+El trabajador usa el mismo PostgreSQL y Blob que la API. El programador ya está implementado en `worker --poll --schedule`, con `SCHEDULER_ENABLED=true` y activación/fecha inicial por fuente. Instalar un solo consumidor programador supervisado; no depende de un timer de la API. Primero levantar el consumidor de cola en un proceso supervisado y solicitar el trabajo manual desde la aplicación. Comprobar el identificador, progreso persistente, evidencia y resultados.
 
 Alternativas a evaluar según el plan y SO: WebJob continuo/programado si es compatible, Azure Functions con temporizador que encole/ejecute el comando, o un agente corporativo/Windows Task Scheduler aprobado. No ejecutar simultáneamente varios programadores. Un temporizador debe encolar el intervalo explícito y usar la deduplicación del trabajo. La frecuencia deseada de una fuente es metadato: por sí sola no activa programación.
 
@@ -56,3 +56,15 @@ Una ejecución parcial conserva continuación; una fallida no equivale a un peri
 - Revisar logs sin tokens ni contenidos sensibles; definir retención y responsables operativos.
 
 La compilación local no valida el runtime, SSO ni conectividad de Azure. Esas pruebas requieren la configuración real y autorización de despliegue.
+
+## Configuración del inicio de sesión MSAL
+
+1. Registrar una API de un solo tenant, solicitar tokens v2 y exponer un scope delegado, por ejemplo `access_as_user`. Definir en la API los app roles `consulta`, `revisor` y `administrador`, y asignarlos a los usuarios o grupos correspondientes.
+2. Registrar un cliente SPA de un solo tenant con redirect URI exactamente `https://SU_HOST/` (y `http://localhost:8000/` solo para pruebas aprobadas). Añadir el permiso delegado de la API y gestionar el consentimiento necesario. El SPA es cliente público: **no se crea ni se envía un client secret al navegador**.
+3. Configurar en el backend `ENTRA_TENANT_ID=GUID_TENANT`, `ENTRA_AUDIENCE=GUID_DE_LA_API`, `ENTRA_CLIENT_ID=GUID_DEL_SPA`, `ENTRA_SCOPES=api://GUID_DE_LA_API/access_as_user`. Confirmar la audiencia real del token v2, sin utilizar un token de Microsoft Graph o un ID token como sustituto.
+4. Abrir la web y pulsar “Iniciar sesión con Microsoft”. Comprobar consulta, escritura, cierre de sesión y renovación con usuarios reales. La API sigue verificando firma, tenant, emisor, audiencia, expiración y roles.
+5. Si se elige Easy Auth en vez de MSAL, dejar vacíos CLIENT_ID/SCOPES y habilitar `ENTRA_APP_SERVICE_AUTH=true`; configurar su token store y scope de API, y probar `/.auth/me`. Una configuración no sustituye la otra automáticamente.
+
+La CSP permite conexiones de MSAL a `login.microsoftonline.com` solo con cliente Entra configurado. El módulo MSAL se carga de forma diferida. La configuración pública `/api/auth/config` solo expone IDs, scopes y modalidad; no expone conexiones, contraseñas o secretos.
+
+Documentación primaria: [inicialización MSAL](https://learn.microsoft.com/en-us/entra/msal/javascript/browser/initialization) y [Entra en App Service](https://learn.microsoft.com/en-us/azure/app-service/configure-authentication-provider-aad). No se crearon registros ni se validó un tenant real durante esta ampliación.

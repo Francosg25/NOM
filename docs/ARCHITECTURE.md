@@ -19,7 +19,7 @@ Las fechas de publicación, detección y vigencia son distintas. Una detección 
 
 ## Autenticación
 
-Los roles son consulta, revisor y administrador. El backend verifica permisos en cada operación protegida. El modo local requiere activación explícita y no debe utilizarse en producción. Entra ID usa tokens de acceso firmados para la audiencia de la API, emisor y tenant configurados. La interfaz permite suministrar un token sin persistirlo; una experiencia SSO corporativa con MSAL puede integrarse posteriormente.
+Los roles son consulta, revisor y administrador. El backend verifica permisos en cada operación protegida. El modo local requiere activación explícita y no debe utilizarse en producción. Entra ID usa tokens de acceso firmados para la audiencia de la API, emisor y tenant configurados. La interfaz integra MSAL con redirección, tokens de acceso y renovación silenciosa. Usa sessionStorage para la sesión MSAL. El modo normal no solicita pegar tokens. El código se carga solo cuando existe configuración Entra; falta validar el tenant real.
 
 No se confía en cabeceras de identidad añadidas por un cliente. La autenticación de App Service puede añadirse como capa adicional, pero no sustituye la configuración de validación de la API. No se han creado registros de aplicaciones, roles ni recursos de Azure.
 
@@ -29,4 +29,19 @@ Los conectores se separan del trabajo, la API, el almacenamiento y las reglas. L
 
 ## Estado inicial
 
-El repositorio recibido no tenía archivos ni commits. No se encontró AGENTS.md ni NOM_Monitor_Piloto.zip en los archivos disponibles. No se afirma haber revisado o reutilizado ese piloto. Los parsers y su cobertura deben contrastarse con respuestas oficiales actuales antes de confiar en la vigilancia operativa.
+La implementación inicial partió de un repositorio vacío. En esta ampliación se revisó NOM_Monitor_Piloto.zip, se incorporaron sus URLs y se verificó la evidencia de tres descargas reales. El repositorio público conserva informes, hashes y extractos reducidos; excluye las páginas HTML completas con metadatos y contactos. La cobertura diaria DOF sigue pendiente; ver PILOT_ACCEPTANCE.md.
+
+## Colas, programación y lecturas
+
+Los cambios de catálogo incrementan una revisión pendiente por registro y descendientes. El trabajador procesa publicaciones por cursor en lotes; propuestas y cursor se confirman en la misma transacción. Los bloqueos PostgreSQL y la actualización condicional evitan que un guardado requiera recorrer el archivo. Las decisiones previas se conservan.
+
+La programación reside en el trabajador supervisado, con activación global y por fuente. Los intervalos incompletos se reintentan antes de avanzar. Ningún timer depende del proceso HTTP o del navegador. Las consultas y versiones se deduplican; el siguiente periodo conserva un solapamiento reciente.
+
+Las listas cargan nombres y evidencia de vigencia en consultas agrupadas, con índices de apoyo. El frontend carga el catálogo de opciones al abrir un selector, no en cada pantalla ni cada 2.5 s. El seguimiento de trabajos usa sondeo de 5 s sin descargas de catálogo y se pausa en pestañas no visibles.
+
+El hash de versión incluye enlaces oficiales extraídos, para detectar sustituciones de documentos aunque el texto visible sea igual. En la primera consulta posterior a esta migración puede crearse una versión adicional por el nuevo formato de comparación, aun si no cambió el contenido normativo. No se presenta esa versión técnica como cambio legal.
+
+Cada documento observado deja un registro de auditoría ligado al trabajo y a su
+versión, también cuando no cambió. La aceptación usa esas observaciones actuales,
+no el inventario histórico de la base. El archivo asociado a una ejecución puede
+recuperarse aunque después se publique otra versión.
