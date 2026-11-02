@@ -63,6 +63,12 @@ independiente sobre PostgreSQL 16: migraciones, persistencia, versiones,
 herencia, cola y programación. Su resultado se consulta en GitHub; la ejecución
 local anterior usa SQLite y no se presenta como validación de PostgreSQL.
 
+La [ejecución de CI del PR](https://github.com/Francosg25/NOM/actions/runs/41540706173)
+terminó antes de asignar un ejecutor y no ejecutó ningún paso. Por tanto,
+Linux/Windows en Actions y PostgreSQL siguen **sin validar en CI**; los resultados
+aprobados de esta página corresponden a la ejecución local. El impedimento de
+la cuenta de GitHub debe resolverse antes de repetir esas comprobaciones.
+
 La comprobación visual de esta ampliación no se completó. El navegador remoto
 no alcanzó la aplicación local; el ejecutor no tiene un Chromium utilizable.
 La compilación aprobada no sustituye una prueba visual, móvil o de SSO.
