@@ -52,6 +52,7 @@ class Batch:
     continuation: dict | None
     coverage: str
     errors: list[str] = field(default_factory=list)
+    checks: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -365,6 +366,10 @@ def collect(kind: str, urls: list[str], period_start: date, period_end: date,
         raise CollectionError("Fuente sin URLs configuradas; cobertura pendiente")
     if kind == "dof" and len(urls) != 1:
         raise CollectionError("DOF requiere un único índice base; no se ignorarán URLs adicionales")
+    if kind == 'sidof' and any('/dof/sidof' in urlsplit(u).path for u in urls):
+        from .sidof import collect_daily, validate_api_urls
+        validate_api_urls(urls)
+        return collect_daily(urls, period_start, period_end, continuation, limit, fetcher=fetcher)
     if kind in {"platiica", "snice"} and any(urlsplit(u).path in {"", "/"} for u in urls):
         raise CollectionError("Configurar fichas o publicaciones concretas; una portada no es un canal de descubrimiento")
     if continuation and (continuation.get("kind") != kind or continuation.get("start") != period_start.isoformat()

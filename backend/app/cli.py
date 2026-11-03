@@ -5,7 +5,8 @@ import argparse
 import json
 import sys
 import time
-from datetime import date
+from datetime import date, timedelta
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from sqlalchemy import select
@@ -13,7 +14,8 @@ from sqlalchemy import select
 from .config import get_settings
 from .db import SessionLocal
 from .jobs import ingest_document, recover_interrupted, request_job, run_once, reevaluate_all
-from .models import Audit, CatalogItem, Job, Publication, Source
+from .models import Audit, CatalogItem, Job, Publication, Source, utcnow
+from .collectors.sidof import API_BASE
 from .storage import get_storage
 
 
@@ -24,17 +26,42 @@ INITIAL_SOURCES = (
      "Ficha NOM-014-ENER-2025 del piloto. Seguimiento de texto y enlaces, no descubrimiento global. Descarga por validar en esta instalación."),
     ("SNICE", "snice", ['https://www.snice.gob.mx/cs/avi/snice/seguridad.normatividad.html'],
      "Página de normatividad NOM del piloto. Conserva cambios de texto y enlaces; no consolida automáticamente el Anexo 2.4.1."),
-    ("SIDOF · documento de referencia", 'sidof', ['https://sidof.segob.gob.mx/notas/docFuente/5758923'],
-     "Documento conocido NOM-014-ENER-2025 del piloto; comprobar descarga y evidencia. No sustituye el descubrimiento diario DOF."),
+    ("SIDOF · publicaciones diarias", 'sidof', [API_BASE],
+     "SIDOF diario: ediciones y notas por fecha. Selecciona NOM y reglas de comercio exterior; conserva el detalle JSON oficial. No determina aplicabilidad a productos."),
 )
 
 
 def init_sources(db):
     for name, kind, urls, coverage in INITIAL_SOURCES:
         if db.scalar(select(Source).where(Source.kind == kind)) is None:
-            terms = ['NOM-014-ENER-2025'] if kind in ('platiica','sidof') else ['Anexo 2.4.1'] if kind == 'snice' else []
-            db.add(Source(name=name, kind=kind, urls=urls, coverage=coverage, active=True,expected_terms=terms))
+            terms = ['NOM-014-ENER-2025'] if kind == 'platiica' else ['Anexo 2.4.1'] if kind == 'snice' else []
+            db.add(Source(name=name, kind=kind, urls=urls, coverage=coverage, active=True,
+                          expected_terms=terms, frequency_hours=1 if kind == 'sidof' else 24))
     db.commit()
+    upgrade_sidof_source(db)
+
+
+def upgrade_sidof_source(db):
+    """Upgrade only the unmodified pilot reference; retain records and user choices."""
+    source = db.scalar(select(Source).where(Source.kind == 'sidof').order_by(Source.id))
+    if not source or source.urls != ['https://sidof.segob.gob.mx/notas/docFuente/5758923'] or source.expected_terms != ['NOM-014-ENER-2025']:
+        return False
+    if db.scalar(select(Job.id).where(Job.source_id == source.id, Job.active_key.is_not(None))):
+        return False
+    before = {'urls':source.urls, 'expected_terms':source.expected_terms, 'schedule_start':str(source.schedule_start)}
+    source.urls, source.expected_terms = [API_BASE], []
+    source.name = 'SIDOF · publicaciones diarias'
+    source.coverage = INITIAL_SOURCES[-1][3]
+    lookback = utcnow().astimezone(ZoneInfo('America/Mexico_City')).date() - timedelta(days=6)
+    source.schedule_start = min(source.schedule_start, lookback) if source.schedule_start else None
+    if source.frequency_hours == 24:
+        source.frequency_hours = 1
+    source.next_due_at = None
+    source.last_success_at, source.last_error = None, None
+    db.add(Audit(actor='sistema', action='activar_sidof_diario', entity_type='sources', entity_id=str(source.id),
+        before=before, after={'urls':source.urls, 'expected_terms':[], 'preserved_publications':True}))
+    db.commit()
+    return True
 
 
 def configure_pilot_sources(db):
@@ -44,7 +71,7 @@ def configure_pilot_sources(db):
         source = db.scalar(select(Source).where(Source.kind == kind).order_by(Source.id))
         if not source.urls:
             source.urls, source.coverage = urls, coverage
-            source.expected_terms = ['NOM-014-ENER-2025'] if kind in ('platiica','sidof') else ['Anexo 2.4.1'] if kind == 'snice' else []
+            source.expected_terms = ['NOM-014-ENER-2025'] if kind == 'platiica' else ['Anexo 2.4.1'] if kind == 'snice' else []
             db.add(Audit(actor='cli-operador',action='configurar_piloto',entity_type='sources',entity_id=str(source.id),after={'urls':urls}))
     db.commit()
 

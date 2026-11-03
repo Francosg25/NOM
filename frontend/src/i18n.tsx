@@ -9,6 +9,27 @@ import type { ReactNode } from "react";
 
 type Language = "es" | "en";
 const english: Record<string, string> = {
+  "SIDOF · publicaciones diarias": "SIDOF · daily publications",
+  diario: "daily",
+  "Ver revisión diaria": "View daily check",
+  "Revisión diaria SIDOF": "SIDOF daily check",
+  "Qué se revisó": "What was checked",
+  "Las notas son todas las publicaciones del diario, no todas son NOM. Las referencias sin texto o título requieren revisión adicional.":
+    "Notes are all the gazette's publications, not all are NOM standards. References without text or a title need additional review.",
+  "Todavía no hay un día completo registrado en este lote.":
+    "No complete day has been recorded in this batch yet.",
+  "{notes} notas revisadas · {selected} publicaciones seleccionadas":
+    "{notes} notes checked · {selected} publications selected",
+  "SIDOF declaró esta fecha sin publicación; no equivale a una garantía de cobertura integral.":
+    "SIDOF declared no publication for this date; this does not guarantee complete coverage.",
+  "{count} referencias pendientes de revisión":
+    "{count} references need review",
+  "El servicio no proporcionó título o texto suficiente para clasificarlas. No se descartaron como irrelevantes.":
+    "The service did not provide enough title or text to classify them. They were not dismissed as irrelevant.",
+  "SIDOF consulta ediciones y notas por fecha y selecciona publicaciones relacionadas con NOM y reglas de comercio exterior. La primera revisión cubre los últimos siete días. PLATIICA y SNICE siguen sus páginas configuradas. Las notas sin título ni texto quedan señaladas para revisión; encontrar todas las NOM aún requiere contraste con el DOF.":
+    "SIDOF checks editions and notes by date and selects publications related to NOM standards and foreign trade rules. The first check covers the last seven days. PLATIICA and SNICE follow their configured pages. Notes without titles or text are flagged for review; finding every NOM still requires comparison with the DOF.",
+  "coverage.sidof_daily":
+    "Checks editions and notes by date through the official SIDOF API. Saves selected NOM and foreign trade publications, with counts and unresolved references in each daily check. Does not automatically determine product applicability.",
   "La conexión HTTPS falló al validar el certificado: puede no ser reconocido, estar vencido o tener una cadena incompleta. Esta fuente no pudo revisarse.":
     "HTTPS certificate validation failed: the certificate may be untrusted, expired or missing part of its chain. This source could not be checked.",
   "No se pudo negociar la conexión segura con el sitio o el proxy. La revisión sigue pendiente.":

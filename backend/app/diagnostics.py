@@ -1,6 +1,7 @@
 """Read-only access test for the four pilot URLs; does not validate NOM coverage."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 import argparse
 import json
 import os
@@ -12,11 +13,12 @@ import sys
 from .collectors import CollectionError, SafeFetcher
 from .config import get_settings
 from .network import https_proxy_configured
+from .collectors.sidof import API_BASE
 
 URLS = (
     ('DOF', 'https://www.dof.gob.mx/index.php'),
     ('PLATIICA', 'https://platiica.economia.gob.mx/normalizacion/nom-014-ener-2025/'),
-    ('SIDOF', 'https://sidof.segob.gob.mx/notas/docFuente/5758923'),
+    ('SIDOF', API_BASE + '/notas/' + datetime.now(ZoneInfo('America/Mexico_City')).strftime('%d-%m-%Y')),
     ('SNICE', 'https://www.snice.gob.mx/cs/avi/snice/seguridad.normatividad.html'),
 )
 

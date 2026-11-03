@@ -1,0 +1,293 @@
+{
+  "checked_on": "2026-11-03",
+  "source": "https://sidof.segob.gob.mx/dof/sidof",
+  "network": "Live SafeFetcher; verified HTTPS and robots; proxy DNS in this executor",
+  "scope": "Reduced execution evidence; complete NOM coverage and product applicability were not established. No source responses or contacts are republished.",
+  "runs": [
+    {
+      "generated_at": "2026-11-03T22:08:07.838574+00:00",
+      "period_start": "2026-10-28",
+      "period_end": "2026-11-03",
+      "technical_passed": false,
+      "coverage_verified": false,
+      "label": "initial-seven-days",
+      "observed_ids": [
+        "DOF:5802362",
+        "DOF:5802465",
+        "DOF:5802604",
+        "DOF:5802610",
+        "DOF:5802721"
+      ],
+      "versions_added": 0,
+      "errors": [
+        "2026-11-01: Consulta oficial falló: HTTP 404 (sidof.segob.gob.mx)\n2026-10-31: Consulta oficial falló: HTTP 404 (sidof.segob.gob.mx)",
+        "2026-11-01: Consulta oficial falló: HTTP 404 (sidof.segob.gob.mx)"
+      ],
+      "unresolved_ids": [
+        "DOF:5802356",
+        "DOF:5802359",
+        "DOF:5802361",
+        "DOF:5802363",
+        "DOF:5802365",
+        "DOF:5802367",
+        "DOF:5802369",
+        "DOF:5802371",
+        "DOF:5802373",
+        "DOF:5802375",
+        "DOF:5802377",
+        "DOF:5802382",
+        "DOF:5802456",
+        "DOF:5802459",
+        "DOF:5802462",
+        "DOF:5802464",
+        "DOF:5802466",
+        "DOF:5802469",
+        "DOF:5802471",
+        "DOF:5802473",
+        "DOF:5802475",
+        "DOF:5802478",
+        "DOF:5802482",
+        "DOF:5802485",
+        "DOF:5802596",
+        "DOF:5802599",
+        "DOF:5802603",
+        "DOF:5802606",
+        "DOF:5802609",
+        "DOF:5802611",
+        "DOF:5802613",
+        "DOF:5802617",
+        "DOF:5802696",
+        "DOF:5802700",
+        "DOF:5802716",
+        "DOF:5802718",
+        "DOF:5802720",
+        "DOF:5802722",
+        "DOF:5802724",
+        "DOF:5802726",
+        "DOF:5802729",
+        "DOF:5802732",
+        "DOF:5802756",
+        "DOF:5802759",
+        "DOF:5802762",
+        "DOF:5802764",
+        "DOF:5802766",
+        "DOF:5802768",
+        "DOF:5802770",
+        "DOF:5802772",
+        "DOF:5802777"
+      ],
+      "evidence": [
+        {
+          "official_id": "DOF:5802721",
+          "version_id": 5,
+          "sha256": "69395a8250e6dc2fc656e134fb04b549c463fc783bfc6d738f7d0b303610a429",
+          "bytes": 397958,
+          "integrity": true,
+          "processing_note": null
+        },
+        {
+          "official_id": "DOF:5802604",
+          "version_id": 3,
+          "sha256": "2cfcbd4cd2ed0a43045f9fb2609cfd2f8bcfa4bd66c5f0ee381d06149053009e",
+          "bytes": 46201,
+          "integrity": true,
+          "processing_note": null
+        },
+        {
+          "official_id": "DOF:5802610",
+          "version_id": 4,
+          "sha256": "aa5f6fe58f6a33f2b8157fd61b6a043b6d6026cb41e504f2d2d0818bae4d4725",
+          "bytes": 21162,
+          "integrity": true,
+          "processing_note": null
+        },
+        {
+          "official_id": "DOF:5802465",
+          "version_id": 2,
+          "sha256": "bde45288aaf4ed2697fe8bc874c3d3610ca8346c96063963de4c9d1fd1575bc5",
+          "bytes": 44821,
+          "integrity": true,
+          "processing_note": null
+        },
+        {
+          "official_id": "DOF:5802362",
+          "version_id": 1,
+          "sha256": "8dd040ab5c613c82cf9209809223682c44bb0e57bf137bf5681b230a360ce641",
+          "bytes": 700589,
+          "integrity": true,
+          "processing_note": null
+        }
+      ],
+      "index_checks": [
+        {
+          "day": "2026-11-03",
+          "diary_ids": [
+            "330585"
+          ],
+          "notes_checked": 174,
+          "selected_ids": [],
+          "declared_no_publication": false,
+          "manifest_sha256": "aa9e5c76cec0c2e03761419eb86686abc01dcdfa0cf7b832d340c1a762cb4771",
+          "index_sha256": "0ad2c1d856b06c8dc92ac49d63aedca3518c86678a497e9ae4c0797f32925343",
+          "unresolved_count": 9
+        },
+        {
+          "day": "2026-11-02",
+          "diary_ids": [
+            "330565"
+          ],
+          "notes_checked": 35,
+          "selected_ids": [
+            "DOF:5802721"
+          ],
+          "declared_no_publication": false,
+          "manifest_sha256": "0e58009583d270e94ed03e0e79d5b6dc4040d420d06ddedc3ee8cb19a7fd0e7e",
+          "index_sha256": "8da28d0ee08ef93bf3b6d9f8539ebdbd8654c45de841a58a837ba4d9cdfcf3eb",
+          "unresolved_count": 8
+        },
+        {
+          "day": "2026-10-30",
+          "diary_ids": [
+            "330525",
+            "330545"
+          ],
+          "notes_checked": 96,
+          "selected_ids": [
+            "DOF:5802604",
+            "DOF:5802610"
+          ],
+          "declared_no_publication": false,
+          "manifest_sha256": "dd7138b22bc48673ef8e63139a2cf039cc19f7bde3fb4d7bb4946eb5bcc2aa38",
+          "index_sha256": "a36711416bc59e93e50fcb754ed706a5d3fdcc19f1380d7fefd570a5758c20cb",
+          "unresolved_count": 10
+        },
+        {
+          "day": "2026-10-29",
+          "diary_ids": [
+            "330505"
+          ],
+          "notes_checked": 137,
+          "selected_ids": [
+            "DOF:5802465"
+          ],
+          "declared_no_publication": false,
+          "manifest_sha256": "50f77c3ee43d204bbecbc2a37058a46bb8c62b35dfd8aed5275776ff4f1a0c65",
+          "index_sha256": "03cfab62e14546d63b2326cec58532c566af95ac4c8fcc7cef5adebc13108581",
+          "unresolved_count": 12
+        },
+        {
+          "day": "2026-10-28",
+          "diary_ids": [
+            "330485"
+          ],
+          "notes_checked": 81,
+          "selected_ids": [
+            "DOF:5802362"
+          ],
+          "declared_no_publication": false,
+          "manifest_sha256": "a583a7897ba7cb323c116e904971c3cee963ff296ba4d8936a264817f473b2e6",
+          "index_sha256": "8d07ecb6f9c7fe8996af940a68a5eeaa51a60e76d06d2af3a6091d768a0e8e08",
+          "unresolved_count": 12
+        }
+      ]
+    },
+    {
+      "generated_at": "2026-11-03T22:09:27.498246+00:00",
+      "period_start": "2026-11-02",
+      "period_end": "2026-11-02",
+      "technical_passed": true,
+      "coverage_verified": false,
+      "label": "known-day-first",
+      "observed_ids": [
+        "DOF:5802721"
+      ],
+      "versions_added": 0,
+      "errors": [],
+      "unresolved_ids": [
+        "DOF:5802716",
+        "DOF:5802718",
+        "DOF:5802720",
+        "DOF:5802722",
+        "DOF:5802724",
+        "DOF:5802726",
+        "DOF:5802729",
+        "DOF:5802732"
+      ],
+      "evidence": [
+        {
+          "official_id": "DOF:5802721",
+          "version_id": 5,
+          "sha256": "69395a8250e6dc2fc656e134fb04b549c463fc783bfc6d738f7d0b303610a429",
+          "bytes": 397958,
+          "integrity": true,
+          "processing_note": null
+        }
+      ],
+      "index_checks": [
+        {
+          "day": "2026-11-02",
+          "diary_ids": [
+            "330565"
+          ],
+          "notes_checked": 35,
+          "selected_ids": [
+            "DOF:5802721"
+          ],
+          "declared_no_publication": false,
+          "manifest_sha256": "0e58009583d270e94ed03e0e79d5b6dc4040d420d06ddedc3ee8cb19a7fd0e7e",
+          "index_sha256": "8da28d0ee08ef93bf3b6d9f8539ebdbd8654c45de841a58a837ba4d9cdfcf3eb",
+          "unresolved_count": 8
+        }
+      ]
+    },
+    {
+      "generated_at": "2026-11-03T22:09:41.122619+00:00",
+      "period_start": "2026-11-02",
+      "period_end": "2026-11-02",
+      "technical_passed": true,
+      "coverage_verified": false,
+      "label": "known-day-repeat",
+      "observed_ids": [
+        "DOF:5802721"
+      ],
+      "versions_added": 0,
+      "errors": [],
+      "unresolved_ids": [
+        "DOF:5802716",
+        "DOF:5802718",
+        "DOF:5802720",
+        "DOF:5802722",
+        "DOF:5802724",
+        "DOF:5802726",
+        "DOF:5802729",
+        "DOF:5802732"
+      ],
+      "evidence": [
+        {
+          "official_id": "DOF:5802721",
+          "version_id": 5,
+          "sha256": "69395a8250e6dc2fc656e134fb04b549c463fc783bfc6d738f7d0b303610a429",
+          "bytes": 397958,
+          "integrity": true,
+          "processing_note": null
+        }
+      ],
+      "index_checks": [
+        {
+          "day": "2026-11-02",
+          "diary_ids": [
+            "330565"
+          ],
+          "notes_checked": 35,
+          "selected_ids": [
+            "DOF:5802721"
+          ],
+          "declared_no_publication": false,
+          "manifest_sha256": "0e58009583d270e94ed03e0e79d5b6dc4040d420d06ddedc3ee8cb19a7fd0e7e",
+          "index_sha256": "8da28d0ee08ef93bf3b6d9f8539ebdbd8654c45de841a58a837ba4d9cdfcf3eb",
+          "unresolved_count": 8
+        }
+      ]
+    }
+  ]
+}

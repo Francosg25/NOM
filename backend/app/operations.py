@@ -2,11 +2,11 @@
 from datetime import timedelta
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import or_, select, update
+from sqlalchemy import case, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from .jobs import _refresh_proposals, request_job
-from .models import Audit, CatalogItem, Job, Publication, Reevaluation, Source, Version, utcnow
+from .models import Audit, CatalogItem, Job, Publication, Reevaluation, Source, SourceRun, Version, utcnow
 
 
 def enqueue_reevaluation(db, catalog_id: int, actor: str):
@@ -80,7 +80,8 @@ def schedule_due(db, now=None):
     now = now or utcnow()
     today = now.astimezone(ZoneInfo('America/Mexico_City')).date()
     ids = list(db.scalars(select(Source.id).where(Source.active.is_(True), Source.schedule_enabled.is_(True),
-        or_(Source.next_due_at.is_(None), Source.next_due_at <= now))))
+        or_(Source.next_due_at.is_(None), Source.next_due_at <= now))
+        .order_by(case((Source.kind == 'sidof', 0), else_=1), Source.id)))
     created = []
     for source_id in ids:
         source = db.get(Source, source_id)
@@ -94,11 +95,25 @@ def schedule_due(db, now=None):
             continue
         previous = db.scalar(select(Job).where(Job.source_id == source.id, Job.requested_by == 'scheduler')
                              .order_by(Job.requested_at.desc(), Job.id.desc()).limit(1))
+        if previous:
+            run = db.scalar(select(SourceRun).where(SourceRun.job_id == previous.id))
+            snapshot = run.source_snapshot if run else None
+            if snapshot and any(snapshot.get(key, []) != getattr(source, key) for key in ('kind','urls','expected_terms')):
+                previous = None
+        from .collectors.sidof import is_daily
+        daily = source.kind == 'sidof' and is_daily(source.urls)
+        # An unavailable historical date must not freeze future daily checks.
+        # Finish other queued dates first; then retry the rolling seven-day window.
+        rolling_start = None
+        if daily and previous and previous.error_count and (previous.period_end < today or
+                not any(not item.get('failed') for item in (previous.continuation or {}).get('queue', []))):
+            previous = None
+            rolling_start = max(source.schedule_start, today - timedelta(days=6))
         continuation = None
         if previous and previous.status in ('partial', 'failed', 'interrupted'):
             start, end, continuation = previous.period_start, previous.period_end, previous.continuation
         else:
-            start = max(source.schedule_start, previous.period_end - timedelta(days=1)) if previous else source.schedule_start
+            start = max(source.schedule_start, previous.period_end - timedelta(days=1)) if previous else rolling_start or source.schedule_start
             # Advance large backlogs rather than remaining stuck on the overlap.
             if previous and previous.period_end < today:
                 start = max(source.schedule_start, previous.period_end)
@@ -118,7 +133,10 @@ def advance_schedule(db, job):
     if job is None or job.requested_by != 'scheduler':
         return
     source = db.get(Source, job.source_id)
+    pending_dates = (job.continuation or {}).get('queue', [])
+    unattempted_days = source.kind == 'sidof' and any(not item.get('failed') for item in pending_dates)
     if source.schedule_enabled and (job.status == 'partial' and job.error_count == 0 or
+        job.status == 'partial' and unattempted_days or
         job.status == 'succeeded' and job.period_end < utcnow().astimezone(ZoneInfo('America/Mexico_City')).date()):
         source.next_due_at = utcnow()
         db.commit()

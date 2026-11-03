@@ -6,6 +6,15 @@ se agotó la cola de esa consulta configurada. No significa cobertura normativa 
 
 ## Estado de validación
 
+La versión 0.4.0 incorpora la API diaria SIDOF como canal principal. La consulta
+real del 3 de noviembre recuperó **DOF:5802721 / NOM-EM-023-SE-2026**, publicada
+el 2 de noviembre. Se consultaron las 35 notas de ese día: una seleccionada y
+ocho referencias sin título ni texto pendientes de revisión. La repetición y
+persistencia se documentan en [SIDOF diario](SIDOF_DAILY.md). No se declara
+cobertura integral mientras existan referencias sin clasificar.
+
+### Antecedente del piloto de referencia
+
 El 2 de noviembre de 2026 se consultó el ZIP del piloto y el programa descargó
 las tres URLs concretas de SIDOF, PLATIICA y SNICE. Se guardaron las capturas
 originales en el almacén de evidencia, se verificó su SHA-256 al recuperarlas y se repitió la consulta sin
@@ -104,13 +113,26 @@ Para habilitar validación en vivo se requieren, según URLs configuradas:
 `platiica.economia.gob.mx`, `www.snice.gob.mx`, `snice.gob.mx`.
 Agregar dominios al borrador no aplica permisos a la instancia en ejecución.
 
-## SIDOF conocido, referencias esperadas y proxy
+## SIDOF diario, documentos conocidos y proxy
 
-El conector `sidof` consulta `https://sidof.segob.gob.mx/notas/docFuente/5758923`
-con identidad `DOF:5758923`. Conserva el documento de referencia y no intenta
-usarlo como índice diario ni inventa una API. El cuerpo descargado no contiene
-una fecha explícita de publicación: se conserva desconocida, aunque PLATIICA
-sí informa su fecha en un campo identificable.
+El conector `sidof` admite dos configuraciones. La predeterminada es una única
+base `https://sidof.segob.gob.mx/dof/sidof`, con descubrimiento por fecha. Usa
+`diarios/porFecha/DD-MM-YYYY`, `notas/DD-MM-YYYY` y `notas/nota/CODIGO`.
+Para respuestas completamente vacías contrasta `diarios/AAAA` y exige una fecha
+declarada sin publicación. Todas las ediciones declaradas deben aportar notas.
+Se comprueban códigos, fechas y pertenencia a diario antes de guardar datos.
+
+Selecciona títulos con NOM, Norma Oficial Mexicana, Anexo 2.4.1 o reglas y
+criterios de comercio exterior. Las NMX no se incluyen automáticamente como
+NOM. Las notas sin título se consultan individualmente; si el detalle tampoco
+permite clasificarlas quedan pendientes con vínculo oficial y hash. Los
+errores y límites mantienen un cursor de continuación, sin saltar el detalle
+fallido. La evidencia de cada publicación seleccionada es el JSON íntegro
+recuperado, no un PDF individual inventado.
+
+La configuración con URLs `notas/docFuente/...` conserva el monitor de documentos
+conocidos. El documento piloto `DOF:5758923` permanece almacenado al actualizar
+la fuente predeterminada; no se cambia la configuración de un monitor personalizado.
 
 Las fuentes conocidas incluyen referencias esperadas. Si una página deja de
 contenerlas, el trabajador conserva el fallo y no sustituye la evidencia válida

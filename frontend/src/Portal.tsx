@@ -60,6 +60,15 @@ function displayUrl(value: string) {
     return value;
   }
 }
+function dailySource(item?: Row) {
+  return (
+    item?.kind === "sidof" &&
+    item.urls?.some(
+      (url: string) =>
+        url.replace(/\/$/, "") === "https://sidof.segob.gob.mx/dof/sidof",
+    )
+  );
+}
 function sourceIssue(error: string) {
   const causes: Record<string, string> = {
     TLS_CERTIFICATE:
@@ -179,7 +188,7 @@ function Guide({ go }: { go: (view: View) => void }) {
           <h2>{t("La cobertura depende de las páginas.")}</h2>
           <p>
             {t(
-              "DOF sigue su índice diario. PLATIICA y SNICE siguen las fichas o páginas que se configuren. SIDOF permite seguir un documento conocido. La cobertura diaria de DOF aún requiere validación.",
+              "SIDOF consulta ediciones y notas por fecha y selecciona publicaciones relacionadas con NOM y reglas de comercio exterior. La primera revisión cubre los últimos siete días. PLATIICA y SNICE siguen sus páginas configuradas. Las notas sin título ni texto quedan señaladas para revisión; encontrar todas las NOM aún requiere contraste con el DOF.",
             )}
           </p>
           <p>
@@ -346,7 +355,7 @@ function PublicationRow({
       <DateMark value={item.published_on} />
       <div className="publication-copy">
         <div className="article-kicker">
-          <span>{item.source_name}</span>
+          <span>{t(item.source_name)}</span>
           <span>{t(types[item.kind] || "Publicación")}</span>
           {item.has_changes && (
             <b className="change-flag">{t("Cambio detectado")}</b>
@@ -424,6 +433,7 @@ function Bulletin() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [detail, setDetail] = useState<Row | null>(null);
+  const [inspection, setInspection] = useState<Row | null>(null);
   const [versionId, setVersionId] = useState<number | null>(null);
   const [term, setTerm] = useState("");
   const [terms, setTerms] = useState<string[]>(() => {
@@ -606,6 +616,7 @@ function Bulletin() {
     }
   };
   const closeReader = useCallback(() => setDetail(null), []);
+  const closeInspection = useCallback(() => setInspection(null), []);
   const download = async (version: Row) => {
     try {
       const current = await accessToken(token);
@@ -617,7 +628,7 @@ function Bulletin() {
       const url = URL.createObjectURL(await response.blob());
       const a = document.createElement("a");
       a.href = url;
-      a.download = `norma-${version.id}${version.media_type?.includes("pdf") ? ".pdf" : ".html"}`;
+      a.download = `norma-${version.id}${version.media_type?.includes("pdf") ? ".pdf" : version.media_type?.includes("json") ? ".json" : ".html"}`;
       a.click();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (e) {
@@ -683,7 +694,11 @@ function Bulletin() {
     activeSources.length > 0 && failedSources.length === activeSources.length;
   const sourceName = (s?: Row) =>
     s?.kind === "sidof"
-      ? t("SIDOF · documento de referencia")
+      ? t(
+          dailySource(s)
+            ? "SIDOF · publicaciones diarias"
+            : "SIDOF · documento de referencia",
+        )
       : s?.name || t("Fuente");
   const lead = publications[0];
   const selected = detail?.versions.find((v: Row) => v.id === versionId);
@@ -973,7 +988,9 @@ function Bulletin() {
                       className={`status-dot ${s.last_error ? "issue" : s.last_success_at ? "good" : ""}`}
                     />
                     {s.kind.toUpperCase()}
-                    {s.kind === "sidof" ? ` · ${t("referencia")}` : ""}
+                    {s.kind === "sidof"
+                      ? ` · ${t(dailySource(s) ? "diario" : "referencia")}`
+                      : ""}
                   </button>
                 ))}
             </div>
@@ -1117,7 +1134,7 @@ function Bulletin() {
                           <span className="lead-label">
                             {t("PRIMERA LECTURA")}
                           </span>
-                          <span>{lead.source_name}</span>
+                          <span>{t(lead.source_name)}</span>
                           {lead.has_changes && (
                             <b className="change-flag">
                               {t("Cambio detectado")}
@@ -1376,7 +1393,11 @@ function Bulletin() {
                     <h2>{sourceName(item)}</h2>
                     <p>
                       {language === "en"
-                        ? t(`coverage.${item.kind}`)
+                        ? t(
+                            dailySource(item)
+                              ? "coverage.sidof_daily"
+                              : `coverage.${item.kind}`,
+                          )
                         : item.coverage}
                     </p>
                     {language === "en" && (
@@ -1519,6 +1540,20 @@ function Bulletin() {
                         ? t(" · {count} errores", { count: job.error_count })
                         : ""}
                     </small>
+                    {dailySource(
+                      sources.find((s) => s.id === job.source_id),
+                    ) && (
+                      <button
+                        className="text-button"
+                        onClick={() =>
+                          void request(`/jobs/${job.id}`)
+                            .then(setInspection)
+                            .catch((e) => setError(e.message))
+                        }
+                      >
+                        {t("Ver revisión diaria")}
+                      </button>
+                    )}
                     {admin &&
                       ["failed", "partial", "interrupted"].includes(
                         job.status,
@@ -1583,7 +1618,7 @@ function Bulletin() {
         <Reader title={detail.title} close={closeReader}>
           <div className="reader-body">
             <div className="article-kicker">
-              <span>{detail.source_name}</span>
+              <span>{t(detail.source_name)}</span>
               <span>{t(types[detail.kind] || "Publicación")}</span>
               {detail.is_demo && (
                 <b className="demo-flag">{t("Muestra sintética")}</b>
@@ -1675,6 +1710,84 @@ function Bulletin() {
               <p className="capture-caption">
                 {t("Todavía no hay una copia del documento disponible.")}
               </p>
+            )}
+          </div>
+        </Reader>
+      )}
+      {inspection && (
+        <Reader title={t("Revisión diaria SIDOF")} close={closeInspection}>
+          <div className="reader-body">
+            <span className="eyebrow">SIDOF / API</span>
+            <h1>{t("Qué se revisó")}</h1>
+            <p className="capture-caption">
+              {t(
+                "Las notas son todas las publicaciones del diario, no todas son NOM. Las referencias sin texto o título requieren revisión adicional.",
+              )}
+            </p>
+            {(inspection.index_checks || []).length === 0 && (
+              <p>
+                {t("Todavía no hay un día completo registrado en este lote.")}
+              </p>
+            )}
+            {(inspection.index_checks || []).map(
+              (check: Row, index: number) => (
+                <section className="daily-check" key={`${check.day}-${index}`}>
+                  <h2>{format(check.day)}</h2>
+                  <p>
+                    {t(
+                      "{notes} notas revisadas · {selected} publicaciones seleccionadas",
+                      {
+                        notes: check.notes_checked,
+                        selected: check.selected_ids.length,
+                      },
+                    )}
+                  </p>
+                  {check.declared_no_publication && (
+                    <p>
+                      {t(
+                        "SIDOF declaró esta fecha sin publicación; no equivale a una garantía de cobertura integral.",
+                      )}
+                    </p>
+                  )}
+                  {check.selected_ids.map((id: string) => (
+                    <span className="daily-id" key={id}>
+                      {id}
+                    </span>
+                  ))}
+                  {check.unresolved?.length > 0 && (
+                    <div className="source-failure">
+                      <strong>
+                        {t("{count} referencias pendientes de revisión", {
+                          count: check.unresolved.length,
+                        })}
+                      </strong>
+                      <p>
+                        {t(
+                          "El servicio no proporcionó título o texto suficiente para clasificarlas. No se descartaron como irrelevantes.",
+                        )}
+                      </p>
+                      {check.unresolved.map((item: Row) => (
+                        <a
+                          key={item.id}
+                          className="source-url"
+                          href={link(item.url)}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {item.id}
+                          <Icon name="external" size={14} />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              ),
+            )}
+            {inspection.error && (
+              <div className="notification error">
+                <strong>{t("Detalle original del error")}</strong>
+                <p lang="es">{inspection.error}</p>
+              </div>
             )}
           </div>
         </Reader>

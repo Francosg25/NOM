@@ -6,7 +6,7 @@ El portal abre directamente. La instalación sencilla usa **SQLite y archivos lo
 
 ## Probar en Windows
 
-La versión actual es **0.3.1**: encabezado **norma.**, fondo papel, navegación horizontal y selector visible **Español / English**. Una barra lateral verde con Productos/Alertas corresponde a la interfaz anterior.
+La versión actual es **0.4.0**: encabezado **norma.**, fondo papel, navegación horizontal y selector visible **Español / English**. Incluye descubrimiento diario mediante la API oficial SIDOF. Una barra lateral verde con Productos/Alertas corresponde a la interfaz anterior.
 
 Desde el ZIP, extrae todo en una carpeta y ejecuta **PREPARAR_LOCAL.cmd**, después **INICIAR_LOCAL.cmd**. El ZIP incluye la interfaz compilada; para esa prueba solo necesitas Python 3.12 o 3.13 autorizado. [Instrucciones completas ES/EN](docs/LOCAL.md).
 
@@ -42,8 +42,8 @@ Con las variables del ejemplo, ese proceso ya incluye el monitor. En Linux/macOS
 1. **El boletín** muestra las publicaciones por fecha oficial. La detección tiene su propia fecha; encontrar hoy una norma antigua no la convierte en nueva.
 2. **Explorar publicaciones** busca en títulos, identificadores y texto conservado. Puedes filtrar últimos 7/30 días, fuente, tipo o documentos con versiones nuevas.
 3. **Tu radar** guarda palabras en el navegador para repetir búsquedas; no crea una cuenta ni implica cobertura automática de todos los productos JE.
-4. **Las fuentes** muestra páginas vigiladas, frecuencia, errores y consultas. En local, “Editar seguimiento” ajusta URLs y frecuencia.
-5. **Consultar fuentes** solicita una revisión de las páginas configuradas. Se reutiliza una consulta en curso; una revisión fallida puede reintentarse después de un minuto y una correcta mantiene la espera de 15 minutos.
+4. **Las fuentes** muestra páginas vigiladas, frecuencia, errores y consultas. **Ver revisión diaria** abre el detalle SIDOF: fecha, notas revisadas, publicaciones seleccionadas y referencias pendientes con enlace oficial. En local, “Editar seguimiento” ajusta URLs y frecuencia.
+5. **Consultar fuentes** revisa los últimos siete días de SIDOF y las páginas configuradas de las otras fuentes. Se reutiliza una consulta en curso; una revisión fallida puede reintentarse después de un minuto y una correcta mantiene la espera de 15 minutos. Por defecto, SIDOF se programa cada hora mientras el servidor siga encendido.
 6. Al abrir un documento puedes leer el texto extraído, ver versiones, descargar la copia y abrir la fuente oficial.
 
 El selector **Español / English** recuerda el idioma y admite `?lang=en` o `?lang=es`. La guía **Cómo funciona / How it works** explica el recorrido y los estados. Los controles, explicaciones y mensajes de conexión se muestran en ambos idiomas; los títulos, documentos y detalles originales de las fuentes conservan su idioma.
@@ -62,7 +62,9 @@ El ZIP incorpora la interfaz compilada y `requirements.txt` en la raíz para Ory
 
 ## Qué fuentes cubre
 
-DOF descubre notas enlazadas en su índice diario. PLATIICA sigue las fichas configuradas, SNICE sus páginas configuradas y SIDOF un documento de referencia conocido. **No se ha acreditado cobertura de todas las normas recientes**: el índice diario DOF devolvió HTTP 503 en robots.txt durante la validación previa. El portal conserva y muestra ese fallo; no lo interpreta como ausencia de novedades.
+**SIDOF es el canal diario principal**: consulta ediciones y notas por fecha en `https://sidof.segob.gob.mx/dof/sidof`, selecciona títulos relacionados con NOM y reglas de comercio exterior y conserva el detalle JSON original, su texto y fecha oficial. El primer arranque consulta siete días; después revisa hoy y ayer cada hora. Revisa también el detalle de notas sin título. Si falta información para clasificarlas, las conserva como referencias pendientes en el registro de consulta.
+
+DOF HTML es un canal complementario. PLATIICA sigue las fichas configuradas y SNICE sus páginas configuradas. **No se ha acreditado cobertura de todas las NOM**: una consulta técnica correcta puede contener referencias sin título/texto pendientes de revisión. No se eluden errores de certificados o robots. [Integración y prueba real SIDOF](docs/SIDOF_DAILY.md).
 
 [Fuentes y límites](docs/SOURCES.md) · [Evidencia del piloto](docs/PILOT_ACCEPTANCE.md) · [Arquitectura](docs/ARCHITECTURE.md) · [Validación](docs/VALIDATION.md)
 

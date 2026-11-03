@@ -1,5 +1,6 @@
 """Small single-instance portal: initialize storage and consume the existing queue."""
 import logging
+from datetime import timedelta
 from threading import Event, Thread
 from zoneinfo import ZoneInfo
 
@@ -22,7 +23,8 @@ def initialize_portal():
             for source in db.scalars(select(Source).where(Source.active.is_(True))):
                 # An existing date means the source has already been configured.
                 if source.urls and source.schedule_start is None:
-                    source.schedule_start = today
+                    from .collectors.sidof import is_daily
+                    source.schedule_start = today - timedelta(days=6) if source.kind == 'sidof' and is_daily(source.urls) else today
                     source.schedule_enabled = True
             db.commit()
 
@@ -37,6 +39,8 @@ def tick():
         advance_schedule(db, job)
         task = reevaluate_batch(db)
         if job:
+            from .cli import upgrade_sidof_source
+            upgrade_sidof_source(db)
             log.info('Consulta %s: %s, nuevos=%s, cambios=%s', job.id, job.status,
                      job.new_count, job.modified_count)
         return job is not None or task is not None

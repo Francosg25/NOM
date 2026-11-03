@@ -71,6 +71,25 @@ def test_empty_dashboard_and_protected_routes(api):
     assert client.get('/api/does-not-exist', headers=READER).status_code == 404
 
 
+def test_daily_sidof_refresh_uses_seven_days_and_exposes_check_details(api):
+    from app.collectors.sidof import API_BASE
+    client, sessions, _, _ = api
+    with sessions() as db:
+        source = Source(name='SIDOF diario controlado', kind='sidof', urls=[API_BASE])
+        db.add(source); db.commit(); source_id = source.id
+    result = client.post('/api/refresh', headers=READER)
+    assert result.status_code == 202
+    job_id = result.json()['jobs'][0]
+    with sessions() as db:
+        job = db.get(Job, job_id)
+        assert job.source_id == source_id
+        assert (job.period_end - job.period_start).days == 6
+        check = {'day':str(job.period_end), 'notes_checked':35, 'selected_ids':['DOF:1'],
+                 'unresolved':[{'id':'DOF:2', 'url':'https://sidof.segob.gob.mx/notas/docFuente/2'}]}
+        db.add(Audit(actor='test', action='revisar_indice_diario', entity_type='job', entity_id=job_id, after=check)); db.commit()
+    assert client.get(f'/api/jobs/{job_id}', headers=READER).json()['index_checks'] == [check]
+
+
 def test_catalog_save_enqueues_without_scanning_archive(api):
     from app.models import Reevaluation
     from app.operations import reevaluate_batch

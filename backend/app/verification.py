@@ -1,9 +1,10 @@
 """Repeatable live acceptance check. No synthetic network response is injected."""
 import hashlib
-from datetime import date
+from datetime import date, timedelta
 from sqlalchemy import func, select
 from .jobs import request_job, run_once
 from .models import Audit, Publication, Source, Version, utcnow
+from .collectors.sidof import is_daily
 
 
 def validate_expected(expected):
@@ -23,7 +24,8 @@ def verify_sources(db, storage, start, end, expected=None, max_batches=10):
               'passed':True, 'coverage_verified':False, 'sources':[]}
     for source in db.scalars(select(Source).where(Source.active.is_(True)).order_by(Source.id)).all():
         entry = {'source':source.name,'kind':source.kind,'urls':source.urls,'jobs':[], 'passed':False,
-                 'evidence':[], 'errors':[], 'expected_ids':expected.get(source.kind)}
+                 'evidence':[], 'errors':[], 'expected_ids':expected.get(source.kind),
+                 'daily_discovery':source.kind == 'dof' or source.kind == 'sidof' and is_daily(source.urls)}
         before = db.scalar(select(func.count(Version.id)).join(Publication).where(Publication.source_id == source.id))
         continuation = None
         try:
@@ -35,7 +37,8 @@ def verify_sources(db, storage, start, end, expected=None, max_batches=10):
                     'modified':job.modified_count,'reviewed':job.reviewed_count})
                 if job.error: entry['errors'].append(job.error)
                 continuation = job.continuation
-                if job.status != 'partial' or job.error_count: break
+                pending_days = (job.continuation or {}).get('queue', [])
+                if job.status != 'partial' or job.error_count and not any(not item.get('failed') for item in pending_days): break
             entry['passed'] = job.status == 'succeeded' and not entry['errors']
             # Historical rows cannot stand in for documents observed in this run.
             # Observations are committed with the corresponding publication/version,
@@ -50,10 +53,21 @@ def verify_sources(db, storage, start, end, expected=None, max_batches=10):
             ids = sorted(id for id, o in observed.items() if o['published_on'] and
                          start <= date.fromisoformat(o['published_on']) <= end)
             entry['observed_ids_in_period'] = ids
-            if source.kind != 'dof' and not observed:
+            checks = db.scalars(select(Audit).where(Audit.entity_type == 'job', Audit.entity_id.in_(job_ids),
+                Audit.action == 'revisar_indice_diario').order_by(Audit.id)).all()
+            entry['index_checks'] = [check.after for check in checks]
+            entry['unresolved_ids'] = sorted({item['id'] for check in checks for item in check.after.get('unresolved', [])})
+            if source.kind == 'sidof' and is_daily(source.urls):
+                checked_days = {check.after['day'] for check in checks}
+                entry['missing_index_dates'] = sorted(str(start + timedelta(days=i))
+                    for i in range((end - start).days + 1) if str(start + timedelta(days=i)) not in checked_days)
+                if entry['missing_index_dates']:
+                    entry['passed'] = False
+                    entry['errors'].append('Hay fechas SIDOF sin índice diario verificado en esta consulta')
+            if not entry['daily_discovery'] and not observed:
                 entry['passed'] = False
                 entry['errors'].append('La consulta no observó ningún documento configurado')
-            if source.kind == 'dof' and entry['unknown_publication_dates']:
+            if entry['daily_discovery'] and entry['unknown_publication_dates']:
                 entry['passed'] = False
                 entry['errors'].append('Hay notas DOF sin fecha de publicación verificable')
             if entry['expected_ids'] is not None:
@@ -82,8 +96,8 @@ def verify_sources(db, storage, start, end, expected=None, max_batches=10):
         report['sources'].append(entry)
         report['passed'] &= bool(entry['passed'])
     report['passed'] &= bool(report['sources'])
-    dof = [s for s in report['sources'] if s['kind'] == 'dof']
-    report['coverage_verified'] = bool(dof) and all(s['passed'] and s.get('inventory_matches', False) for s in dof)
+    dof = [s for s in report['sources'] if s['daily_discovery']]
+    report['coverage_verified'] = bool(dof) and all(s['passed'] and s.get('inventory_matches', False) and not s.get('unresolved_ids') for s in dof)
     report['technical_passed'] = bool(report['passed'])
     report['passed'] = report['technical_passed'] and report['coverage_verified']
     report['note'] = 'Una descarga válida no acredita cobertura integral ni aplicabilidad; contrastar inventario DOF y revisar catálogo con responsable JE.'

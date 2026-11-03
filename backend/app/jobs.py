@@ -315,6 +315,9 @@ def run_once(db: Session, *, collector=collect, storage=None, limit: int = 40, j
                 job.continuation["source_config"] = {"kind": source_kind, "urls": list(urls)}
                 if snapshot.get('expected_terms'): job.continuation['source_config']['expected_terms'] = list(snapshot['expected_terms'])
             errors = getattr(batch, "errors", [])
+            for check in getattr(batch, 'checks', []):
+                db.add(Audit(actor='sistema', action='revisar_indice_diario', entity_type='job',
+                    entity_id=job_id, after=check))
             job.error_count = len(errors)
             job.error = "\n".join(errors)[:5000] or None
             job.status = "succeeded" if batch.complete and not errors else "partial"

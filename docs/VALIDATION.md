@@ -1,6 +1,23 @@
 # Validación del portal
 
-## Cambio de alcance · 3 de noviembre de 2026
+## SIDOF diario · 0.4.0 · 3 de noviembre de 2026
+
+| Comprobación | Resultado |
+| --- | --- |
+| Backend | 150 pruebas aprobadas: incluye contrato JSON, tres ediciones, selección, notas sin título, fechas/identidades contradictorias, evidencia, repetición, continuaciones y errores independientes por día |
+| Frontend | TypeScript/Vite aprobados; 32 módulos y marca de compilación 0.4.0 |
+| ES/EN | Interacciones del JS compilado con JSDOM: lector diario, conteos, referencias pendientes y enlaces oficiales, además del recorrido y pruebas de idioma anteriores |
+| Paquete Linux 0.4.0 | ZIP extraído y startup.sh ejecutado en modo producción; lectura pública, edición restringida y SQLite/evidencia conservados después de reiniciar; sin Entra/Blob/PostgreSQL |
+| Prueba real SIDOF | Cinco publicaciones en cinco fechas; 523 notas examinadas; JSON conservado y recuperable. La NOM del 2 de noviembre se repitió con cero versiones adicionales |
+| Límites observados | 51 referencias sin clasificación; dos fechas con HTTP 404. No se aprueba cobertura integral de NOM |
+
+El [detalle de la integración](SIDOF_DAILY.md) y el [informe reducido de evidencia](evidence/sidof-daily-2026-11-03.json)
+separan consulta técnica, preservación y cobertura. La base de prueba y las
+respuestas completas no se incluyen en el repositorio ni en el ZIP. La prueba
+usa Python 3.12/Linux; Windows corporativo, Python 3.13 y Azure real siguen
+pendientes de comprobación en esos entornos.
+
+## Antecedente 0.3.1 · 3 de noviembre de 2026
 
 La versión **0.3.1** abre sin cuenta con SQLite y archivos locales; el monitor está integrado y la interfaz es un boletín en español/inglés. Incorpora guía de uso, aviso de cobertura incompleta y selector de idioma con nombres completos. El cliente HTTPS carga autoridades del sistema y públicas, respeta almacenes explícitos y clasifica errores de red sin registrar credenciales. Entra, Blob y PostgreSQL son opcionales. La interfaz anterior de catálogo y decisiones sigue disponible solo por API/CLI.
 

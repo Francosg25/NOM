@@ -46,11 +46,13 @@ No hace falta instalar el trabajador externo. Si se elige hacerlo más adelante,
 
 - `/api/health` responde y la portada carga sin pantalla de acceso.
 - Español / English cambia interfaz, fechas y la guía Cómo funciona / How it works.
-- `/api/health` identifica la compilación en `frontend.version` y `frontend.source_sha256`; debe corresponder a la marca v0.3.1 de la pantalla.
+- `/api/health` identifica la compilación en `frontend.version` y `frontend.source_sha256`; debe corresponder a la marca v0.4.0 de la pantalla.
 - “Consultar fuentes” deja una ejecución y después resultados o un error visible.
 - Una copia del documento se puede recuperar después de reiniciar la aplicación.
 - Se conserva la base al volver a publicar el ZIP.
-- DOF, SIDOF, PLATIICA y SNICE son accesibles desde la red de Azure. La cobertura diaria DOF requiere verificación real: el piloto anterior recibió HTTP 503 en robots.txt.
+- La API diaria `https://sidof.segob.gob.mx/dof/sidof` es accesible desde Azure con TLS verificado y las reglas de robots. La primera revisión cubre siete días y después se programa cada hora.
+- “Ver revisión diaria” muestra conteos y referencias pendientes. Buscar `NOM-EM-023-SE-2026` después de consultar el 2 de noviembre de 2026 permite repetir la comprobación conocida; la ventana automática puede requerir ampliar fechas si se prueba más adelante.
+- DOF HTML, PLATIICA y SNICE son accesibles desde la red de Azure. Un fallo de DOF no impide procesar SIDOF, aunque seguirá mostrándose como fuente incompleta.
 
 El paquete preparado y las pruebas locales no equivalen a un despliegue real. No se crearon ni modificaron recursos Azure durante esta preparación.
 

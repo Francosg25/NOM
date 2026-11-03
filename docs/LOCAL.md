@@ -2,7 +2,7 @@
 
 ## Español
 
-La versión **0.3.1** tiene un encabezado grande **norma.**, fondo color papel y navegación horizontal. Arriba están los botones **Español** y **English**. Si ves una barra lateral verde con Inicio, Alertas y Productos, estás viendo una versión anterior.
+La versión **0.4.0** tiene un encabezado grande **norma.**, fondo color papel y navegación horizontal. Arriba están los botones **Español** y **English**. Incluye consulta diaria SIDOF. Si ves una barra lateral verde con Inicio, Alertas y Productos, estás viendo una versión anterior.
 
 ### Primera vez desde el ZIP
 
@@ -33,11 +33,11 @@ Si la rama local aún no existe, Git normalmente crea el seguimiento al hacer `g
 
 ### Cómo usarlo
 
-1. **Consultar fuentes** solicita la revisión de las páginas configuradas.
+1. **Consultar fuentes** revisa los últimos siete días de SIDOF y las páginas configuradas de las otras fuentes. La primera carga puede tardar varios minutos; el servidor sigue atendiendo la página.
 2. **Novedades** reúne los documentos recuperados. La fecha oficial y la fecha de detección son distintas.
 3. **Buscar publicaciones** busca títulos, identificadores y texto guardado. Los temas guardados son accesos rápidos a esa búsqueda.
 4. Abre una publicación para ver su texto, versiones, copia descargable y vínculo oficial.
-5. **Estado de las fuentes** muestra qué se consultó y qué falló. Un error de conexión no significa que no haya novedades.
+5. **Estado de las fuentes** muestra qué se consultó y qué falló. En el registro, **Ver revisión diaria** muestra las notas revisadas, los IDs seleccionados y las referencias pendientes de cada día. Un error de conexión no significa que no haya novedades.
 6. **Cómo funciona** explica los estados, la cobertura y un ejemplo de uso.
 
 La interfaz y la guía son bilingües. Los textos oficiales permanecen en español. El portal sigue páginas configuradas; todavía no acredita encontrar todas las NOM recientes, no determina automáticamente su aplicabilidad a cada producto y no envía correos.
@@ -46,7 +46,7 @@ Tus datos locales se conservan según `DATABASE_URL` y `STORAGE_PATH` de `.env`;
 
 ## English
 
-Version **0.3.1** has a large **norma.** heading, a paper-colored background and horizontal navigation. **Español** and **English** are at the top. A green sidebar with Home, Alerts and Products belongs to an older interface.
+Version **0.4.0** has a large **norma.** heading, a paper-colored background and horizontal navigation. **Español** and **English** are at the top. It includes daily SIDOF discovery. A green sidebar with Home, Alerts and Products belongs to an older interface.
 
 1. Extract the entire ZIP into a new folder.
 2. Run `PREPARAR_LOCAL.cmd` using an installed, approved Python interpreter. The ZIP includes the compiled interface, so Node is not needed for this first trial.
@@ -55,8 +55,8 @@ Version **0.3.1** has a large **norma.** heading, a paper-colored background and
 
 If the launcher reports an old build, run `ACTUALIZAR_INTERFAZ.cmd` with Node.js installed, then start again. If port 8000 is occupied, stop the previous server first.
 
-Select **Check sources**, then read **Latest publications**. Use **Search publications** to find a standard or keyword in the saved documents. Open a title to read it, inspect saved versions, download a copy or visit the official website. **Source status** explains incomplete checks. **How it works** explains the workflow and coverage.
+Select **Check sources**, then read **Latest publications**. SIDOF checks the last seven days; the first load can take several minutes while the portal remains available. Use **Search publications** to find a standard or keyword in the saved documents. Open a title to read it, inspect saved versions, download a copy or visit the official website. In **Source status**, **View daily check** shows each day's checked notes, selected IDs and unresolved references. **How it works** explains the workflow and coverage.
 
-The controls and guide are bilingual. Official documents remain in Spanish. A failed connection does not establish that there are no updates. Coverage follows the configured pages; complete discovery of all recent standards, automatic product applicability and email notifications are not available yet.
+The controls and guide are bilingual. Official documents remain in Spanish. A failed connection does not establish that there are no updates. Daily discovery uses the official SIDOF API; image-only references without a usable title or text remain pending. Complete discovery of all recent standards, automatic product applicability and email notifications are not guaranteed.
 
 Azure deployment uses the separate `startup.sh` entry point. See [AZURE.md](AZURE.md).

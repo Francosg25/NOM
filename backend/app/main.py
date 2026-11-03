@@ -6,7 +6,6 @@ from contextlib import asynccontextmanager
 import asyncio
 import json
 from threading import Event
-import json
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse, Response
@@ -36,7 +35,7 @@ async def lifespan(app):
         await asyncio.to_thread(thread.join, 2)
 
 
-app = FastAPI(title='JE NOM Monitor', version='0.3.1', lifespan=lifespan,
+app = FastAPI(title='JE NOM Monitor', version='0.4.0', lifespan=lifespan,
               docs_url=None if production else '/api/docs', openapi_url=None if production else '/api/openapi.json')
 
 
@@ -443,15 +442,19 @@ def comment(id: int, body: CommentInput, db: Session = Depends(get_db), user: Id
 
 
 def validate_source_urls(kind, urls):
+    from urllib.parse import urlsplit
+    from .collectors import validate_url, CollectionError
+    if kind == 'sidof' and any('/dof/sidof' in urlsplit(u).path for u in urls):
+        from .collectors.sidof import validate_api_urls
+        try: validate_api_urls(urls)
+        except CollectionError as exc: raise HTTPException(422, str(exc))
     if kind == 'dof' and len(urls) > 1:
         raise HTTPException(422,'DOF admite un único índice base; las ediciones se descubren desde sus enlaces')
-    from .collectors import validate_url, CollectionError
     for url in urls:
         try: validate_url(url)
         except (ValueError, CollectionError) as exc: raise HTTPException(422,str(exc))
     from .collectors.core import HOSTS
     hosts = HOSTS
-    from urllib.parse import urlsplit
     if any(urlsplit(u).hostname not in hosts[kind] for u in urls):
         raise HTTPException(422,'El dominio no coincide con el conector de la fuente')
     if kind == 'dof' and any(urlsplit(u).hostname not in {'www.dof.gob.mx', 'dof.gob.mx'} or
@@ -531,7 +534,9 @@ def refresh_bulletin(db: Session = Depends(get_db), user: Identity = Depends(ide
                 recent += 1
                 continue
         try:
-            requested.append(request_job(db, source.id, 'portal').id)
+            from .collectors.sidof import is_daily
+            start = mexico_today() - timedelta(days=6) if source.kind == 'sidof' and is_daily(source.urls) else None
+            requested.append(request_job(db, source.id, 'portal', start, mexico_today()).id)
         except ValueError:
             db.rollback()
     return {'jobs':requested, 'recent_sources':recent, 'monitor_enabled':get_settings().monitor_enabled}
@@ -562,7 +567,9 @@ def job(id: str,db: Session = Depends(get_db),user: Identity = Depends(identity)
     finished = db.scalar(select(Audit).where(Audit.entity_type == 'job', Audit.entity_id == id,
         Audit.action == 'finalizar_consulta').order_by(Audit.id.desc()).limit(1))
     return {**fields(obj),'runs':[fields(r) for r in db.scalars(select(SourceRun).where(SourceRun.job_id == id).order_by(SourceRun.id)).all()],
-            'documents':[o.after for o in observations], 'coverage': finished.after.get('coverage') if finished else None}
+            'documents':[o.after for o in observations],
+            'index_checks':[o.after for o in db.scalars(select(Audit).where(Audit.entity_type == 'job', Audit.entity_id == id, Audit.action == 'revisar_indice_diario').order_by(Audit.id)).all()],
+            'coverage': finished.after.get('coverage') if finished else None}
 
 
 @app.get('/api/audit')

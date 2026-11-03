@@ -1,6 +1,6 @@
 # Fuentes sin conexión / Source connection failures
 
-La versión **0.3.1** incorpora las autoridades de confianza del sistema junto al conjunto público de HTTPX. En Windows se cargan los almacenes CA/ROOT del sistema. Se mantiene la validación de certificado y nombre de servidor. No se instalan certificados ni se modifica la configuración de red.
+El portal incorpora las autoridades de confianza del sistema junto al conjunto público de HTTPX. En Windows se cargan los almacenes CA/ROOT del sistema. Se mantiene la validación de certificado y nombre de servidor. No se instalan certificados ni se modifica la configuración de red. Desde 0.4.0, la prueba SIDOF consulta la API de notas del día, el mismo canal usado por el descubrimiento diario.
 
 `SSL_CERT_FILE` o `SSL_CERT_DIR`, si ya están configurados, siguen siendo la selección explícita de certificados. Una ruta inválida produce un error visible; no se sustituye silenciosamente. Los proxies de entorno y el proxy estático del sistema se siguen leyendo mediante HTTPX. No se ejecutan archivos PAC ni se copian credenciales del navegador.
 
@@ -32,7 +32,7 @@ No se configura ni descubre un proxy nuevo automáticamente. Si el navegador cor
 
 ## English
 
-Version **0.3.1** uses the system's trusted CA certificates together with HTTPX's public CA bundle, while keeping certificate and hostname validation enabled. Existing explicit `SSL_CERT_FILE` / `SSL_CERT_DIR` settings remain authoritative. It does not install certificates, change network settings, run PAC scripts or reuse browser credentials.
+The portal uses the system's trusted CA certificates together with HTTPX's public CA bundle, while keeping certificate and hostname validation enabled. Existing explicit `SSL_CERT_FILE` / `SSL_CERT_DIR` settings remain authoritative. It does not install certificates, change network settings, run PAC scripts or reuse browser credentials. Since 0.4.0, the SIDOF check uses today's notes API, the same channel used for daily discovery.
 
 Run `DIAGNOSTICAR_CONEXION.cmd` after preparation. The access report is saved to `data/diagnostico_conexion.json`. It checks the four public pilot URLs with the same verified HTTPS client and robots rules as collection, without changing the database or importing publications. An `ACCESS_OK` result confirms access to that URL, not complete NOM discovery or product applicability.
 
