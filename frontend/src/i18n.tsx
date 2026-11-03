@@ -9,6 +9,81 @@ import type { ReactNode } from "react";
 
 type Language = "es" | "en";
 const english: Record<string, string> = {
+  Novedades: "Latest publications",
+  "Estado de las fuentes": "Source status",
+  "Cómo funciona": "How it works",
+  "LA GUÍA / NOM MONITOR": "THE GUIDE / NOM MONITOR",
+  "De la publicación a la lectura": "From publication to reading",
+  "El portal revisa páginas oficiales configuradas, guarda lo que encuentra y te permite leerlo después. Así se usa.":
+    "The portal checks configured official pages, saves what it finds and lets you read it later. Here is how to use it.",
+  "Consulta las fuentes": "Check the sources",
+  "Pulsa Consultar fuentes. El servidor revisa las páginas registradas y guarda una copia de los documentos que puede recuperar. Con el monitor activo, repite la revisión según la frecuencia de cada fuente.":
+    "Select Check sources. The server checks the registered pages and saves a copy of the documents it can retrieve. When monitoring is active, it repeats the check at each source's configured interval.",
+  "Lee las publicaciones": "Read the publications",
+  "En Novedades aparecen las publicaciones recuperadas. Busca una NOM o una palabra, filtra por fuente o fecha y abre un título para leer el documento.":
+    "Latest publications shows the retrieved documents. Search for a NOM or a keyword, filter by source or date, and open a title to read the document.",
+  "Comprueba el original": "Check the original",
+  "Dentro de cada publicación puedes abrir el sitio oficial, descargar la copia consultada y ver las versiones guardadas. Usa el documento oficial para verificar cualquier obligación.":
+    "Inside a publication, you can open the official website, download the retrieved copy and view saved versions. Use the official document to verify any obligation.",
+  "CÓMO LEER EL RESULTADO": "UNDERSTANDING THE RESULTS",
+  "Cada estado tiene un significado.": "Every status has a meaning.",
+  "Primera copia": "First saved copy",
+  "Se guardó el documento por primera vez. Puede ser una publicación antigua encontrada hoy.":
+    "The document was saved for the first time. It may be an older publication found today.",
+  "El contenido guardado cambió respecto a una copia anterior. No confirma por sí solo una modificación legal ni que aplique a tu producto.":
+    "The saved content differs from an earlier copy. This alone does not confirm a legal amendment or that it applies to your product.",
+  "La consulta terminó correctamente dentro de la cobertura configurada. No garantiza que se hayan encontrado todas las NOM.":
+    "The check completed successfully within the configured coverage. It does not guarantee that every NOM was found.",
+  "La fuente no pudo revisarse por completo. No significa que no existan novedades; se conserva la última copia válida.":
+    "The source could not be checked completely. This does not mean there are no updates; the last valid copy is kept.",
+  "QUÉ ESTÁS VIGILANDO": "WHAT YOU ARE MONITORING",
+  "La cobertura depende de las páginas.": "Coverage depends on the pages.",
+  "DOF sigue su índice diario. PLATIICA y SNICE siguen las fichas o páginas que se configuren. SIDOF permite seguir un documento conocido. La cobertura diaria de DOF aún requiere validación.":
+    "DOF follows its daily index. PLATIICA and SNICE follow the configured records or pages. SIDOF tracks a known document. Daily DOF coverage still needs validation.",
+  "Guardar un tema solo crea un acceso rápido a la búsqueda del archivo. El portal todavía no determina automáticamente qué norma aplica a cada producto JE ni envía avisos por correo.":
+    "Saving a topic creates a shortcut to search the archive. The portal does not yet automatically determine which standard applies to each JE product or send email notifications.",
+  "Español / English cambia todos los controles y la guía. Los documentos oficiales se conservan en el español original; no hay una traducción automática del texto legal.":
+    "Español / English changes all controls and this guide. Official documents remain in their original Spanish; legal text is not automatically translated.",
+  "Ver qué páginas se consultan": "See which pages are checked",
+  "UN EJEMPLO DE USO": "AN EXAMPLE",
+  "Si quieres revisar una norma: consulta las fuentes, busca su identificador —por ejemplo, NOM-014-ENER— y abre los resultados. Si la búsqueda está vacía, revisa el estado y las páginas de las fuentes antes de concluir que no hay publicaciones.":
+    "To look up a standard, check the sources, search for its identifier — for example, NOM-014-ENER — and open the results. If the search is empty, check the sources' status and configured pages before concluding there are no publications.",
+  "Ir a buscar publicaciones": "Go to publication search",
+  "SIDOF · documento de referencia": "SIDOF · reference document",
+  "No se pudieron consultar las fuentes.": "The sources could not be checked.",
+  "La revisión tiene fuentes pendientes.":
+    "Some sources still need to be checked.",
+  "{failed} de {total} fuentes activas tienen una revisión incompleta. No se ha confirmado la ausencia de novedades.":
+    "{failed} of {total} active sources have an incomplete check. The absence of updates has not been confirmed.",
+  "Ver qué pasó": "See what happened",
+  "Normativa mexicana,": "Mexican standards,",
+  "a primera vista.": "at first glance.",
+  "Consulta las fuentes, lee lo que se publicó y comprueba qué cambió en los documentos guardados.":
+    "Check the sources, read what was published and see what changed in the saved documents.",
+  "La revisión necesita atención": "The check needs attention",
+  "Cómo empezar": "Getting started",
+  "EMPIEZA AQUÍ": "START HERE",
+  "Busca una publicación": "Find a publication",
+  "Entiende los resultados": "Understand the results",
+  "Aún no hay documentos recuperados.": "No documents have been retrieved yet.",
+  "Las consultas a los sitios oficiales fallaron. Abre Estado de las fuentes para ver las direcciones y el motivo; puedes visitar cada sitio directamente.":
+    "Checks of the official websites failed. Open Source status to see the addresses and the reason; you can visit each website directly.",
+  "Revisar las conexiones": "Check the connections",
+  "Busca en los documentos ya recuperados. No activa notificaciones.":
+    "Searches documents already retrieved. Does not turn on notifications.",
+  "¿Se pudo revisar?": "Did the check work?",
+  "Detalle original del error": "Original error details (Spanish)",
+  "Nota original del documento": "Original document note (Spanish)",
+  "Revisión fallida; novedades sin confirmar":
+    "Check failed; updates unconfirmed",
+  "No se pudo conectar con el sitio oficial. Comprueba que esta computadora o servidor tenga acceso a esa dirección; después vuelve a consultar.":
+    "Could not connect to the official website. Check that this computer or server can access that address, then try again.",
+  "El sitio no permitió verificar sus reglas de consulta automática. Esta revisión quedó pendiente.":
+    "The site's automated access rules could not be verified. This check remains pending.",
+  "El sitio rechazó o limitó la consulta. Intenta de nuevo más tarde.":
+    "The website rejected or limited the request. Please try again later.",
+  "La revisión no pudo completarse. Abre la fuente oficial para comprobarla y consulta el detalle del error.":
+    "The check could not be completed. Open the official source to check it directly and see the error details.",
   "El boletín": "The bulletin",
   "Explorar publicaciones": "Explore publications",
   "Las fuentes": "The sources",
@@ -39,8 +114,8 @@ const english: Record<string, string> = {
   "No se pudo conectar con el portal.": "Could not connect to the portal.",
   "Consultando las fuentes. Los resultados aparecerán aquí al terminar.":
     "Checking the sources. Results will appear here when the check is complete.",
-  "Las fuentes se consultaron hace menos de 15 minutos. Puedes ver el resultado en Las fuentes.":
-    "The sources were checked less than 15 minutes ago. See The sources for the results.",
+  "Las fuentes se consultaron hace menos de 15 minutos. Puedes ver el resultado en Estado de las fuentes.":
+    "The sources were checked less than 15 minutes ago. See Source status for the results.",
   "Configura una fuente para comenzar.": "Configure a source to get started.",
   "Consulta en cola. Inicia el portal con MONITOR_ENABLED=true para procesarla.":
     "The check is queued. Start the portal with MONITOR_ENABLED=true to process it.",
@@ -220,6 +295,8 @@ const Context = createContext<Locale | null>(null);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>(() => {
+    const requested = new URLSearchParams(location.search).get("lang");
+    if (requested === "en" || requested === "es") return requested;
     try {
       return localStorage.getItem("nom-language") === "en" ? "en" : "es";
     } catch {
@@ -237,6 +314,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     } catch {
       /* Optional preference storage. */
     }
+    const url = new URL(location.href);
+    url.searchParams.set("lang", language);
+    history.replaceState(null, "", url);
   }, [language]);
   const t: Translator = useCallback(
     (message, params = {}) => {

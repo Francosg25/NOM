@@ -124,6 +124,20 @@ def test_public_auth_configuration_has_no_secrets(api):
     assert set(result.json())=={'tenant_id','client_id','scopes','app_service','development','mode','demo_enabled'}
 
 
+def test_served_frontend_reports_release_and_revalidates_html(api, tmp_path, monkeypatch):
+    import json
+    client, _, settings, _ = api
+    settings.frontend_dist = str(tmp_path)
+    manifest = {'version':'0.3.0', 'source_sha256':'test-build'}
+    (tmp_path / 'portal-release.json').write_text(json.dumps(manifest), encoding='utf-8')
+    (tmp_path / 'index.html').write_text('<html lang="es">Controlled UI</html>', encoding='utf-8')
+    monkeypatch.setattr(main, 'dist', tmp_path)
+    health = client.get('/api/health')
+    assert health.json()['frontend'] == manifest
+    assert health.headers['cache-control'] == 'no-store'
+    assert client.get('/').headers['cache-control'] == 'no-cache'
+
+
 @pytest.mark.parametrize('kind,url', [
     ('dof', 'https://sidof.segob.gob.mx/notas/5758923'),
     ('dof', 'https://www.dof.gob.mx/nota_detalle.php?codigo=5758923'),

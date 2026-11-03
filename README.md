@@ -6,7 +6,13 @@ El portal abre directamente. La instalación sencilla usa **SQLite y archivos lo
 
 ## Probar en Windows
 
-Necesitas Python 3.12 o 3.13 autorizado y Node.js compatible con Vite (se validó Node 24). Desde la carpeta del repositorio, en PowerShell:
+La versión actual es **0.3.0**: encabezado **norma.**, fondo papel, navegación horizontal y selector visible **Español / English**. Una barra lateral verde con Productos/Alertas corresponde a la interfaz anterior.
+
+Desde el ZIP, extrae todo en una carpeta y ejecuta **PREPARAR_LOCAL.cmd**, después **INICIAR_LOCAL.cmd**. El ZIP incluye la interfaz compilada; para esa prueba solo necesitas Python 3.12 o 3.13 autorizado. [Instrucciones completas ES/EN](docs/LOCAL.md).
+
+Si actualizas desde Git, usa la rama **feature/piloto-verificable**; cierra el servidor anterior, ejecuta **ACTUALIZAR_INTERFAZ.cmd** y vuelve a abrir **INICIAR_LOCAL.cmd**. El arranque comprueba la compilación y evita abrir una versión anterior que siga ocupando el puerto.
+
+Para preparar manualmente un clon, necesitas también Node.js compatible con Vite (se validó Node 24). Desde la carpeta del repositorio, en PowerShell:
 
 ```powershell
 py -3.13 -m venv .venv
@@ -40,7 +46,7 @@ Con las variables del ejemplo, ese proceso ya incluye el monitor. En Linux/macOS
 5. **Consultar fuentes** solicita una revisión de las páginas configuradas. Se reutiliza una consulta en curso y se evita repetir una fuente dentro de 15 minutos.
 6. Al abrir un documento puedes leer el texto extraído, ver versiones, descargar la copia y abrir la fuente oficial.
 
-El selector **ES / EN** recuerda el idioma. Los títulos, documentos y errores originales de las fuentes conservan su idioma; la interfaz inglesa los identifica como texto original en español. No se presentan traducciones automáticas como documentos oficiales.
+El selector **Español / English** recuerda el idioma y admite `?lang=en` o `?lang=es`. La guía **Cómo funciona / How it works** explica el recorrido y los estados. Los controles, explicaciones y mensajes de conexión se muestran en ambos idiomas; los títulos, documentos y detalles originales de las fuentes conservan su idioma.
 
 ## Azure App Service
 

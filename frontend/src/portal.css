@@ -107,7 +107,7 @@ em {
   border-bottom: 1px solid var(--line);
   padding: 12px 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 1.3px;
 }
 .edition-strip > span:last-child {
@@ -126,20 +126,22 @@ em {
 .language-switch {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 10px;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  background: #efede5;
 }
 .language-switch button {
-  padding: 2px 0;
+  padding: 9px 15px;
+  min-height: 38px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.5px;
 }
 .language-switch button[aria-pressed="true"] {
-  color: var(--ink);
+  color: var(--paper);
+  background: var(--ink);
   font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 4px;
 }
 .language-switch > span {
   color: #c3c1b5;
@@ -1571,6 +1573,291 @@ input[type="checkbox"] {
   .notification {
     align-items: flex-start;
     font-size: 11px;
+  }
+}
+.release-mark {
+  display: inline-block;
+  margin-left: 10px;
+  color: var(--rust);
+  font-size: 11px;
+  letter-spacing: 0;
+}
+.coverage-alert {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin-top: 24px;
+  padding: 18px 22px;
+  border-left: 4px solid var(--rust);
+  background: #f0e4d9;
+  color: #743b2b;
+}
+.coverage-alert strong {
+  font-size: 15px;
+}
+.coverage-alert p {
+  font-size: 13px;
+  margin-top: 3px;
+}
+.coverage-alert > .text-button {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.coverage-symbol {
+  font: italic 42px/1 var(--serif);
+}
+.start-here {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--line);
+  padding: 17px 0;
+  margin-bottom: 32px;
+}
+.start-here > span {
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  flex-shrink: 0;
+  color: var(--rust);
+  font-weight: 700;
+}
+.start-here button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  text-align: left;
+  padding: 5px 0;
+  font-size: 13px;
+}
+.start-here button b {
+  font: italic 23px/1 var(--serif);
+  color: var(--muted);
+}
+.start-here button + button {
+  border-left: 1px solid var(--line);
+  padding-left: 20px;
+}
+.start-here button:hover {
+  color: var(--blue);
+}
+.radar-explanation {
+  display: block;
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
+  padding-top: 14px;
+}
+.source-failure {
+  margin-top: 20px;
+  padding: 15px 18px;
+  background: #f0e4d9;
+  border-left: 2px solid var(--rust);
+}
+.source-failure > p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #743b2b;
+}
+.source-failure .source-problem {
+  margin-top: 10px;
+  font-size: 12px;
+}
+.directory-copy > p {
+  font-size: 14px;
+  line-height: 1.75;
+}
+.directory-meta dt {
+  font-size: 11px;
+}
+.directory-meta dd {
+  font-size: 13px;
+}
+.guide-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 2px solid var(--ink);
+}
+.guide-steps li {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: 25px;
+  padding: 32px 0;
+  border-bottom: 1px solid var(--line);
+}
+.guide-steps li > span {
+  color: var(--rust);
+  font: italic 52px/1 var(--serif);
+}
+.guide-steps h2 {
+  font: 32px/1.2 var(--serif);
+}
+.guide-steps p {
+  max-width: 800px;
+  margin-top: 12px;
+  font-size: 15px;
+  line-height: 1.8;
+  color: #5d6057;
+}
+.guide-columns {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 75px;
+  margin: 54px 0;
+}
+.guide-columns h2 {
+  font: 31px/1.2 var(--serif);
+  margin: 14px 0 24px;
+}
+.guide-legend {
+  margin: 0;
+}
+.guide-legend > div {
+  border-top: 1px solid var(--line);
+  padding: 17px 0;
+  display: grid;
+  grid-template-columns: 135px 1fr;
+  gap: 22px;
+}
+.guide-legend dt {
+  font-size: 13px;
+  font-weight: 700;
+}
+.guide-legend dd {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #5d6057;
+  margin: 0;
+}
+.guide-scope {
+  border-left: 1px solid var(--line);
+  padding-left: 38px;
+}
+.guide-scope p {
+  font-size: 14px;
+  line-height: 1.8;
+  margin-bottom: 18px;
+  color: #5d6057;
+}
+.guide-example {
+  padding: 34px;
+  background: var(--ink);
+  color: var(--paper);
+  margin-bottom: 55px;
+}
+.guide-example .eyebrow {
+  color: #d4bda9;
+}
+.guide-example p {
+  font: 22px/1.55 var(--serif);
+  max-width: 900px;
+  margin: 15px 0 23px;
+}
+.guide-example .button.ink {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--paper);
+}
+@media (max-width: 1100px) {
+  .start-here {
+    gap: 15px;
+    flex-wrap: wrap;
+  }
+  .start-here > span {
+    width: 100%;
+  }
+  .guide-columns {
+    gap: 32px;
+  }
+  .guide-legend > div {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+}
+@media (max-width: 800px) {
+  .coverage-alert {
+    flex-wrap: wrap;
+  }
+  .coverage-alert > div {
+    flex: 1;
+    min-width: 180px;
+  }
+  .coverage-alert > .text-button {
+    margin-left: 0;
+  }
+  .guide-columns {
+    grid-template-columns: 1fr;
+  }
+  .guide-scope {
+    padding: 0;
+    border: 0;
+  }
+  .edition-strip {
+    align-items: center;
+  }
+  .edition-right > span {
+    display: none;
+  }
+  .section-nav > div {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 600px) {
+  .edition-strip {
+    gap: 6px;
+    letter-spacing: 0;
+  }
+  .edition-strip > span {
+    font-size: 10px;
+  }
+  .release-mark {
+    margin-left: 4px;
+  }
+  .language-switch button {
+    padding: 8px;
+    min-height: 38px;
+    font-size: 11px;
+  }
+  .language-switch {
+    gap: 0;
+  }
+  .start-here {
+    display: grid;
+    gap: 12px;
+  }
+  .start-here button + button {
+    padding-left: 0;
+    border: 0;
+  }
+  .guide-steps li {
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 15px;
+    padding: 25px 0;
+  }
+  .guide-steps li > span {
+    font-size: 34px;
+  }
+  .guide-steps h2 {
+    font-size: 26px;
+  }
+  .guide-steps p {
+    font-size: 14px;
+  }
+  .guide-example {
+    padding: 24px;
+  }
+  .guide-example p {
+    font-size: 20px;
+  }
+  .directory-copy > p {
+    font-size: 13px;
+  }
+  .directory-meta dt {
+    font-size: 10px;
+  }
+  .directory-meta dd {
+    font-size: 12px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

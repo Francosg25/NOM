@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 from typing import Any, Literal
 from contextlib import asynccontextmanager
 import asyncio
+import json
 from threading import Event
 import json
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -35,7 +36,7 @@ async def lifespan(app):
         await asyncio.to_thread(thread.join, 2)
 
 
-app = FastAPI(title='JE NOM Monitor', version='0.2.0', lifespan=lifespan,
+app = FastAPI(title='JE NOM Monitor', version='0.3.0', lifespan=lifespan,
               docs_url=None if production else '/api/docs', openapi_url=None if production else '/api/openapi.json')
 
 
@@ -208,7 +209,12 @@ def alert_dicts(db, rows):
 
 @app.get('/api/health')
 def health():
-    return {'status':'ok', 'service':'JE NOM Monitor'}
+    release = Path(get_settings().frontend_dist) / 'portal-release.json'
+    try:
+        frontend = json.loads(release.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        frontend = {}
+    return {'status':'ok', 'service':'JE NOM Monitor', 'frontend':frontend}
 
 
 @app.get('/api/auth/config')
@@ -573,4 +579,4 @@ def frontend(path: str):
     if path.startswith('api/') or path == 'api': raise HTTPException(404,'Ruta API no encontrada')
     index = dist / 'index.html'
     if not index.is_file(): raise HTTPException(503,'Compila el frontend con npm run build antes de iniciar')
-    return FileResponse(index)
+    return FileResponse(index, headers={'Cache-Control': 'no-cache'})

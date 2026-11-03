@@ -5,7 +5,7 @@ La instalación sencilla utiliza el App Service existente: **Linux, Python 3.13,
 ## Preparar y publicar
 
 1. En un equipo o agente con Node.js, ejecutar `cd frontend && npm ci && cd ..` y `bash scripts/package-appservice.sh`.
-2. El archivo `data/nom-appservice.zip` contiene `backend/`, `frontend/dist/`, `startup.sh` y `requirements.txt` en la raíz. No contiene datos locales, secretos ni entornos virtuales.
+2. El archivo `data/nom-appservice.zip` contiene `backend/`, `frontend/dist/`, `startup.sh` y `requirements.txt` en la raíz. También incorpora el código de la interfaz y los comandos de prueba en Windows. No contiene datos locales, secretos ni entornos virtuales. No hace falta Node en App Service: la interfaz ya está compilada.
 3. En App Service, configurar **SCM_DO_BUILD_DURING_DEPLOYMENT=true** y el comando de inicio **bash startup.sh**. Mantener Python 3.13 y habilitar **Always On**.
 4. Publicar el ZIP mediante un método corporativo permitido o Azure CLI autenticada:
 
@@ -45,7 +45,8 @@ No hace falta instalar el trabajador externo. Si se elige hacerlo más adelante,
 ## Comprobar en la instancia real
 
 - `/api/health` responde y la portada carga sin pantalla de acceso.
-- ES / EN cambia interfaz, fechas y textos de ayuda.
+- Español / English cambia interfaz, fechas y la guía Cómo funciona / How it works.
+- `/api/health` identifica la compilación en `frontend.version` y `frontend.source_sha256`; debe corresponder a la marca v0.3.0 de la pantalla.
 - “Consultar fuentes” deja una ejecución y después resultados o un error visible.
 - Una copia del documento se puede recuperar después de reiniciar la aplicación.
 - Se conserva la base al volver a publicar el ZIP.

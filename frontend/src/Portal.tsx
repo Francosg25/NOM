@@ -9,13 +9,15 @@ import {
 } from "./apiAccess";
 import type { AuthConfig } from "./apiAccess";
 import { LanguageProvider, useLanguage } from "./i18n";
+import { version as portalVersion } from "../package.json";
 
 type Row = Record<string, any>;
-type View = "actualidad" | "archivo" | "fuentes";
+type View = "actualidad" | "archivo" | "fuentes" | "guia";
 const views: { id: View; name: string }[] = [
-  { id: "actualidad", name: "El boletín" },
-  { id: "archivo", name: "Explorar publicaciones" },
-  { id: "fuentes", name: "Las fuentes" },
+  { id: "actualidad", name: "Novedades" },
+  { id: "archivo", name: "Buscar publicaciones" },
+  { id: "fuentes", name: "Estado de las fuentes" },
+  { id: "guia", name: "Cómo funciona" },
 ];
 const types: Record<string, string> = {
   proyecto: "Proyecto de norma",
@@ -57,6 +59,137 @@ function displayUrl(value: string) {
   } catch {
     return value;
   }
+}
+function sourceIssue(error: string) {
+  if (/espera|conexi[oó]n|timeout|connect|network|DNS/i.test(error))
+    return "No se pudo conectar con el sitio oficial. Comprueba que esta computadora o servidor tenga acceso a esa dirección; después vuelve a consultar.";
+  if (/robots/i.test(error))
+    return "El sitio no permitió verificar sus reglas de consulta automática. Esta revisión quedó pendiente.";
+  if (/HTTP\s*(403|429)/i.test(error))
+    return "El sitio rechazó o limitó la consulta. Intenta de nuevo más tarde.";
+  return "La revisión no pudo completarse. Abre la fuente oficial para comprobarla y consulta el detalle del error.";
+}
+
+function Guide({ go }: { go: (view: View) => void }) {
+  const { t } = useLanguage();
+  return (
+    <section className="guide-page">
+      <div className="section-intro">
+        <span className="eyebrow">{t("LA GUÍA / NOM MONITOR")}</span>
+        <h1>
+          {t("De la publicación a la lectura")}
+          <span className="accent">.</span>
+        </h1>
+        <p>
+          {t(
+            "El portal revisa páginas oficiales configuradas, guarda lo que encuentra y te permite leerlo después. Así se usa.",
+          )}
+        </p>
+      </div>
+      <ol className="guide-steps">
+        {[
+          [
+            "01",
+            "Consulta las fuentes",
+            "Pulsa Consultar fuentes. El servidor revisa las páginas registradas y guarda una copia de los documentos que puede recuperar. Con el monitor activo, repite la revisión según la frecuencia de cada fuente.",
+          ],
+          [
+            "02",
+            "Lee las publicaciones",
+            "En Novedades aparecen las publicaciones recuperadas. Busca una NOM o una palabra, filtra por fuente o fecha y abre un título para leer el documento.",
+          ],
+          [
+            "03",
+            "Comprueba el original",
+            "Dentro de cada publicación puedes abrir el sitio oficial, descargar la copia consultada y ver las versiones guardadas. Usa el documento oficial para verificar cualquier obligación.",
+          ],
+        ].map(([number, title, text]) => (
+          <li key={number}>
+            <span>{number}</span>
+            <div>
+              <h2>{t(title)}</h2>
+              <p>{t(text)}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <div className="guide-columns">
+        <section>
+          <span className="eyebrow">{t("CÓMO LEER EL RESULTADO")}</span>
+          <h2>{t("Cada estado tiene un significado.")}</h2>
+          <dl className="guide-legend">
+            <div>
+              <dt>{t("Primera copia")}</dt>
+              <dd>
+                {t(
+                  "Se guardó el documento por primera vez. Puede ser una publicación antigua encontrada hoy.",
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>{t("Cambio detectado")}</dt>
+              <dd>
+                {t(
+                  "El contenido guardado cambió respecto a una copia anterior. No confirma por sí solo una modificación legal ni que aplique a tu producto.",
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>{t("Consulta correcta")}</dt>
+              <dd>
+                {t(
+                  "La consulta terminó correctamente dentro de la cobertura configurada. No garantiza que se hayan encontrado todas las NOM.",
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>{t("Consulta incompleta")}</dt>
+              <dd>
+                {t(
+                  "La fuente no pudo revisarse por completo. No significa que no existan novedades; se conserva la última copia válida.",
+                )}
+              </dd>
+            </div>
+          </dl>
+        </section>
+        <section className="guide-scope">
+          <span className="eyebrow">{t("QUÉ ESTÁS VIGILANDO")}</span>
+          <h2>{t("La cobertura depende de las páginas.")}</h2>
+          <p>
+            {t(
+              "DOF sigue su índice diario. PLATIICA y SNICE siguen las fichas o páginas que se configuren. SIDOF permite seguir un documento conocido. La cobertura diaria de DOF aún requiere validación.",
+            )}
+          </p>
+          <p>
+            {t(
+              "Guardar un tema solo crea un acceso rápido a la búsqueda del archivo. El portal todavía no determina automáticamente qué norma aplica a cada producto JE ni envía avisos por correo.",
+            )}
+          </p>
+          <p>
+            {t(
+              "Español / English cambia todos los controles y la guía. Los documentos oficiales se conservan en el español original; no hay una traducción automática del texto legal.",
+            )}
+          </p>
+          <button className="text-button" onClick={() => go("fuentes")}>
+            {t("Ver qué páginas se consultan")}
+            <Icon name="arrow" />
+          </button>
+        </section>
+      </div>
+      <div className="guide-example">
+        <span className="eyebrow">{t("UN EJEMPLO DE USO")}</span>
+        <p>
+          {t(
+            "Si quieres revisar una norma: consulta las fuentes, busca su identificador —por ejemplo, NOM-014-ENER— y abre los resultados. Si la búsqueda está vacía, revisa el estado y las páginas de las fuentes antes de concluir que no hay publicaciones.",
+          )}
+        </p>
+        <button className="button ink" onClick={() => go("archivo")}>
+          {t("Ir a buscar publicaciones")}
+          <Icon name="arrow" />
+        </button>
+      </div>
+    </section>
+  );
 }
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const paths: Record<string, ReactNode> = {
@@ -300,13 +433,13 @@ function Bulletin() {
         const result = await response.json().catch(() => ({}));
         throw new Error(
           typeof result.detail === "string"
-            ? t(result.detail)
-            : t("No se pudo completar la solicitud. Intenta de nuevo."),
+            ? result.detail
+            : "No se pudo completar la solicitud. Intenta de nuevo.",
         );
       }
       return response.json();
     },
-    [token, t],
+    [token],
   );
   useEffect(() => {
     let live = true;
@@ -416,7 +549,7 @@ function Bulletin() {
         setReady(true);
       } else await load();
     } catch (e) {
-      setError(t((e as Error).message));
+      setError((e as Error).message);
     }
   };
   const refresh = async () => {
@@ -424,19 +557,15 @@ function Bulletin() {
     try {
       const result = await request("/refresh", "POST");
       setNotice(
-        t(
-          result.jobs.length
-            ? "Consultando las fuentes. Los resultados aparecerán aquí al terminar."
-            : result.recent_sources
-              ? "Las fuentes se consultaron hace menos de 15 minutos. Puedes ver el resultado en Las fuentes."
-              : "Configura una fuente para comenzar.",
-        ),
+        result.jobs.length
+          ? "Consultando las fuentes. Los resultados aparecerán aquí al terminar."
+          : result.recent_sources
+            ? "Las fuentes se consultaron hace menos de 15 minutos. Puedes ver el resultado en Estado de las fuentes."
+            : "Configura una fuente para comenzar.",
       );
       if (!result.monitor_enabled && result.jobs.length)
         setNotice(
-          t(
-            "Consulta en cola. Inicia el portal con MONITOR_ENABLED=true para procesarla.",
-          ),
+          "Consulta en cola. Inicia el portal con MONITOR_ENABLED=true para procesarla.",
         );
       await load(true);
     } catch (e) {
@@ -491,7 +620,7 @@ function Bulletin() {
         schedule_enabled: form.get("enabled") === "on",
         schedule_start: String(form.get("start")) || dayStamp(),
       });
-      setNotice(t("Seguimiento actualizado."));
+      setNotice("Seguimiento actualizado.");
       await load(true);
     } catch (e) {
       setError((e as Error).message);
@@ -526,6 +655,14 @@ function Bulletin() {
     .filter(Boolean)
     .sort()
     .at(-1);
+  const activeSources = sources.filter((s) => s.active);
+  const failedSources = activeSources.filter((s) => s.last_error);
+  const allFailed =
+    activeSources.length > 0 && failedSources.length === activeSources.length;
+  const sourceName = (s?: Row) =>
+    s?.kind === "sidof"
+      ? t("SIDOF · documento de referencia")
+      : s?.name || t("Fuente");
   const lead = publications[0];
   const selected = detail?.versions.find((v: Row) => v.id === versionId);
   const filtered = Boolean(
@@ -544,7 +681,9 @@ function Bulletin() {
         {t("Ir al contenido")}
       </a>
       <div className="edition-strip">
-        <span>{t("MÉXICO / OBSERVATORIO REGULATORIO")}</span>
+        <span>
+          JE / NOM MONITOR <b className="release-mark">v{portalVersion}</b>
+        </span>
         <div className="edition-right">
           <span>{date}</span>
           <div
@@ -558,16 +697,15 @@ function Bulletin() {
               aria-pressed={language === "es"}
               onClick={() => setLanguage("es")}
             >
-              ES
+              Español
             </button>
-            <span>/</span>
             <button
               lang="en"
               aria-label="English"
               aria-pressed={language === "en"}
               onClick={() => setLanguage("en")}
             >
-              EN
+              English
             </button>
           </div>
         </div>
@@ -639,8 +777,34 @@ function Bulletin() {
         )}
         {notice && (
           <div role="status" className="notification notice">
-            {notice}
+            {t(notice)}
           </div>
+        )}
+        {!busy && failedSources.length > 0 && (
+          <section className="coverage-alert" role="status">
+            <span className="coverage-symbol" aria-hidden="true">
+              !
+            </span>
+            <div>
+              <strong>
+                {t(
+                  allFailed
+                    ? "No se pudieron consultar las fuentes."
+                    : "La revisión tiene fuentes pendientes.",
+                )}
+              </strong>
+              <p>
+                {t(
+                  "{failed} de {total} fuentes activas tienen una revisión incompleta. No se ha confirmado la ausencia de novedades.",
+                  { failed: failedSources.length, total: activeSources.length },
+                )}
+              </p>
+            </div>
+            <button className="text-button" onClick={() => navigate("fuentes")}>
+              {t("Ver qué pasó")}
+              <Icon name="arrow" />
+            </button>
+          </section>
         )}
         {config?.mode === "entra" && !me && !busy && (
           <div className="notification">
@@ -660,15 +824,15 @@ function Bulletin() {
             <div>
               <span className="eyebrow">{t("EL BOLETÍN")}</span>
               <h1>
-                {t("Las normas cambian.")}
+                {t("Normativa mexicana,")}
                 <br />
-                <em>{t("Sigue el movimiento.")}</em>
+                <em>{t("a primera vista.")}</em>
               </h1>
             </div>
             <div className="intro-note">
               <p>
                 {t(
-                  "Publicaciones oficiales, cambios y referencias para seguir la normativa mexicana desde un solo lugar.",
+                  "Consulta las fuentes, lee lo que se publicó y comprueba qué cambió en los documentos guardados.",
                 )}
               </p>
               <div className="last-check">
@@ -684,16 +848,42 @@ function Bulletin() {
                 <span>
                   {activeJobs
                     ? t("Revisión en curso")
-                    : latest
-                      ? t("Última consulta correcta: {date}", {
-                          date: format(latest, true),
-                        })
-                      : t("La primera consulta está pendiente")}
+                    : allFailed
+                      ? t("La revisión necesita atención")
+                      : latest
+                        ? t("Última consulta correcta: {date}", {
+                            date: format(latest, true),
+                          })
+                        : t("La primera consulta está pendiente")}
                 </span>
               </div>
             </div>
           </section>
         )}
+        {view === "actualidad" && (
+          <section className="start-here" aria-label={t("Cómo empezar")}>
+            <span>{t("EMPIEZA AQUÍ")}</span>
+            <button
+              onClick={() => void refresh()}
+              disabled={!ready || updating || activeJobs}
+            >
+              <b>01</b>
+              {t("Consulta las fuentes")}
+              <Icon name="arrow" size={15} />
+            </button>
+            <button onClick={() => navigate("archivo")}>
+              <b>02</b>
+              {t("Busca una publicación")}
+              <Icon name="arrow" size={15} />
+            </button>
+            <button onClick={() => navigate("guia")}>
+              <b>03</b>
+              {t("Entiende los resultados")}
+              <Icon name="arrow" size={15} />
+            </button>
+          </section>
+        )}
+        {view === "guia" && <Guide go={navigate} />}
         {view === "archivo" && (
           <section className="section-intro">
             <span className="eyebrow">{t("LA HEMEROTECA")}</span>
@@ -708,7 +898,7 @@ function Bulletin() {
             </p>
           </section>
         )}
-        {view !== "fuentes" && (
+        {(view === "actualidad" || view === "archivo") && (
           <>
             <form className="search-bar" onSubmit={(e) => e.preventDefault()}>
               <Icon name="search" size={21} />
@@ -853,25 +1043,41 @@ function Bulletin() {
                       {t(
                         filtered
                           ? "Ninguna publicación coincide."
-                          : "Tu primera edición comienza aquí.",
+                          : allFailed
+                            ? "Aún no hay documentos recuperados."
+                            : "Tu primera edición comienza aquí.",
                       )}
                     </h2>
                     <p>
                       {t(
                         filtered
                           ? "Prueba con otro tema o amplía el periodo. Las publicaciones sin fecha oficial no aparecen al filtrar por últimos días."
-                          : "Consulta las fuentes para empezar a reunir publicaciones oficiales. Aquí aparecerán sus títulos, fechas y cambios, sin datos de ejemplo.",
+                          : allFailed
+                            ? "Las consultas a los sitios oficiales fallaron. Abre Estado de las fuentes para ver las direcciones y el motivo; puedes visitar cada sitio directamente."
+                            : "Consulta las fuentes para empezar a reunir publicaciones oficiales. Aquí aparecerán sus títulos, fechas y cambios, sin datos de ejemplo.",
                       )}
                     </p>
                     <button
                       className="button paper"
-                      onClick={filtered ? reset : () => void refresh()}
-                      disabled={updating || activeJobs}
+                      onClick={
+                        filtered
+                          ? reset
+                          : allFailed
+                            ? () => navigate("fuentes")
+                            : () => void refresh()
+                      }
+                      disabled={
+                        !allFailed &&
+                        !filtered &&
+                        (!ready || updating || activeJobs)
+                      }
                     >
                       {t(
                         filtered
                           ? "Ver todas las publicaciones"
-                          : "Preparar el boletín",
+                          : allFailed
+                            ? "Revisar las conexiones"
+                            : "Consultar fuentes",
                       )}
                       <Icon name="arrow" />
                     </button>
@@ -1030,6 +1236,11 @@ function Bulletin() {
                   {!terms.length && (
                     <small>{t("Tu lista se guarda en este navegador.")}</small>
                   )}
+                  <small className="radar-explanation">
+                    {t(
+                      "Busca en los documentos ya recuperados. No activa notificaciones.",
+                    )}
+                  </small>
                 </section>
                 <section className="sources-at-close">
                   <span className="margin-number">{t("02 / AL CIERRE")}</span>
@@ -1099,7 +1310,7 @@ function Bulletin() {
                 {t("DE DÓNDE VIENE LA INFORMACIÓN")}
               </span>
               <h1>
-                {t("Documentos con origen")}
+                {t("¿Se pudo revisar?")}
                 <span className="accent">.</span>
               </h1>
               <p>
@@ -1140,7 +1351,7 @@ function Bulletin() {
                         )}
                       </span>
                     </div>
-                    <h2>{item.name}</h2>
+                    <h2>{sourceName(item)}</h2>
                     <p>
                       {language === "en"
                         ? t(`coverage.${item.kind}`)
@@ -1165,12 +1376,13 @@ function Bulletin() {
                       </a>
                     ))}
                     {item.last_error && (
-                      <details className="source-problem">
-                        <summary>
-                          {t("Ver motivo de la consulta incompleta")}
-                        </summary>
-                        <p>{item.last_error}</p>
-                      </details>
+                      <div className="source-failure">
+                        <p>{t(sourceIssue(item.last_error))}</p>
+                        <details className="source-problem">
+                          <summary>{t("Detalle original del error")}</summary>
+                          <p lang="es">{item.last_error}</p>
+                        </details>
+                      </div>
                     )}
                     {admin && (
                       <details className="source-editor">
@@ -1268,15 +1480,19 @@ function Bulletin() {
                       {t(jobNames[job.status] || job.status)}
                     </span>
                     <strong>
-                      {sources.find((s) => s.id === job.source_id)?.name ||
-                        t("Fuente")}
+                      {sourceName(sources.find((s) => s.id === job.source_id))}
                     </strong>
                     <span>{format(job.requested_at, true)}</span>
                     <small>
-                      {t("{new} nuevos · {changes} cambios", {
-                        new: job.new_count,
-                        changes: job.modified_count,
-                      })}
+                      {t(
+                        job.status === "failed"
+                          ? "Revisión fallida; novedades sin confirmar"
+                          : "{new} nuevos · {changes} cambios",
+                        {
+                          new: job.new_count,
+                          changes: job.modified_count,
+                        },
+                      )}
                       {job.error_count > 0
                         ? t(" · {count} errores", { count: job.error_count })
                         : ""}
@@ -1379,7 +1595,10 @@ function Bulletin() {
               </a>
             )}
             {detail.processing_note && (
-              <p className="notification">{detail.processing_note}</p>
+              <details className="notification">
+                <summary>{t("Nota original del documento")}</summary>
+                <p lang="es">{detail.processing_note}</p>
+              </details>
             )}
             <div className="section-rule">
               <h2>{t("Documento conservado")}</h2>
