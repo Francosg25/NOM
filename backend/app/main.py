@@ -36,7 +36,7 @@ async def lifespan(app):
         await asyncio.to_thread(thread.join, 2)
 
 
-app = FastAPI(title='JE NOM Monitor', version='0.3.0', lifespan=lifespan,
+app = FastAPI(title='JE NOM Monitor', version='0.3.1', lifespan=lifespan,
               docs_url=None if production else '/api/docs', openapi_url=None if production else '/api/openapi.json')
 
 
@@ -521,10 +521,15 @@ def refresh_bulletin(db: Session = Depends(get_db), user: Identity = Depends(ide
         if active:
             requested.append(active.id)
             continue
-        if db.scalar(select(Job.id).where(Job.source_id == source.id,
-                Job.requested_at > utcnow() - timedelta(minutes=15)).limit(1)):
-            recent += 1
-            continue
+        previous = db.scalar(select(Job).where(Job.source_id == source.id).order_by(Job.requested_at.desc(), Job.id.desc()).limit(1))
+        if previous:
+            unsuccessful = previous.status in ('failed', 'partial', 'interrupted')
+            cooldown = 60 if unsuccessful else 900
+            last_event = func.coalesce(Job.finished_at, Job.requested_at) if unsuccessful else Job.requested_at
+            if db.scalar(select(Job.id).where(Job.id == previous.id,
+                    last_event > utcnow() - timedelta(seconds=cooldown))):
+                recent += 1
+                continue
         try:
             requested.append(request_job(db, source.id, 'portal').id)
         except ValueError:

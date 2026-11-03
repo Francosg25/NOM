@@ -27,7 +27,7 @@ cp -R "$project_root/frontend/src" "$payload/frontend/"
 cp "$project_root/frontend/package.json" "$project_root/frontend/package-lock.json" "$project_root/frontend/tsconfig.json" "$project_root/frontend/vite.config.ts" "$project_root/frontend/index.html" "$payload/frontend/"
 cp "$project_root/scripts/frontend-build.mjs" "$project_root/scripts/start_local.py" "$payload/scripts/"
 cp "$project_root/scripts/setup.sh" "$project_root/scripts/setup.ps1" "$project_root/scripts/start-appservice.sh" "$project_root/scripts/package-appservice.sh" "$payload/scripts/"
-cp "$project_root/PREPARAR_LOCAL.cmd" "$project_root/ACTUALIZAR_INTERFAZ.cmd" "$project_root/INICIAR_LOCAL.cmd" "$project_root/.env.example" "$project_root/README.md" "$payload/"
+cp "$project_root/PREPARAR_LOCAL.cmd" "$project_root/ACTUALIZAR_INTERFAZ.cmd" "$project_root/INICIAR_LOCAL.cmd" "$project_root/DIAGNOSTICAR_CONEXION.cmd" "$project_root/.env.example" "$project_root/README.md" "$payload/"
 cp -R "$project_root/docs/." "$payload/docs/"
 cp "$project_root/scripts/start-appservice.sh" "$payload/startup.sh"
 find "$stage" -type d -name __pycache__ -prune -exec rm -rf '{}' +

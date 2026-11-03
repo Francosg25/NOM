@@ -396,3 +396,29 @@ def test_bulletin_orders_by_official_date_and_filters_real_changes(api):
     assert result[0]['excerpt'] == 'Un extracto con espacios' and result[0]['has_changes']
     assert client.get(f'/api/publications?published_since={main.mexico_today()}').json()['total'] == 1
     assert client.get('/api/publications?changes_only=true').json()['total'] == 1
+
+
+@pytest.mark.parametrize('status,seconds,allowed', [
+    ('failed', 120, True), ('partial', 120, True), ('interrupted', 120, True),
+    ('failed', 20, False), ('succeeded', 120, False),
+])
+def test_failed_source_can_retry_after_a_minute_but_success_keeps_cooldown(api, status, seconds, allowed):
+    from app.models import utcnow
+    client, sessions, _, _ = api
+    seed(sessions)
+    previous_id = client.post('/api/refresh').json()['jobs'][0]
+    with sessions() as db:
+        previous = db.get(Job, previous_id)
+        previous.status, previous.active_key = status, None
+        previous.requested_at = utcnow() - timedelta(seconds=seconds + 600)
+        previous.finished_at = utcnow() - timedelta(seconds=seconds)
+        # A successful check keeps the existing 15-minute request cooldown.
+        if status == 'succeeded':
+            previous.requested_at = utcnow() - timedelta(seconds=seconds)
+        db.commit()
+    result = client.post('/api/refresh').json()
+    assert bool(result['jobs']) is allowed
+    if allowed:
+        assert previous_id not in result['jobs']
+    else:
+        assert result['recent_sources'] == 1

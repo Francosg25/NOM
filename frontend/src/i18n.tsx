@@ -9,6 +9,26 @@ import type { ReactNode } from "react";
 
 type Language = "es" | "en";
 const english: Record<string, string> = {
+  "La conexión HTTPS falló al validar el certificado: puede no ser reconocido, estar vencido o tener una cadena incompleta. Esta fuente no pudo revisarse.":
+    "HTTPS certificate validation failed: the certificate may be untrusted, expired or missing part of its chain. This source could not be checked.",
+  "No se pudo negociar la conexión segura con el sitio o el proxy. La revisión sigue pendiente.":
+    "A secure connection could not be negotiated with the website or proxy. The check remains pending.",
+  "El servidor del portal no pudo cargar su configuración de certificados HTTPS. Revisa la configuración de certificados antes de volver a consultar.":
+    "The portal server could not load its HTTPS certificate configuration. Check that configuration before trying again.",
+  "El proxy de la red solicita una autenticación que el proceso del portal no tiene disponible. La revisión no pudo realizarse.":
+    "The network proxy requires authentication that the portal process does not have available. The check could not be performed.",
+  "La configuración del proxy no es válida o está incompleta para este proceso. La revisión sigue pendiente.":
+    "The proxy configuration is invalid or incomplete for this process. The check remains pending.",
+  "No se pudo conectar con la fuente a través del proxy configurado. La revisión sigue pendiente.":
+    "Could not connect to the source through the configured proxy. The check remains pending.",
+  "No se pudo resolver el nombre del sitio oficial. Revisa la resolución DNS y la configuración del proxy en el equipo o servidor donde corre el portal.":
+    "The official website's hostname could not be resolved. Check DNS resolution and proxy configuration on the computer or server running the portal.",
+  "Se agotó el tiempo para conectar con el sitio o el proxy. No se confirmó el acceso a la fuente.":
+    "The connection to the website or proxy timed out. Access to the source was not confirmed.",
+  "La conexión se abrió, pero la fuente no respondió a tiempo. La revisión quedó incompleta.":
+    "The connection opened, but the source did not respond in time. The check is incomplete.",
+  "Hay consultas recientes. Espera un minuto tras una revisión fallida o 15 minutos tras una revisión correcta antes de repetir.":
+    "There are recent checks. Wait one minute after an unsuccessful check or 15 minutes after a successful check before trying again.",
   Novedades: "Latest publications",
   "Estado de las fuentes": "Source status",
   "Cómo funciona": "How it works",
@@ -114,8 +134,6 @@ const english: Record<string, string> = {
   "No se pudo conectar con el portal.": "Could not connect to the portal.",
   "Consultando las fuentes. Los resultados aparecerán aquí al terminar.":
     "Checking the sources. Results will appear here when the check is complete.",
-  "Las fuentes se consultaron hace menos de 15 minutos. Puedes ver el resultado en Estado de las fuentes.":
-    "The sources were checked less than 15 minutes ago. See Source status for the results.",
   "Configura una fuente para comenzar.": "Configure a source to get started.",
   "Consulta en cola. Inicia el portal con MONITOR_ENABLED=true para procesarla.":
     "The check is queued. Start the portal with MONITOR_ENABLED=true to process it.",

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import io
-import os
 import ipaddress
 import re
 import socket
@@ -14,6 +13,7 @@ from urllib.robotparser import RobotFileParser
 
 import httpx
 from bs4 import BeautifulSoup
+from ..network import connection_issue, https_proxy_configured, verified_tls_context
 
 
 class CollectionError(RuntimeError):
@@ -77,6 +77,8 @@ def validate_url(url: str, kind: str | None = None, *, resolve_dns: bool = False
             addresses = socket.getaddrinfo(p.hostname, 443, type=socket.SOCK_STREAM)
             if not addresses or any(not ipaddress.ip_address(a[4][0]).is_global for a in addresses):
                 raise ValueError("El destino no resuelve exclusivamente a direcciones públicas")
+    except socket.gaierror as exc:
+        raise CollectionError(f"[DNS_ERROR] No se pudo resolver el nombre del sitio oficial ({p.hostname}).") from exc
     except (ValueError, OSError) as exc:
         raise CollectionError(f"URL no permitida o DNS no verificable: {urlsplit(url).hostname or 'sin host'}") from exc
     return url
@@ -104,19 +106,31 @@ class SafeFetcher:
     """TLS verified, robots-aware, rate-limited HTTP client; redirects revalidated."""
 
     def __init__(self, *, client: httpx.Client | None = None, interval: float = 1.0,
-                 resolve_dns: bool | None = None, max_bytes: int = MAX_BYTES):
+                 resolve_dns: bool | None = None, max_bytes: int = MAX_BYTES, attempts: int = 3):
         if resolve_dns is None:
             from ..config import get_settings
             proxy_dns = get_settings().source_dns_mode == 'proxy'
-            if proxy_dns and not any(os.environ.get(k) for k in ('HTTPS_PROXY','https_proxy','ALL_PROXY','all_proxy')):
-                raise CollectionError('SOURCE_DNS_MODE=proxy requiere un proxy HTTPS configurado en el entorno')
+            if proxy_dns and not https_proxy_configured():
+                raise CollectionError('[PROXY_CONFIGURATION] SOURCE_DNS_MODE=proxy requiere un proxy HTTPS configurado en el entorno o sistema')
             resolve_dns = not proxy_dns
-        self.client = client or httpx.Client(timeout=httpx.Timeout(20, connect=10),
-                                            follow_redirects=False, headers={"User-Agent": USER_AGENT, "Accept-Encoding":"identity"})
+        if client is not None:
+            self.client = client
+        else:
+            try:
+                context = verified_tls_context()
+            except (OSError, ValueError) as exc:
+                raise CollectionError('[TLS_CONFIGURATION] No se pudo cargar la configuración de certificados HTTPS. Revisa SSL_CERT_FILE y SSL_CERT_DIR.') from exc
+            try:
+                self.client = httpx.Client(verify=context, trust_env=True,
+                    timeout=httpx.Timeout(20, connect=10), follow_redirects=False,
+                    headers={"User-Agent": USER_AGENT, "Accept-Encoding":"identity"})
+            except (ValueError, httpx.InvalidURL) as exc:
+                raise CollectionError('[PROXY_CONFIGURATION] No se pudo iniciar el cliente HTTPS. Revisa el formato del proxy configurado.') from exc
         self._owns_client = client is None
         self.interval = interval
         self.resolve_dns = resolve_dns
         self.max_bytes = max_bytes
+        self.attempts = max(1, min(attempts, 3))
         self._last_request = 0.0
         self._robots: dict[str, RobotFileParser] = {}
 
@@ -126,14 +140,14 @@ class SafeFetcher:
 
     def _request(self, url: str) -> httpx.Response:
         validate_url(url, resolve_dns=self.resolve_dns)
-        for attempt in range(3):
+        for attempt in range(self.attempts):
             delay = self.interval - (time.monotonic() - self._last_request)
             if delay > 0:
                 time.sleep(delay)
             self._last_request = time.monotonic()
             try:
                 with self.client.stream("GET", url) as response:
-                    if response.status_code in {429, 502, 503, 504} and attempt < 2:
+                    if response.status_code in {429, 502, 503, 504} and attempt < self.attempts - 1:
                         time.sleep(min(2 ** attempt, 4))
                         continue
                     content = bytearray()
@@ -148,9 +162,10 @@ class SafeFetcher:
                     headers.pop('content-length', None)
                     return httpx.Response(response.status_code, headers=headers,
                                           content=bytes(content), request=response.request)
-            except (httpx.TimeoutException, httpx.NetworkError) as exc:
-                if attempt == 2:
-                    raise CollectionError(f"Tiempo de espera o conexión fallida: {urlsplit(url).hostname}") from exc
+            except httpx.TransportError as exc:
+                issue = connection_issue(exc)
+                if not issue.retryable or attempt == self.attempts - 1:
+                    raise CollectionError(f"[{issue.code}] {issue.message} ({urlsplit(url).hostname}).") from exc
         raise CollectionError("Consulta agotó los reintentos")
 
     def _allowed(self, url: str):

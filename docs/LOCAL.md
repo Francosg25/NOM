@@ -2,7 +2,7 @@
 
 ## Español
 
-La versión **0.3.0** tiene un encabezado grande **norma.**, fondo color papel y navegación horizontal. Arriba están los botones **Español** y **English**. Si ves una barra lateral verde con Inicio, Alertas y Productos, estás viendo una versión anterior.
+La versión **0.3.1** tiene un encabezado grande **norma.**, fondo color papel y navegación horizontal. Arriba están los botones **Español** y **English**. Si ves una barra lateral verde con Inicio, Alertas y Productos, estás viendo una versión anterior.
 
 ### Primera vez desde el ZIP
 
@@ -46,7 +46,7 @@ Tus datos locales se conservan según `DATABASE_URL` y `STORAGE_PATH` de `.env`;
 
 ## English
 
-Version **0.3.0** has a large **norma.** heading, a paper-colored background and horizontal navigation. **Español** and **English** are at the top. A green sidebar with Home, Alerts and Products belongs to an older interface.
+Version **0.3.1** has a large **norma.** heading, a paper-colored background and horizontal navigation. **Español** and **English** are at the top. A green sidebar with Home, Alerts and Products belongs to an older interface.
 
 1. Extract the entire ZIP into a new folder.
 2. Run `PREPARAR_LOCAL.cmd` using an installed, approved Python interpreter. The ZIP includes the compiled interface, so Node is not needed for this first trial.

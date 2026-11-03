@@ -2,16 +2,16 @@
 
 ## Cambio de alcance · 3 de noviembre de 2026
 
-La versión **0.3.0** abre sin cuenta con SQLite y archivos locales; el monitor está integrado y la interfaz es un boletín en español/inglés. Incorpora guía de uso, aviso de cobertura incompleta y selector de idioma con nombres completos. Entra, Blob y PostgreSQL son opcionales. La interfaz anterior de catálogo y decisiones sigue disponible solo por API/CLI.
+La versión **0.3.1** abre sin cuenta con SQLite y archivos locales; el monitor está integrado y la interfaz es un boletín en español/inglés. Incorpora guía de uso, aviso de cobertura incompleta y selector de idioma con nombres completos. El cliente HTTPS carga autoridades del sistema y públicas, respeta almacenes explícitos y clasifica errores de red sin registrar credenciales. Entra, Blob y PostgreSQL son opcionales. La interfaz anterior de catálogo y decisiones sigue disponible solo por API/CLI.
 
 | Comprobación actual | Resultado |
 | --- | --- |
-| Backend | 113 pruebas aprobadas; incluye identidad de la compilación servida y revalidación del HTML, además del monitor, acceso abierto y cola |
+| Backend | 130 pruebas aprobadas; incluye contexto TLS verificado, clasificación de errores, informe seguro y reintento de fuentes fallidas, además de la identidad de la compilación, monitor, acceso abierto y cola |
 | Frontend | TypeScript/Vite aprobados, 32 módulos; compilación con versión y huella de sus fuentes |
-| Interacciones ES/EN | Verificadas sobre el JS compilado con JSDOM y una respuesta API controlada: idioma persistente, URL `?lang=en`, búsqueda, temas, lectura/cierre, guía y fallo de todas las fuentes |
+| Interacciones ES/EN | Verificadas sobre el JS compilado con JSDOM y una respuesta API controlada: idioma persistente, URL `?lang=en`, búsqueda, temas, lectura/cierre, guía, fallo de todas las fuentes y descripción de error TLS en ambos idiomas |
 | Paquete Linux | Arranque real de startup.sh con ENVIRONMENT=production y sin Entra/Blob/PostgreSQL; la web/API responden y SQLite/evidencia sobreviven un reinicio |
 | Runtime de esta comprobación | Python 3.12; destino configurado para App Service Python 3.13, todavía sin prueba en Azure |
-| Revisión visual de escritorio | Verificada en navegador por la ruta de vista previa soportada: portada, navegación horizontal y guía en ES/EN; usa respuestas API controladas con títulos VISTA PREVIA, no fuentes en vivo |
+| Revisión visual de escritorio | Portada, navegación horizontal y guía ES/EN verificadas en la entrega 0.3.0 con respuestas controladas; el cambio de conexión 0.3.1 se verificó con pruebas backend y DOM, sin nuevas consultas en vivo |
 | Windows | Los `.cmd` requieren comprobación en un equipo Windows; el entorno de validación es Linux |
 
 La prueba de DOM comprueba interacciones; la vista de navegador comprueba el escritorio. La comprobación visual móvil y la aceptación de cobertura DOF que sigue continúan pendientes. El ZIP incorpora los comandos y archivos para probar en Windows, además de su entrada `startup.sh` para Azure. El arranque local impide servir una interfaz compilada con fuentes anteriores y avisa si ya existe otro servidor en el puerto.

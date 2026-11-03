@@ -12,7 +12,7 @@ SQLite conserva publicaciones, versiones y cola. Los archivos se guardan en carp
 
 Con MONITOR_ENABLED=true, el ciclo de vida de FastAPI aplica migraciones, registra fuentes y arranca un hilo que consume la cola durable. SCHEDULER_ENABLED=true permite encolar consultas según su frecuencia. En el primer arranque las fuentes sin fecha inicial se habilitan desde el día actual; una fuente ya configurada conserva su elección. Cerrar el navegador no detiene el monitor; apagar el servidor sí. Para usar el trabajador CLI externo se desactiva el integrado.
 
-Las consultas se deduplican por fuente activa. El botón del portal consulta únicamente fuentes existentes y fechas actuales, con un mínimo de 15 minutos entre solicitudes por fuente. Los errores dejan intervalos pendientes; los intervalos programados parciales se reanudan. Cada observación enlaza la ejecución, el documento y la versión observada, incluso sin cambios. Se conservan las reversiones A → B → A.
+Las consultas se deduplican por fuente activa. El botón del portal consulta únicamente fuentes existentes y fechas actuales. Después de un fallo se permite reintentar tras un minuto desde la finalización; después de una consulta correcta se mantienen 15 minutos entre solicitudes. Los errores dejan intervalos pendientes; los intervalos programados parciales se reanudan. Cada observación enlaza la ejecución, el documento y la versión observada, incluso sin cambios. Se conservan las reversiones A → B → A.
 
 ## Acceso
 

@@ -61,6 +61,28 @@ function displayUrl(value: string) {
   }
 }
 function sourceIssue(error: string) {
+  const causes: Record<string, string> = {
+    TLS_CERTIFICATE:
+      "La conexión HTTPS falló al validar el certificado: puede no ser reconocido, estar vencido o tener una cadena incompleta. Esta fuente no pudo revisarse.",
+    TLS_HANDSHAKE:
+      "No se pudo negociar la conexión segura con el sitio o el proxy. La revisión sigue pendiente.",
+    TLS_CONFIGURATION:
+      "El servidor del portal no pudo cargar su configuración de certificados HTTPS. Revisa la configuración de certificados antes de volver a consultar.",
+    PROXY_AUTH:
+      "El proxy de la red solicita una autenticación que el proceso del portal no tiene disponible. La revisión no pudo realizarse.",
+    PROXY_CONFIGURATION:
+      "La configuración del proxy no es válida o está incompleta para este proceso. La revisión sigue pendiente.",
+    PROXY_CONNECT:
+      "No se pudo conectar con la fuente a través del proxy configurado. La revisión sigue pendiente.",
+    DNS_ERROR:
+      "No se pudo resolver el nombre del sitio oficial. Revisa la resolución DNS y la configuración del proxy en el equipo o servidor donde corre el portal.",
+    CONNECT_TIMEOUT:
+      "Se agotó el tiempo para conectar con el sitio o el proxy. No se confirmó el acceso a la fuente.",
+    READ_TIMEOUT:
+      "La conexión se abrió, pero la fuente no respondió a tiempo. La revisión quedó incompleta.",
+  };
+  const code = error.match(/\[([A-Z_]+)\]/)?.[1];
+  if (code && causes[code]) return causes[code];
   if (/espera|conexi[oó]n|timeout|connect|network|DNS/i.test(error))
     return "No se pudo conectar con el sitio oficial. Comprueba que esta computadora o servidor tenga acceso a esa dirección; después vuelve a consultar.";
   if (/robots/i.test(error))
@@ -560,7 +582,7 @@ function Bulletin() {
         result.jobs.length
           ? "Consultando las fuentes. Los resultados aparecerán aquí al terminar."
           : result.recent_sources
-            ? "Las fuentes se consultaron hace menos de 15 minutos. Puedes ver el resultado en Estado de las fuentes."
+            ? "Hay consultas recientes. Espera un minuto tras una revisión fallida o 15 minutos tras una revisión correcta antes de repetir."
             : "Configura una fuente para comenzar.",
       );
       if (!result.monitor_enabled && result.jobs.length)
