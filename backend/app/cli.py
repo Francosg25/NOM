@@ -83,6 +83,15 @@ def demo(db):
     db.commit()
 
 
+def apply_migrations():
+    from alembic import command
+    from alembic.config import Config
+    root = Path(__file__).resolve().parents[1]
+    config = Config(str(root / 'alembic.ini'))
+    config.set_main_option('script_location', str(root / 'alembic'))
+    command.upgrade(config, 'head')
+
+
 def main():
     parser = argparse.ArgumentParser(description="JE NOM Monitor · herramientas de operación")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -111,12 +120,7 @@ def main():
     worker.add_argument('--schedule', action='store_true', help='Atender programación habilitada; exige SCHEDULER_ENABLED=true')
     args = parser.parse_args()
     if args.command == "init-db":
-        from alembic import command
-        from alembic.config import Config
-        root = Path(__file__).resolve().parents[1]
-        config = Config(str(root / "alembic.ini"))
-        config.set_main_option("script_location", str(root / "alembic"))
-        command.upgrade(config, "head")
+        apply_migrations()
     with SessionLocal() as db:
         if args.command in ("init-db", "init-sources"):
             init_sources(db)

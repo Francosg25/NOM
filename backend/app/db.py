@@ -15,7 +15,7 @@ if url.startswith('sqlite'):
     def sqlite_settings(connection, _):
         cursor = connection.cursor()
         cursor.execute('PRAGMA foreign_keys=ON')
-        cursor.execute('PRAGMA journal_mode=WAL')
+        cursor.execute('PRAGMA journal_mode=DELETE' if settings.environment == 'production' else 'PRAGMA journal_mode=WAL')
         cursor.close()
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 

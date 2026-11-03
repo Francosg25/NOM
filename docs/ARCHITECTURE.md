@@ -1,47 +1,25 @@
-# Decisiones de arquitectura
+# Arquitectura del boletín
 
-JE NOM Monitor es un monolito modular: React/TypeScript/Vite, API FastAPI, SQLAlchemy y Alembic. El backend sirve el frontend compilado; el recopilador se ejecuta como proceso independiente. No requiere Docker ni un servicio de IA.
+React/TypeScript/Vite y FastAPI forman una sola aplicación. El servidor sirve el frontend compilado y contiene un monitor en segundo plano para una instalación de una instancia.
 
-## Límites funcionales
+## Lectura y diseño
 
-La recopilación produce evidencia y propuestas de relevancia. Una coincidencia no decide aplicabilidad legal ni permite/prohíbe importar. Los revisores deben contrastar el documento oficial y justificar sus decisiones. Un documento sin coincidencias permanece en revisión general. Las familias y reglas son datos editables; no hay una lista de tipos de producto codificada.
+La interfaz es un boletín: cabecera editorial, navegación horizontal, portada, archivo y fuentes. No usa la estructura de panel lateral y tarjetas KPI de una aplicación analítica. Incluye temas guardados por navegador y una vista de lectura con historial. Español e inglés comparten las mismas consultas; solo cambian las etiquetas y el formato de fechas. El texto oficial se conserva en español sin una traducción automática atribuida a la fuente.
 
-Las fechas de publicación, detección y vigencia son distintas. Una detección reciente puede corresponder a una publicación antigua. No se infiere una fecha de vigencia desde frases ambiguas. Las consultas se registran en UTC y la interfaz las presenta en America/Mexico_City.
+## Datos y consultas
 
-## Persistencia y procesos
+SQLite conserva publicaciones, versiones y cola. Los archivos se guardan en carpetas locales con claves SHA-256. En App Service ambos viven bajo /home/nom-monitor. SQLite de producción usa diario DELETE; se opera con una instancia y un proceso web. PostgreSQL y Blob son adaptadores opcionales para otra escala; no son requisitos del portal.
 
-- SQLite se reserva al desarrollo. Producción requiere PostgreSQL administrado persistente, por ejemplo Azure Database for PostgreSQL Flexible Server, sujeto a aprobación y disponibilidad corporativa.
-- Las migraciones se ejecutan explícitamente antes de arrancar; no deben ejecutarlas simultáneamente todas las instancias.
-- Los trabajos se solicitan por API y se conservan en la base. El servidor web no ejecuta la recopilación en una tarea efímera de memoria. Se necesita un trabajador independiente para consumir la cola.
-- Se conserva cada cambio respecto de la versión anterior, incluidas reversiones. El hash de contenido no elimina la historia A → B → A.
-- Evidencia mediante almacenamiento local en desarrollo o Azure Blob Storage en producción. Un archivo en el disco temporal de App Service no es almacenamiento de producción.
-- Mantener la base y Blob bajo políticas de copia de seguridad, retención y acceso corporativas. Las referencias de evidencia no deben ser URLs públicas de contenedores.
+Con MONITOR_ENABLED=true, el ciclo de vida de FastAPI aplica migraciones, registra fuentes y arranca un hilo que consume la cola durable. SCHEDULER_ENABLED=true permite encolar consultas según su frecuencia. En el primer arranque las fuentes sin fecha inicial se habilitan desde el día actual; una fuente ya configurada conserva su elección. Cerrar el navegador no detiene el monitor; apagar el servidor sí. Para usar el trabajador CLI externo se desactiva el integrado.
 
-## Autenticación
+Las consultas se deduplican por fuente activa. El botón del portal consulta únicamente fuentes existentes y fechas actuales, con un mínimo de 15 minutos entre solicitudes por fuente. Los errores dejan intervalos pendientes; los intervalos programados parciales se reanudan. Cada observación enlaza la ejecución, el documento y la versión observada, incluso sin cambios. Se conservan las reversiones A → B → A.
 
-Los roles son consulta, revisor y administrador. El backend verifica permisos en cada operación protegida. El modo local requiere activación explícita y no debe utilizarse en producción. Entra ID usa tokens de acceso firmados para la audiencia de la API, emisor y tenant configurados. La interfaz integra MSAL con redirección, tokens de acceso y renovación silenciosa. Usa sessionStorage para la sesión MSAL. El modo normal no solicita pegar tokens. El código se carga solo cuando existe configuración Entra; falta validar el tenant real.
+## Acceso
 
-No se confía en cabeceras de identidad añadidas por un cliente. La autenticación de App Service puede añadirse como capa adicional, pero no sustituye la configuración de validación de la API. No se han creado registros de aplicaciones, roles ni recursos de Azure.
+AUTH_MODE=portal es el valor por defecto: lectura sin cuenta ni token. El visitante puede consultar y solicitar una actualización acotada. No adquiere permisos para cambiar fuentes o decisiones, aunque envíe una cabecera de rol. En desarrollo local se puede activar el administrador con DEV_AUTH_ENABLED=true. Entra/Easy Auth queda como opción explícita, sin MSAL ni registros obligatorios para el portal.
 
-## Extensibilidad
+## Alcance de la información
 
-Los conectores se separan del trabajo, la API, el almacenamiento y las reglas. La interfaz opcional de análisis permite incorporar IA posteriormente con evidencia e incertidumbre, sin que sea necesaria para arrancar.
+Las fechas oficiales, de detección y de vigencia se distinguen. No se infiere vigencia automáticamente. La lista reciente se ordena por fecha oficial, coloca las fechas desconocidas al final y permite filtrar 7/30 días. Los extractos son texto de la fuente, no resúmenes generados por IA. Un cambio de versión puede corresponder a texto o enlaces y no acredita por sí solo un cambio legal.
 
-## Estado inicial
-
-La implementación inicial partió de un repositorio vacío. En esta ampliación se revisó NOM_Monitor_Piloto.zip, se incorporaron sus URLs y se verificó la evidencia de tres descargas reales. El repositorio público conserva informes, hashes y extractos reducidos; excluye las páginas HTML completas con metadatos y contactos. La cobertura diaria DOF sigue pendiente; ver PILOT_ACCEPTANCE.md.
-
-## Colas, programación y lecturas
-
-Los cambios de catálogo incrementan una revisión pendiente por registro y descendientes. El trabajador procesa publicaciones por cursor en lotes; propuestas y cursor se confirman en la misma transacción. Los bloqueos PostgreSQL y la actualización condicional evitan que un guardado requiera recorrer el archivo. Las decisiones previas se conservan.
-
-La programación reside en el trabajador supervisado, con activación global y por fuente. Los intervalos incompletos se reintentan antes de avanzar. Ningún timer depende del proceso HTTP o del navegador. Las consultas y versiones se deduplican; el siguiente periodo conserva un solapamiento reciente.
-
-Las listas cargan nombres y evidencia de vigencia en consultas agrupadas, con índices de apoyo. El frontend carga el catálogo de opciones al abrir un selector, no en cada pantalla ni cada 2.5 s. El seguimiento de trabajos usa sondeo de 5 s sin descargas de catálogo y se pausa en pestañas no visibles.
-
-El hash de versión incluye enlaces oficiales extraídos, para detectar sustituciones de documentos aunque el texto visible sea igual. En la primera consulta posterior a esta migración puede crearse una versión adicional por el nuevo formato de comparación, aun si no cambió el contenido normativo. No se presenta esa versión técnica como cambio legal.
-
-Cada documento observado deja un registro de auditoría ligado al trabajo y a su
-versión, también cuando no cambió. La aceptación usa esas observaciones actuales,
-no el inventario histórico de la base. El archivo asociado a una ejecución puede
-recuperarse aunque después se publique otra versión.
+DOF aporta descubrimiento del índice diario; PLATIICA, SNICE y SIDOF siguen sus páginas configuradas. La validación anterior conservó tres documentos reales y dejó DOF pendiente por robots.txt HTTP 503. No se afirma cobertura de todas las normas. El catálogo y las propuestas JE anteriores continúan disponibles por API/CLI como funciones adicionales.

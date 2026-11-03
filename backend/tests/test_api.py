@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from app import auth, main
 from app.config import Settings
 from app.db import get_db
-from app.models import Alert, Audit, Base, CatalogItem, Publication, Source, Version
+from app.models import Alert, Audit, Base, CatalogItem, Job, Publication, Source, Version
 from app.storage import LocalEvidenceStore
 
 
@@ -121,7 +121,7 @@ def test_public_auth_configuration_has_no_secrets(api):
     client,_,_,_=api
     result=client.get('/api/auth/config')
     assert result.status_code==200
-    assert set(result.json())=={'tenant_id','client_id','scopes','app_service','development'}
+    assert set(result.json())=={'tenant_id','client_id','scopes','app_service','development','mode','demo_enabled'}
 
 
 @pytest.mark.parametrize('kind,url', [
@@ -345,4 +345,40 @@ def test_evidence_download_requires_identity_and_cannot_execute_html(api):
     assert response.headers['content-disposition'].startswith('attachment;')
     assert response.headers['x-content-type-options'] == 'nosniff'
     settings.dev_auth_enabled = False
-    assert client.get(f'/api/versions/{version_id}/evidence', headers=ADMIN).status_code == 401
+    assert client.get(f'/api/versions/{version_id}/evidence', headers=ADMIN).status_code == 200
+
+
+def test_open_portal_refreshes_fixed_sources_without_editing_them(api):
+    client, sessions, settings, _ = api
+    settings.dev_auth_enabled = False
+    source_id, _, _, _, _ = seed(sessions)
+    assert client.get('/api/me').json()['role'] == 'consulta'
+    assert client.get('/api/publications').status_code == 200
+    assert client.patch(f'/api/sources/{source_id}', headers=ADMIN, json={'active':False}).status_code == 403
+    first = client.post('/api/refresh')
+    assert first.status_code == 202 and len(first.json()['jobs']) == 1
+    assert client.post('/api/refresh').json()['jobs'] == first.json()['jobs']
+    with sessions() as db:
+        job = db.get(Job, first.json()['jobs'][0])
+        assert job.period_start == job.period_end
+        job.status, job.active_key = 'succeeded', None
+        db.commit()
+    assert client.post('/api/refresh').json()['recent_sources'] == 1
+
+
+def test_bulletin_orders_by_official_date_and_filters_real_changes(api):
+    client, sessions, _, _ = api
+    source_id, _, original_id, _, _ = seed(sessions)
+    with sessions() as db:
+        old = db.get(Publication, original_id)
+        unknown = Publication(source_id=source_id, official_id='undated', url='', title='Sin fecha')
+        newest = Publication(source_id=source_id, official_id='recent', url='', title='Reciente', published_on=main.mexico_today())
+        db.add_all([unknown, newest]); db.flush()
+        version = Version(publication_id=newest.id, sequence=2, content='Un extracto\n con espacios', content_hash='a')
+        db.add(version); db.flush(); newest.current_version_id = version.id
+        ids = [newest.id, old.id, unknown.id]; db.commit()
+    result = client.get('/api/publications?sort=published').json()['items']
+    assert [item['id'] for item in result] == ids
+    assert result[0]['excerpt'] == 'Un extracto con espacios' and result[0]['has_changes']
+    assert client.get(f'/api/publications?published_since={main.mexico_today()}').json()['total'] == 1
+    assert client.get('/api/publications?changes_only=true').json()['total'] == 1

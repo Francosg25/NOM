@@ -1,5 +1,9 @@
 # Puesta en marcha y aceptación del piloto
 
+## Uso actual del portal · 3 de noviembre de 2026
+
+El portal de lectura ahora abre sin cuenta, usa SQLite/archivos y tiene el monitor integrado. La navegación es boletín, archivo y fuentes, en español o inglés. Entra, Blob, PostgreSQL y el trabajador externo son opcionales. Para el arranque actual seguir README.md y docs/AZURE.md; los apartados posteriores describen la aceptación técnica histórica y los comandos avanzados. La evidencia de cobertura que sigue no cambia por el rediseño.
+
 ## Resultado comprobado el 2 de noviembre de 2026
 
 La consulta ejecutada **desde el programa** descargó y guardó tres documentos reales:
@@ -47,8 +51,7 @@ como **MUESTRA PÚBLICA**. No se inventan PN, potencias, voltajes, fracciones,
 NICO, responsables ni aplicabilidad. La descripción y `technical.provenance_url`
 conservan su origen; no son inventario confirmado de ninguna planta.
 
-En Windows, después de la preparación inicial, `INICIAR_LOCAL.cmd` aplica las
-migraciones e inicia web y trabajador locales. No inicia un programador.
+En Windows, después de la preparación inicial, `INICIAR_LOCAL.cmd` inicia la web con el monitor integrado; aplica migraciones y activa las fuentes que todavía no tengan configuración de programación. No iniciar además el trabajador externo.
 
 ## Repetir la aceptación técnica
 
@@ -96,12 +99,12 @@ correctas. `{"dof": []}` solo debe usarse para un periodo revisado sin publicaci
 | Descubrimiento diario y ediciones DOF | Pendiente | Consulta permitida y comparación con inventario manual |
 | Productos representativos de la planta | Pendiente JE | PN, modelo, ficha técnica, uso, fracción/NICO y responsable reales |
 | Propuestas revisadas por responsable | Pendiente JE | Decisión, justificación, usuario y fecha registrados en Alertas |
-| Acceso corporativo | Pendiente configuración | Tenant, registros, scopes, roles, URL y usuarios autorizados |
-| Operación programada alojada | Pendiente instalación | Proceso supervisado y almacenamiento corporativo persistente |
+| Acceso al boletín | Lectura abierta implementada | Entra es opcional y no condiciona el portal |
+| Operación programada alojada | Pendiente probar en Azure | Monitor integrado, SQLite y archivos persistentes bajo /home |
 
-En **Productos**, sustituir/completar los borradores o crear las fichas reales.
+Para el uso opcional del catálogo por API/CLI, sustituir/completar los borradores o crear las fichas reales.
 Las reglas de familias y subfamilias se heredan con el origen indicado en el
-motivo. **Alertas** permite asignar, comentar, confirmar y descartar con historial.
+motivo. La API de alertas permite asignar, comentar, confirmar y descartar con historial.
 La mera mención de motores puede proponer una relación para un motor CC: eso no
 significa que la NOM-014-ENER-2025 le aplique. Contrastar alimentación, fases,
 tecnología, potencia, servicio y exclusiones contra el documento oficial.
@@ -114,19 +117,15 @@ esta aceptación con categorías públicas o con decisiones del usuario local de
 ## Programación implementada
 
 1. Validar manualmente cada fuente y su acceso en el equipo de ejecución.
-2. En **Fuentes y ejecuciones**, indicar fecha inicial, frecuencia y habilitar
+2. En **Las fuentes**, indicar fecha inicial, frecuencia y habilitar
    consultas automáticas por fuente.
-3. Configurar `SCHEDULER_ENABLED=true` e iniciar **un** proceso supervisado:
+3. El portal con `MONITOR_ENABLED=true` y `SCHEDULER_ENABLED=true` ya incluye el consumidor. Como alternativa, desactivar el monitor integrado e iniciar **un** trabajador externo:
 
 ```text
 python -m app.cli worker --poll --schedule
 ```
 
-En Windows `INICIAR_AUTOMATICO.cmd` ejecuta ese proceso explícitamente. Detener la
-ventana detiene el programador. Para ejecución sin intervención, registrar el
-comando en un servicio/programador del alojamiento elegido; se incluye un ejemplo
-de servicio de usuario Linux en `scripts/nom-worker.service.example`. No depende
-de que un usuario tenga el navegador abierto. Ningún servicio se instaló aquí.
+En Windows `INICIAR_AUTOMATICO.cmd` abre ahora el portal con su monitor integrado. Detener el servidor detiene las consultas. App Service debe mantenerse cargado con Always On. El ejemplo systemd corresponde al trabajador externo opcional. El navegador del usuario puede cerrarse sin detener las consultas del servidor.
 
 Los lotes parciales por límite se retoman sin esperar la frecuencia completa;
 los fallos esperan la frecuencia configurada. Se reintenta el intervalo pendiente

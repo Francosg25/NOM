@@ -2,6 +2,9 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from typing import Any, Literal
+from contextlib import asynccontextmanager
+import asyncio
+from threading import Event
 import json
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.encoders import jsonable_encoder
@@ -17,7 +20,23 @@ from .db import get_db
 from .models import Alert, Audit, CatalogItem, Comment, Job, Publication, Reevaluation, Source, SourceRun, Version, utcnow
 
 production = get_settings().environment == 'production'
-app = FastAPI(title='JE NOM Monitor', version='0.1.0', docs_url=None if production else '/api/docs', openapi_url=None if production else '/api/openapi.json')
+
+
+@asynccontextmanager
+async def lifespan(app):
+    stop, thread = Event(), None
+    if get_settings().monitor_enabled:
+        from .monitor import initialize_portal, start_monitor
+        await asyncio.to_thread(initialize_portal)
+        thread = start_monitor(stop)
+    yield
+    stop.set()
+    if thread:
+        await asyncio.to_thread(thread.join, 2)
+
+
+app = FastAPI(title='JE NOM Monitor', version='0.2.0', lifespan=lifespan,
+              docs_url=None if production else '/api/docs', openapi_url=None if production else '/api/openapi.json')
 
 
 @app.middleware('http')
@@ -27,10 +46,6 @@ async def security_headers(request, call_next):
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['Referrer-Policy'] = 'same-origin'
     response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
-    if get_settings().entra_client_id:
-        response.headers['Content-Security-Policy'] = response.headers['Content-Security-Policy'].replace(
-            "connect-src 'self'", "connect-src 'self' https://login.microsoftonline.com").replace(
-            "frame-ancestors 'none'", "frame-ancestors 'none'; frame-src 'self' https://login.microsoftonline.com")
     if request.url.path == '/api/docs' and not production:
         response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self'; img-src 'self' data: https://fastapi.tiangolo.com; frame-ancestors 'none'"
     if request.url.path.startswith('/api/'):
@@ -156,6 +171,10 @@ def pub_dict(db, obj, context=None):
     result['effective_verified_by'] = latest_effective.actor if result['effective_evidence'] else None
     result['effective_verified_at'] = latest_effective.created_at.replace(tzinfo=timezone.utc).isoformat() if result['effective_evidence'] else None
     result['recently_published'] = bool(obj.published_on and mexico_today() - timedelta(days=7) <= obj.published_on <= mexico_today())
+    version = context[2].get(obj.current_version_id) if context else db.get(Version, obj.current_version_id) if obj.current_version_id else None
+    result['excerpt'] = ' '.join(version.content.split())[:420] if version else ''
+    result['has_changes'] = bool(version and version.sequence > 1)
+    result['captured_at'] = version.captured_at.isoformat() if version else None
     return result
 
 
@@ -165,7 +184,8 @@ def pub_dicts(db, rows):
     latest_ids = select(func.max(Audit.id)).where(Audit.entity_type == 'publications',
         Audit.entity_id.in_([str(p.id) for p in rows]), Audit.action == 'evidencia_vigencia').group_by(Audit.entity_id)
     records = {a.entity_id:a for a in db.scalars(select(Audit).where(Audit.id.in_(latest_ids)))}
-    return [pub_dict(db, p, (sources, records)) for p in rows]
+    versions = {v.id: v for v in db.scalars(select(Version).where(Version.id.in_({p.current_version_id for p in rows if p.current_version_id})))}
+    return [pub_dict(db, p, (sources, records, versions)) for p in rows]
 
 
 def alert_dict(db, obj):
@@ -196,7 +216,8 @@ def auth_config():
     s = get_settings()
     return {'tenant_id':s.entra_tenant_id, 'client_id':s.entra_client_id,
             'scopes':s.entra_scopes.split(), 'app_service':s.entra_app_service_auth,
-            'development':s.dev_auth_enabled and s.environment != 'production'}
+            'development':s.dev_auth_enabled and s.environment != 'production',
+            'mode':s.auth_mode, 'demo_enabled':s.demo_mode}
 
 
 @app.get('/api/me')
@@ -216,7 +237,8 @@ def dashboard(db: Session = Depends(get_db), user: Identity = Depends(identity))
             'sources_with_errors':sum(bool(s.last_error) for s in sources),
             'upcoming':pub_dicts(db,upcoming), 'sources':[fields(s) for s in sources],
             'reevaluations_pending':count(select(func.count(Reevaluation.id)).where(Reevaluation.requested_revision > Reevaluation.completed_revision)),
-            'scheduler_enabled':get_settings().scheduler_enabled}
+            'scheduler_enabled':get_settings().scheduler_enabled,
+            'monitor_enabled':get_settings().monitor_enabled}
 
 
 @app.get('/api/catalog')
@@ -288,13 +310,18 @@ def update_catalog(id: int, body: CatalogInput, db: Session = Depends(get_db), u
 @app.get('/api/publications')
 def publications(q: str = '', kind: str | None = None, status: str | None = None, source_id: int | None = None,
                  is_demo: bool = False, page: int = Query(1,ge=1), page_size: int = Query(25,ge=1,le=200),
+                 sort: Literal['published','detected'] = 'detected', published_since: date | None = None,
+                 changes_only: bool = False,
                  db: Session = Depends(get_db), user: Identity = Depends(identity)):
-    stmt = select(Publication).where(Publication.is_demo == is_demo).order_by(Publication.detected_at.desc(),Publication.id.desc())
+    stmt = select(Publication).where(Publication.is_demo == is_demo)
+    stmt = stmt.order_by(Publication.published_on.desc().nulls_last(), Publication.detected_at.desc(), Publication.id.desc()) if sort == 'published' else stmt.order_by(Publication.detected_at.desc(), Publication.id.desc())
     if q: stmt = stmt.where(or_(Publication.title.ilike(f'%{q}%'),Publication.official_id.ilike(f'%{q}%'),
         select(Version.id).where(Version.id == Publication.current_version_id, Version.content.ilike(f'%{q}%')).exists()))
     if kind: stmt = stmt.where(Publication.kind == kind)
     if status: stmt = stmt.where(Publication.review_status == status)
     if source_id: stmt = stmt.where(Publication.source_id == source_id)
+    if published_since: stmt = stmt.where(Publication.published_on >= published_since)
+    if changes_only: stmt = stmt.where(select(Version.id).where(Version.id == Publication.current_version_id, Version.sequence > 1).exists())
     rows,result = paginate(db,stmt,page,page_size); result['items'] = pub_dicts(db,rows)
     return result
 
@@ -474,6 +501,29 @@ def jobs(source_id: int | None = None,page: int = Query(1,ge=1),page_size: int =
     stmt = select(Job).order_by(Job.requested_at.desc())
     if source_id: stmt = stmt.where(Job.source_id == source_id)
     rows,result = paginate(db,stmt,page,page_size); result['items'] = [fields(o) for o in rows]; return result
+
+
+@app.post('/api/refresh', status_code=202)
+def refresh_bulletin(db: Session = Depends(get_db), user: Identity = Depends(identity)):
+    """Readers may request a bounded refresh of configured sources, without editing them."""
+    from .jobs import request_job
+    requested, recent = [], 0
+    for source in db.scalars(select(Source).where(Source.active.is_(True))).all():
+        if not source.urls:
+            continue
+        active = db.scalar(select(Job).where(Job.source_id == source.id, Job.active_key.is_not(None)))
+        if active:
+            requested.append(active.id)
+            continue
+        if db.scalar(select(Job.id).where(Job.source_id == source.id,
+                Job.requested_at > utcnow() - timedelta(minutes=15)).limit(1)):
+            recent += 1
+            continue
+        try:
+            requested.append(request_job(db, source.id, 'portal').id)
+        except ValueError:
+            db.rollback()
+    return {'jobs':requested, 'recent_sources':recent, 'monitor_enabled':get_settings().monitor_enabled}
 
 
 @app.post('/api/jobs',status_code=202)

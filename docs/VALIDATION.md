@@ -1,6 +1,23 @@
-# Validación del piloto · 2 de noviembre de 2026
+# Validación del portal
 
-## Resultado actual
+## Cambio de alcance · 3 de noviembre de 2026
+
+El boletín abre sin cuenta con SQLite y archivos locales; el monitor está integrado y la interfaz es un boletín en español/inglés. Entra, Blob y PostgreSQL dejaron de ser requisitos. La interfaz anterior de catálogo y decisiones sigue disponible solo por API/CLI.
+
+| Comprobación actual | Resultado |
+| --- | --- |
+| Backend | 112 pruebas aprobadas; incluye acceso abierto sin permisos de edición, orden por fecha oficial, cambios, cola y monitor integrado |
+| Frontend | TypeScript/Vite aprobados, 31 módulos; se retiró MSAL |
+| Interacciones ES/EN | Verificadas sobre el JS compilado con JSDOM y una respuesta API controlada: idioma persistente, búsqueda, temas, lectura/cierre y fuentes de solo lectura |
+| Paquete Linux | Arranque real de startup.sh con ENVIRONMENT=production y sin Entra/Blob/PostgreSQL; la web/API responden y SQLite/evidencia sobreviven un reinicio |
+| Runtime de esta comprobación | Python 3.12; destino configurado para App Service Python 3.13, todavía sin prueba en Azure |
+| Revisión visual | Pendiente: Chromium local no estuvo disponible y el navegador remoto rechazó el acceso al archivo local por política |
+
+La prueba de interacciones es de DOM, no una comprobación visual ni de diseño móvil en un navegador. La aceptación de cobertura DOF que sigue continúa pendiente.
+
+## Resultados del piloto anterior · 2 de noviembre de 2026
+
+### Capturas reales
 
 El programa descarga y conserva tres documentos oficiales configurados. La
 aceptación de descubrimiento DOF sigue **sin aprobar**: su `robots.txt` responde
@@ -44,8 +61,8 @@ legal ni cobertura de documentos que las fuentes configuradas no descubren.
   voluntaria con recuperación de intervalos y espera tras fallos.
 - Búsquedas por modelo/contenido; consultas SQL agrupadas para que las listas
   no hagan una consulta adicional por fila.
-- Firma RSA, tenant, emisor, audiencia, expiración y roles; permisos de consulta,
-  revisor y administrador; rechazo de producción sin un flujo de inicio de sesión.
+- Firma RSA, tenant, emisor, audiencia, expiración y roles para la opción Entra;
+  el portal de lectura no requiere esa opción.
 - Destinos HTTPS permitidos, redirecciones, robots, límites y compresión HTTP;
   rechazo de portadas e índices incompatibles desde el formulario de fuentes.
 
@@ -73,9 +90,10 @@ La comprobación visual de esta ampliación no se completó. El navegador remoto
 no alcanzó la aplicación local; el ejecutor no tiene un Chromium utilizable.
 La compilación aprobada no sustituye una prueba visual, móvil o de SSO.
 
-Para cerrar el piloto faltan: descubrimiento y contraste manual del periodo DOF;
-fichas/PN y responsables reales de JE; decisiones registradas por ese responsable;
-Entra con usuarios reales; PostgreSQL y Blob corporativos; trabajador supervisado
-y prueba en el equipo Windows corporativo. No se desplegó Azure ni se instalaron
+Para verificar el boletín faltan: descubrimiento y contraste manual del periodo DOF,
+revisión visual, prueba en el equipo Windows corporativo y en el App Service real.
+Las fichas JE y decisiones solo son necesarias si se utiliza la función adicional de aplicabilidad.
+Entra, PostgreSQL y Blob son opciones y no condiciones para abrir el boletín.
+No se desplegó Azure ni se instalaron
 servicios permanentes. El [procedimiento de aceptación](PILOT_ACCEPTANCE.md)
 explica cómo repetir cada comprobación y qué evidencia debe aportar JE.

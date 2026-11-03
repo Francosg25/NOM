@@ -1,105 +1,67 @@
-# JE NOM Monitor
+# norma. · JE NOM Monitor
 
-Primera versión de una aplicación interna en español para detectar y revisar disposiciones relacionadas con productos de Johnson Electric. Incluye React/TypeScript/Vite, FastAPI, migraciones Alembic, catálogo configurable, evidencia versionada, propuestas explicables y una cola persistente con trabajador independiente. No requiere Docker ni un servicio de IA.
+Un portal para leer publicaciones y cambios de la normativa mexicana. Interfaz en **Español / English**, con búsqueda, filtros por fecha/fuente/tipo, temas guardados y lectura de documentos con historial.
 
-**Una coincidencia es un posible impacto para revisión, no una conclusión legal ni una autorización de importación.** La cobertura es limitada: tres URLs del piloto se descargaron y verificaron en vivo; el índice diario DOF sigue pendiente por HTTP 503 en robots.txt; consulte [fuentes y cobertura](docs/SOURCES.md).
+El portal abre directamente. La instalación sencilla usa **SQLite y archivos locales**, y el servidor consulta las fuentes en segundo plano. No requiere Entra, Blob Storage, PostgreSQL, Foundry, Docker ni un WebJob.
 
-## Arranque local en Windows
+## Probar en Windows
 
-Requisitos: Python 3.12 y Node.js 22 LTS o compatible con Vite (en este entorno también se validó Node 24). Las instalaciones deben estar autorizadas por TI. No se requiere activar un entorno virtual ni cambiar la política de ejecución de PowerShell. Si no se permite ejecutar scripts, use estos comandos directamente en PowerShell desde la raíz del repositorio:
+Necesitas Python 3.12 o 3.13 autorizado y Node.js compatible con Vite (se validó Node 24). Desde la carpeta del repositorio, en PowerShell:
 
 ```powershell
-py -3.12 -m venv .venv
+py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
-Copy-Item .env.example .env  # solo si .env todavía no existe
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 cd frontend
 npm ci
 npm run build
-cd ..\backend
-..\.venv\Scripts\python.exe -m app.cli init-db
+cd ..
+.\INICIAR_LOCAL.cmd
+```
+
+Si tienes Python 3.12, usa `py -3.12` en el primer comando. Abre http://127.0.0.1:8000. Solo necesitas la ventana del portal: aplica las migraciones, registra las fuentes y atiende la cola automáticamente. Las consultas comienzan tras el arranque y se repiten según la frecuencia de cada fuente. No inicies además el trabajador antiguo.
+
+Si ya existe un `.env`, añade `AUTH_MODE=portal`, `MONITOR_ENABLED=true` y `SCHEDULER_ENABLED=true`. No borres la base existente. `DEV_AUTH_ENABLED=true` y `DEV_DEFAULT_ROLE=administrador` permiten editar el seguimiento localmente, sin pantalla de acceso. El despliegue público utiliza lectura abierta; la edición de fuentes y decisiones no se habilita al visitante.
+
+Para arrancar manualmente, desde `backend/`:
+
+```powershell
 ..\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Abra el puerto local 8000 en su navegador. El backend sirve la interfaz compilada. En otra terminal PowerShell, desde `backend/`, inicie el consumidor de trabajos:
+Con las variables del ejemplo, ese proceso ya incluye el monitor. En Linux/macOS: `bash scripts/setup.sh`, después `cd backend && ../.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000`.
 
-```powershell
-..\.venv\Scripts\python.exe -m app.cli worker --poll
+## El recorrido
+
+1. **El boletín** muestra las publicaciones por fecha oficial. La detección tiene su propia fecha; encontrar hoy una norma antigua no la convierte en nueva.
+2. **Explorar publicaciones** busca en títulos, identificadores y texto conservado. Puedes filtrar últimos 7/30 días, fuente, tipo o documentos con versiones nuevas.
+3. **Tu radar** guarda palabras en el navegador para repetir búsquedas; no crea una cuenta ni implica cobertura automática de todos los productos JE.
+4. **Las fuentes** muestra páginas vigiladas, frecuencia, errores y consultas. En local, “Editar seguimiento” ajusta URLs y frecuencia.
+5. **Consultar fuentes** solicita una revisión de las páginas configuradas. Se reutiliza una consulta en curso y se evita repetir una fuente dentro de 15 minutos.
+6. Al abrir un documento puedes leer el texto extraído, ver versiones, descargar la copia y abrir la fuente oficial.
+
+El selector **ES / EN** recuerda el idioma. Los títulos, documentos y errores originales de las fuentes conservan su idioma; la interfaz inglesa los identifica como texto original en español. No se presentan traducciones automáticas como documentos oficiales.
+
+## Azure App Service
+
+El paquete está adaptado a **Linux/Python 3.13, una instancia y un proceso web**. `startup.sh` usa SQLite en `/home/nom-monitor/nom.db`, archivos en `/home/nom-monitor/evidence` y el monitor integrado. Habilita Always On para que siga consultando sin visitas. Consulta [despliegue sencillo](docs/AZURE.md).
+
+```bash
+bash scripts/package-appservice.sh
 ```
 
-Si TI permite scripts, `scripts/setup.ps1` reúne la preparación y respeta un `.env` existente. No configura Azure ni inicia programación automática.
+El ZIP incorpora la interfaz compilada y `requirements.txt` en la raíz para Oryx. No incluye bases, `.env`, credenciales ni entornos virtuales.
 
-`.env.example` activa **autenticación de desarrollo exclusivamente local** y el rol administrador para poder probar la aplicación. La interfaz muestra ese modo y permite comprobar otros roles. No exponga esta configuración a la red ni la copie a producción. Sin activación explícita del modo local, la API exige un token Entra. La configuración de producción rechaza modo local, demo, SQLite y almacenamiento local.
+## Qué fuentes cubre
 
-En Linux/macOS: `bash scripts/setup.sh`, después, desde `backend/`, `../.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000` y en otra terminal `../.venv/bin/python -m app.cli worker --poll`.
+DOF descubre notas enlazadas en su índice diario. PLATIICA sigue las fichas configuradas, SNICE sus páginas configuradas y SIDOF un documento de referencia conocido. **No se ha acreditado cobertura de todas las normas recientes**: el índice diario DOF devolvió HTTP 503 en robots.txt durante la validación previa. El portal conserva y muestra ese fallo; no lo interpreta como ausencia de novedades.
 
-Para desarrollo con recarga, ejecutar la API con `--reload` y `npm run dev` desde `frontend/`. Vite dirige `/api` al puerto 8000. En producción se usa la compilación, sin servidor Vite.
+[Fuentes y límites](docs/SOURCES.md) · [Evidencia del piloto](docs/PILOT_ACCEPTANCE.md) · [Arquitectura](docs/ARCHITECTURE.md) · [Validación](docs/VALIDATION.md)
 
-## Recorrido principal
+## Desarrollo y opciones
 
-1. En **Productos**, cree familias, subfamilias y productos. Puede guardar datos incompletos; la interfaz informa lo faltante. Defina palabras clave, sinónimos, normas vigiladas, fracción y responsables. Desactive registros para conservar el historial.
-2. En **Fuentes y ejecuciones**, revise cobertura y configure URLs concretas para PLATIICA/SNICE. No use una portada como prueba de cobertura. DOF inicia con un índice diario; SIDOF tiene un conector separado para el documento de referencia conocido. PLATIICA y SNICE incluyen las URLs del piloto. `configure-pilot` completa configuraciones vacías existentes.
-3. Solicite una revisión manual indicando fechas. La API devuelve un trabajo en cola; el trabajador debe estar corriendo. Consulte estado, contadores, errores y continuación. La frecuencia se aplica si la fuente tiene programación habilitada y se ejecuta el trabajador con `--schedule` y `SCHEDULER_ENABLED=true`.
-4. En **Publicaciones**, filtre y consulte contenido, fecha de publicación si está disponible, fecha de detección, versiones y descarga de evidencia autenticada. Una publicación encontrada hoy puede ser antigua.
-5. En **Alertas**, revise propuestas y la bandeja general. Asigne responsables, comente y confirme o descarte relaciones con justificación. Solo un revisor puede confirmar aplicabilidad. Las versiones nuevas reabren revisiones y conservan el historial en auditoría.
-6. Verifique fechas de entrada en vigor con evidencia de la disposición oficial antes de mostrarlas como próximas. No se calculan automáticamente fechas legales.
+Desde `backend/`: `python -m pytest -q`. Desde `frontend/`: `npm run build`. No requieren servicios Azure. El catálogo JE y las propuestas anteriores siguen disponibles en la API/CLI para usos adicionales, fuera de la navegación principal del boletín.
 
-Si una consulta falla, queda visible y el periodo sigue pendiente. Reanude trabajos parciales, fallidos o interrumpidos desde la interfaz; no los interprete como ausencia de cambios. Las interrupciones se detectan al vencer el arrendamiento (120 segundos) cuando el trabajador o una nueva solicitud verifica la cola.
+Para un trabajador externo, desactiva `MONITOR_ENABLED` y utiliza `python -m app.cli worker --poll --schedule`; no ejecutes ambos modos a la vez. PostgreSQL, Entra/Easy Auth y el adaptador Blob son opcionales. Para Blob se instalan dependencias adicionales con `pip install -r backend/requirements-azure.txt`.
 
-## Operación por línea de comandos
-
-Desde `backend/`, usando el Python del entorno virtual:
-
-```text
-python -m app.cli init-db
-python -m app.cli init-sources
-python -m app.cli enqueue 1 --start 2026-01-01 --end 2026-01-02
-python -m app.cli worker --once
-python -m app.cli enqueue 1 --resume ID_DEL_TRABAJO
-python -m app.cli worker --poll
-python -m app.cli reevaluate
-```
-
-El rango anterior es un ejemplo de consulta retrospectiva, no una afirmación de publicaciones en esas fechas. `init-db` aplica migraciones y registra fuentes sin inventar publicaciones. La cola se conserva en SQLite local o PostgreSQL en producción; reiniciar la API no ejecuta ni borra trabajos. Hay una sola consulta activa por fuente. Se conserva continuación en límites de procesamiento y se exige reanudación explícita.
-
-`worker --once` devuelve código 0 al completar o si no hay trabajo, 1 ante fallo/interrupción y 2 si queda parcial. `reevaluate` propone relaciones faltantes contra documentos ya guardados sin sobrescribir decisiones humanas. Los cambios de catálogo desde la API encolan una reevaluación durable y por lotes. Mantenga el trabajador activo para procesarla; no bloquean el guardado ni cambian decisiones humanas. Las reglas de familia y subfamilia se heredan a productos con el origen indicado en la propuesta.
-
-## Demostración opcional y separada
-
-No se precargan documentos oficiales. Para practicar sin red, detenga sus procesos locales y configure **una base separada** en la terminal antes de iniciar todos los procesos:
-
-```powershell
-$env:ENVIRONMENT = 'development'
-$env:DEMO_MODE = 'true'
-$env:DATABASE_URL = 'sqlite:///./data/demo.db'
-$env:STORAGE_PATH = './data/demo-evidence'
-python -m app.cli init-db
-python -m app.cli demo
-```
-
-Use el ejecutable real del entorno virtual en lugar de `python` si no lo tiene activado. Inicie la API con las mismas variables y seleccione demostración en los filtros. Los documentos son sintéticos, sin fechas ni enlaces oficiales inventados. Los indicadores oficiales excluyen demostraciones. No se permite este modo en producción. Para volver a datos oficiales, cierre esas terminales y reinicie sin las variables de demo.
-
-## Validación y documentación
-
-Desde `backend/`: `python -m pytest -q`. Desde `frontend/`: `npm run build`. Las pruebas no necesitan red ni servicios de Azure. [Resultados y limitaciones](docs/VALIDATION.md) describe lo ejecutado y lo pendiente, incluido el recorrido principal con muestras controladas.
-
-- [Arquitectura y decisiones](docs/ARCHITECTURE.md)
-- [Fuentes y cobertura](docs/SOURCES.md)
-- [Compilación y preparación de Azure App Service](docs/AZURE.md)
-- API OpenAPI en `/api/docs`; las operaciones de datos exigen identidad y rol. Consulte `/api/audit` con rol revisor o administrador para cambios históricos.
-
-Se consultó `NOM_Monitor_Piloto.zip` y se incorporaron sus URLs de referencia. Consulte [aceptación del piloto](docs/PILOT_ACCEPTANCE.md) para las capturas reales, hashes, repetición sin duplicados, configuración automática y pendientes de JE. No se desplegaron recursos ni se modificó infraestructura de Azure.
-
-## Piloto verificable y acceso corporativo
-
-`python -m app.cli pilot-catalog` carga una muestra pública identificada como borrador: 3 familias, 4 subfamilias y 4 fichas por completar. No inventa números de parte, clasificación arancelaria ni responsables. Requiere completar el catálogo real y revisar las propuestas en Alertas.
-
-`python -m app.cli validate-sources --start AAAA-MM-DD --end AAAA-MM-DD --expected inventario_revisado.json`
-comprueba la observación actual, evidencia y contraste del periodo. En el detalle
-de cada ejecución se pueden consultar los documentos y recuperar la versión
-observada, incluso si no hubo cambios. La aceptación devuelve código 2 mientras
-falle una fuente o falte el inventario DOF revisado; no acredita cobertura a partir
-de documentos históricos guardados.
-
-La interfaz integra inicio de sesión y renovación de tokens con MSAL. Configurar `ENTRA_TENANT_ID`, `ENTRA_AUDIENCE`, `ENTRA_CLIENT_ID` y `ENTRA_SCOPES` según [Azure y Entra](docs/AZURE.md). El usuario utiliza “Iniciar sesión con Microsoft”; no pega tokens en producción. Es necesaria la configuración real del tenant y las asignaciones de roles.
-
-En Windows, después de preparar el entorno: `INICIAR_LOCAL.cmd` inicia la aplicación y el trabajador. `INICIAR_AUTOMATICO.cmd` ejecuta explícitamente el trabajador con programación; mantenga un solo programador o instálelo como proceso supervisado según el alojamiento. No se instala un servicio ni se registra una tarea automáticamente.
+Las muestras sintéticas requieren una base separada cuyo nombre incluya `demo`, `ENVIRONMENT=development` y `DEMO_MODE=true`. `python -m app.cli demo` no carga normas oficiales ni se ejecuta al iniciar el portal.
