@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 
 type Language = "es" | "en";
 const english: Record<string, string> = {
+  "Abrir el portal oficial de SIDOF": "Open the official SIDOF portal",
   "SIDOF · publicaciones diarias": "SIDOF · daily publications",
   diario: "daily",
   "Ver revisión diaria": "View daily check",

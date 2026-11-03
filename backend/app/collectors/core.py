@@ -120,7 +120,7 @@ class SafeFetcher:
             try:
                 context = verified_tls_context()
             except (OSError, ValueError) as exc:
-                raise CollectionError('[TLS_CONFIGURATION] No se pudo cargar la configuración de certificados HTTPS. Revisa SSL_CERT_FILE y SSL_CERT_DIR.') from exc
+                raise CollectionError('[TLS_CONFIGURATION] No se pudo cargar la configuración de certificados HTTPS. Ejecuta PREPARAR_LOCAL.cmd para actualizar dependencias y revisa SSL_CERT_FILE y SSL_CERT_DIR si están configurados.') from exc
             try:
                 self.client = httpx.Client(verify=context, trust_env=True,
                     timeout=httpx.Timeout(20, connect=10), follow_redirects=False,

@@ -1,5 +1,24 @@
 # Validación del portal
 
+## Compatibilidad Windows · 0.4.1 · 3 de noviembre de 2026
+
+Las capturas del equipo corporativo confirman la interfaz 0.4.0 y el idioma
+inglés, pero muestran TLS_CERTIFICATE en las cuatro fuentes, sin consultas
+exitosas. El navegador también rechaza DOF; SIDOF responde al navegador y su
+base sin operación devuelve un mensaje 404. [Análisis y procedimiento](CONNECTION.md).
+
+La versión 0.4.1 usa el cliente de certificados nativo de Windows, añade el
+backend elegido y códigos de verificación al diagnóstico, enlaza al portal
+SIDOF y agrupa los botones de cada ejecución para evitar una fila separada
+para Retomar. No se aceptan certificados desconocidos automáticamente.
+
+154 pruebas backend aprobadas, incluidas selección de CryptoAPI mediante una
+dependencia controlada, prioridad de CA explícita, dependencia ausente y
+diagnóstico sin datos privados. Las pruebas se ejecutaron en Linux/Python 3.12;
+la rama Windows se verificó con inyección de dependencias, no con un Windows
+real. La conectividad corporativa debe volver a comprobarse con el diagnóstico
+de esta versión. Las pruebas anteriores no acreditan acceso en ese equipo.
+
 ## SIDOF diario · 0.4.0 · 3 de noviembre de 2026
 
 | Comprobación | Resultado |

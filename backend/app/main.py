@@ -35,7 +35,7 @@ async def lifespan(app):
         await asyncio.to_thread(thread.join, 2)
 
 
-app = FastAPI(title='JE NOM Monitor', version='0.4.0', lifespan=lifespan,
+app = FastAPI(title='JE NOM Monitor', version='0.4.1', lifespan=lifespan,
               docs_url=None if production else '/api/docs', openapi_url=None if production else '/api/openapi.json')
 
 

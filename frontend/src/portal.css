@@ -992,6 +992,12 @@ input[type="checkbox"] {
 .run-line strong {
   font-weight: 500;
 }
+.run-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+}
 .run-line > span:nth-child(3),
 .run-line small {
   color: var(--muted);
@@ -1326,7 +1332,7 @@ input[type="checkbox"] {
   .run-line small {
     grid-column: 2;
   }
-  .run-line > .text-button {
+  .run-actions {
     grid-column: 3;
   }
 }
@@ -1546,7 +1552,7 @@ input[type="checkbox"] {
   .run-line > span:nth-child(3) {
     grid-column: 2;
   }
-  .run-line > .text-button {
+  .run-actions {
     grid-column: 2;
   }
   .run-line small {

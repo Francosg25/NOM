@@ -1410,11 +1410,17 @@ function Bulletin() {
                       <a
                         key={url}
                         className="source-url"
-                        href={link(url)}
+                        href={link(
+                          dailySource(item)
+                            ? "https://sidof.segob.gob.mx/"
+                            : url,
+                        )}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        {displayUrl(url)}
+                        {dailySource(item)
+                          ? t("Abrir el portal oficial de SIDOF")
+                          : displayUrl(url)}
                         <Icon name="external" size={14} />
                       </a>
                     ))}
@@ -1540,42 +1546,44 @@ function Bulletin() {
                         ? t(" · {count} errores", { count: job.error_count })
                         : ""}
                     </small>
-                    {dailySource(
-                      sources.find((s) => s.id === job.source_id),
-                    ) && (
-                      <button
-                        className="text-button"
-                        onClick={() =>
-                          void request(`/jobs/${job.id}`)
-                            .then(setInspection)
-                            .catch((e) => setError(e.message))
-                        }
-                      >
-                        {t("Ver revisión diaria")}
-                      </button>
-                    )}
-                    {admin &&
-                      ["failed", "partial", "interrupted"].includes(
-                        job.status,
+                    <div className="run-actions">
+                      {dailySource(
+                        sources.find((s) => s.id === job.source_id),
                       ) && (
                         <button
                           className="text-button"
-                          disabled={updating}
-                          onClick={() => {
-                            setUpdating(true);
-                            void request("/jobs", "POST", {
-                              source_id: job.source_id,
-                              resume_job_id: job.id,
-                            })
-                              .then(() => load(true))
+                          onClick={() =>
+                            void request(`/jobs/${job.id}`)
+                              .then(setInspection)
                               .catch((e) => setError(e.message))
-                              .finally(() => setUpdating(false));
-                          }}
+                          }
                         >
-                          {t("Retomar")}
-                          <Icon name="arrow" size={14} />
+                          {t("Ver revisión diaria")}
                         </button>
                       )}
+                      {admin &&
+                        ["failed", "partial", "interrupted"].includes(
+                          job.status,
+                        ) && (
+                          <button
+                            className="text-button"
+                            disabled={updating}
+                            onClick={() => {
+                              setUpdating(true);
+                              void request("/jobs", "POST", {
+                                source_id: job.source_id,
+                                resume_job_id: job.id,
+                              })
+                                .then(() => load(true))
+                                .catch((e) => setError(e.message))
+                                .finally(() => setUpdating(false));
+                            }}
+                          >
+                            {t("Retomar")}
+                            <Icon name="arrow" size={14} />
+                          </button>
+                        )}
+                    </div>
                   </div>
                 ))
               )}

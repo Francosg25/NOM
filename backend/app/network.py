@@ -1,6 +1,7 @@
 """Verified TLS and safe connection errors shared by collection and diagnostics."""
 from dataclasses import dataclass
 import os
+import platform
 import socket
 import ssl
 from urllib.request import getproxies
@@ -16,9 +17,39 @@ def verified_tls_context():
         return ssl.create_default_context(cafile=os.environ['SSL_CERT_FILE'])
     if os.environ.get('SSL_CERT_DIR'):
         return ssl.create_default_context(capath=os.environ['SSL_CERT_DIR'])
+    if platform.system() == 'Windows':
+        try:
+            import truststore
+        except ImportError as exc:
+            raise ValueError('El cliente nativo de certificados requiere ejecutar PREPARAR_LOCAL.cmd') from exc
+        # CryptoAPI builds and validates the chain through Windows, including
+        # intermediate-certificate retrieval. Do not patch ssl globally.
+        return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context = ssl.create_default_context()
     context.load_verify_locations(cafile=certifi.where())
     return context
+
+
+def tls_backend_selected():
+    if os.environ.get('SSL_CERT_FILE') or os.environ.get('SSL_CERT_DIR'):
+        return 'explicit-ca-openssl'
+    return 'windows-cryptoapi' if platform.system() == 'Windows' else 'system-and-certifi-openssl'
+
+
+def certificate_failure_details(exc):
+    """Expose only a numeric verification code and a known category."""
+    seen = set()
+    while exc is not None and id(exc) not in seen and len(seen) < 8:
+        seen.add(id(exc))
+        if isinstance(exc, ssl.SSLCertVerificationError):
+            code = getattr(exc, 'verify_code', None)
+            if isinstance(code, int) and not isinstance(code, bool):
+                reason = {9:'NOT_YET_VALID', 10:'EXPIRED', 18:'SELF_SIGNED', 19:'SELF_SIGNED_CHAIN',
+                    20:'ISSUER_MISSING', 21:'ISSUER_MISSING', 62:'HOSTNAME_MISMATCH',
+                    0x800B0109:'UNTRUSTED_ROOT', 0x800B0101:'EXPIRED', 0x800B010F:'HOSTNAME_MISMATCH'}.get(code, 'CERTIFICATE_REJECTED')
+                return {'verify_code':code, 'reason':reason}
+        exc = exc.__cause__ or exc.__context__
+    return None
 
 
 def https_proxy_configured():

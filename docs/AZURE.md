@@ -46,7 +46,7 @@ No hace falta instalar el trabajador externo. Si se elige hacerlo más adelante,
 
 - `/api/health` responde y la portada carga sin pantalla de acceso.
 - Español / English cambia interfaz, fechas y la guía Cómo funciona / How it works.
-- `/api/health` identifica la compilación en `frontend.version` y `frontend.source_sha256`; debe corresponder a la marca v0.4.0 de la pantalla.
+- `/api/health` identifica la compilación en `frontend.version` y `frontend.source_sha256`; debe corresponder a la marca v0.4.1 de la pantalla.
 - “Consultar fuentes” deja una ejecución y después resultados o un error visible.
 - Una copia del documento se puede recuperar después de reiniciar la aplicación.
 - Se conserva la base al volver a publicar el ZIP.

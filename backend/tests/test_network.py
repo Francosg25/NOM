@@ -1,6 +1,8 @@
 """Corporate certificate support and useful errors without credentials in reports."""
 import socket
 import ssl
+import sys
+from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -14,6 +16,7 @@ BASE = 'https://www.dof.gob.mx/index.php'
 
 
 def test_default_tls_context_keeps_system_store_and_verifies_hosts(monkeypatch):
+    monkeypatch.setattr(network.platform, 'system', lambda: 'Linux')
     for key in ('SSL_CERT_FILE', 'SSL_CERT_DIR'):
         monkeypatch.delenv(key, raising=False)
     original = ssl.create_default_context
@@ -26,6 +29,61 @@ def test_default_tls_context_keeps_system_store_and_verifies_hosts(monkeypatch):
     assert calls == [{}]  # No cafile override: system certificates are loaded.
     assert result.verify_mode == ssl.CERT_REQUIRED and result.check_hostname
     assert result.cert_store_stats()['x509_ca'] > 0
+
+
+def test_windows_uses_native_context_without_global_ssl_injection(monkeypatch):
+    for key in ('SSL_CERT_FILE', 'SSL_CERT_DIR'):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setattr(network.platform, 'system', lambda: 'Windows')
+    context = ssl.create_default_context()
+    calls = []
+    def native(protocol):
+        calls.append(protocol)
+        return context
+    monkeypatch.setitem(sys.modules, 'truststore', SimpleNamespace(SSLContext=native))
+    monkeypatch.setattr(network.ssl, 'create_default_context', lambda **kw: pytest.fail('Native Windows path must not use a static context'))
+    assert network.verified_tls_context() is context
+    assert context.verify_mode == ssl.CERT_REQUIRED and context.check_hostname
+    assert calls == [ssl.PROTOCOL_TLS_CLIENT]
+    assert network.tls_backend_selected() == 'windows-cryptoapi'
+
+
+def test_explicit_ca_keeps_priority_on_windows(monkeypatch):
+    monkeypatch.setattr(network.platform, 'system', lambda: 'Windows')
+    monkeypatch.setenv('SSL_CERT_FILE', 'configured.pem')
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    calls = []
+    monkeypatch.setattr(network.ssl, 'create_default_context', lambda **kw: calls.append(kw) or context)
+    monkeypatch.setitem(sys.modules, 'truststore', None)
+    assert network.verified_tls_context() is context
+    assert calls == [{'cafile':'configured.pem'}]
+    assert network.tls_backend_selected() == 'explicit-ca-openssl'
+
+
+def test_missing_windows_dependency_fails_with_preparation_instruction(monkeypatch):
+    for key in ('SSL_CERT_FILE', 'SSL_CERT_DIR'):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setattr(network.platform, 'system', lambda: 'Windows')
+    monkeypatch.setitem(sys.modules, 'truststore', None)
+    with pytest.raises(CollectionError, match='PREPARAR_LOCAL.cmd'):
+        SafeFetcher(resolve_dns=False)
+
+
+def test_certificate_diagnostic_preserves_code_without_certificate_or_proxy_text():
+    original = ssl.SSLCertVerificationError(1, 'PRIVATE_CERTIFICATE_DETAILS')
+    original.verify_code = 20
+    original.verify_message = 'PRIVATE_CERTIFICATE_DETAILS'
+    class Failing:
+        def __init__(self, **kwargs): pass
+        def __call__(self, url):
+            try:
+                raise original
+            except ssl.SSLCertVerificationError as exc:
+                raise CollectionError('[TLS_CERTIFICATE] No se pudo validar HTTPS') from exc
+        def close(self): pass
+    report = check_url('DOF', BASE, factory=Failing)
+    assert report['certificate_failure'] == {'verify_code':20, 'reason':'ISSUER_MISSING'}
+    assert 'PRIVATE_CERTIFICATE_DETAILS' not in str(report)
 
 
 def test_bad_explicit_ca_is_not_silently_ignored(monkeypatch, tmp_path):

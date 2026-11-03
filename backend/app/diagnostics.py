@@ -12,7 +12,7 @@ import sys
 
 from .collectors import CollectionError, SafeFetcher
 from .config import get_settings
-from .network import https_proxy_configured
+from .network import certificate_failure_details, https_proxy_configured, tls_backend_selected
 from .collectors.sidof import API_BASE
 
 URLS = (
@@ -34,7 +34,8 @@ def check_url(source, url, factory=SafeFetcher):
         message = str(exc)
         match = re.search(r'\[([A-Z_]+)\]', message)
         code = match[1] if match else 'ROBOTS_PENDING' if 'robots.txt' in message else 'SOURCE_PENDING'
-        return {'source':source, 'url':url, 'code':code, 'message':message}
+        return {'source':source, 'url':url, 'code':code, 'message':message,
+                'certificate_failure':certificate_failure_details(exc)}
     except Exception as exc:
         return {'source':source, 'url':url, 'code':'INTERNAL_ERROR', 'error_type':type(exc).__name__,
                 'message':'No se pudo ejecutar la prueba de conexión. No se incluyen mensajes internos ni credenciales.'}
@@ -50,6 +51,7 @@ def run_diagnostics():
             'system':platform.system(), 'dns_mode':get_settings().source_dns_mode,
             'https_proxy_configured':https_proxy_configured(),
             'custom_ca_configured':bool(os.environ.get('SSL_CERT_FILE') or os.environ.get('SSL_CERT_DIR')),
+            'tls_backend_selected':tls_backend_selected(),
             'tls_verification':True, 'results':results,
             'scope':'Prueba de acceso a las cuatro URLs del piloto; no cambia la base, las fuentes, el proxy ni los certificados del equipo. No valida cobertura completa de NOM.'}
 

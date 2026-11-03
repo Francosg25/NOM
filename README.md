@@ -6,7 +6,7 @@ El portal abre directamente. La instalación sencilla usa **SQLite y archivos lo
 
 ## Probar en Windows
 
-La versión actual es **0.4.0**: encabezado **norma.**, fondo papel, navegación horizontal y selector visible **Español / English**. Incluye descubrimiento diario mediante la API oficial SIDOF. Una barra lateral verde con Productos/Alertas corresponde a la interfaz anterior.
+La versión actual es **0.4.1**: encabezado **norma.**, fondo papel, navegación horizontal y selector visible **Español / English**. Incluye descubrimiento diario mediante la API oficial SIDOF y validación nativa de certificados en Windows. Una barra lateral verde con Productos/Alertas corresponde a la interfaz anterior.
 
 Desde el ZIP, extrae todo en una carpeta y ejecuta **PREPARAR_LOCAL.cmd**, después **INICIAR_LOCAL.cmd**. El ZIP incluye la interfaz compilada; para esa prueba solo necesitas Python 3.12 o 3.13 autorizado. [Instrucciones completas ES/EN](docs/LOCAL.md).
 
