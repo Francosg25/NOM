@@ -1,8 +1,35 @@
 # Preparación de despliegue en Azure App Service
 
-Este documento prepara el despliegue; no publica ni crea recursos. Antes de desplegar, confirmar con TI:
+Este documento prepara el despliegue; no publica ni crea recursos.
 
-1. Sistema operativo de App Service, plan, runtime Python soportado, arquitectura y mecanismo de despliegue. No se presupone Linux ni compatibilidad con WebJobs.
+## Despliegue en Linux, plan Basic B1 y Python 3.13
+
+Una Web App creada con la página inicial de Python aún no tiene el contenido de la aplicación. Confirmar los permisos de publicación y configuración, el nombre de host real, los accesos de red a las fuentes y los recursos PostgreSQL, Blob y Entra. `ENVIRONMENT=production` exige estos tres últimos; no copiar `.env.example` ni publicar el modo local de administrador. No registrar nombres de recursos corporativos en este repositorio.
+
+### Paquete reproducible para este App Service Linux
+
+En un agente de compilación con Node.js, desde la raíz del repositorio:
+
+```bash
+cd frontend && npm ci && cd ..
+bash scripts/package-appservice.sh
+```
+
+Se genera `data/nom-appservice.zip` sin `.env`, datos, pruebas ni `.venv`. El ZIP deja `requirements.txt` en su raíz para que Oryx instale Python 3.13 en Azure; mantiene `backend/` y `frontend/dist/` como carpetas hermanas. No subir una copia del entorno virtual local. Antes de publicar, configurar en **Variables de entorno** de App Service: `SCM_DO_BUILD_DURING_DEPLOYMENT=true`, `ENVIRONMENT=production`, `DEV_AUTH_ENABLED=false`, `DEMO_MODE=false`, `SCHEDULER_ENABLED=false`, `DATABASE_URL` de PostgreSQL con TLS, `STORAGE_BACKEND=azure`, `AZURE_STORAGE_ACCOUNT_URL`, `AZURE_STORAGE_CONTAINER`, `ENTRA_TENANT_ID`, `ENTRA_AUDIENCE` y la configuración de MSAL o Easy Auth descrita abajo. Las credenciales de PostgreSQL van en ajustes seguros, no en el ZIP ni en un comando compartido. La identidad administrada de la Web App necesita permiso para leer y escribir el contenedor privado de Blob.
+
+En **Configuración general**, el comando de inicio para el paquete es `bash startup.sh`. Python 3.13 necesita el comando explícito para esta aplicación FastAPI: inicia Uvicorn desde `backend/` y sirve el frontend compilado desde `../frontend/dist`. Dejar `FRONTEND_DIST=../frontend/dist` o usar el valor por defecto. Con las dependencias confirmadas y las variables preparadas, se puede subir el ZIP desde Centro de implementación o, con Azure CLI autenticada:
+
+```bash
+az webapp deploy --resource-group '<GRUPO_DE_RECURSOS>' --name '<NOMBRE_DE_WEB_APP>' --src-path data/nom-appservice.zip
+```
+
+Después del despliegue, aplicar una sola vez las migraciones desde una consola de la app con su mismo entorno (`cd /home/site/wwwroot/backend && python -m app.cli init-db`); comprobar el directorio real después de que Oryx despliegue el paquete. Validar `/api/health`, la carga de la interfaz y el rechazo al usuario anónimo antes de solicitar una consulta. La API **solo encola** consultas; para ejecutarlas falta levantar el trabajador de manera supervisada con las mismas variables. Basic B1 permite Always On; verificar que se pueda habilitar y configurar un WebJob continuo compatible en Linux antes de instalar un único trabajador `python -m app.cli worker --poll`. Mantener `SCHEDULER_ENABLED=false` hasta validar descargas, evidencia y reanudación. Si se utiliza WebJobs en Linux, la documentación de Microsoft pide también `WEBSITE_SKIP_RUNNING_KUDUAGENT=false`.
+
+No hay credenciales de Azure ni acceso a esta instancia en el entorno de preparación, de modo que empaquetar y probar localmente no valida un despliegue real. La fuente DOF sigue necesitando una verificación de acceso desde la red corporativa/Azure: su consulta diaria no está acreditada por el piloto.
+
+## Confirmaciones pendientes con TI
+
+1. Permisos de configuración y publicación de la Web App, nombre de host, arquitectura y método de despliegue permitido. Para este plan Linux/Python, comprobar WebJobs y Always On antes de usarlos.
 2. Tenant Entra ID, registro de la API y cliente, audiencia, asignación de roles `consulta`, `revisor`, `administrador`, usuarios/grupos autorizados y redirecciones. Rechazar acceso anónimo.
 3. Base PostgreSQL administrada aprobada, TLS, DNS, firewall/red privada, credencial de ejecución y de migraciones. No existe una base corporativa asumida.
 4. Cuenta y contenedor privado de Blob Storage, identidad administrada con Storage Blob Data Contributor, retención y copias de seguridad. No usar el disco temporal para evidencia o base.
