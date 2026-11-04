@@ -84,6 +84,25 @@ def test_sidof_publication_filter_keeps_legacy_history_available(api):
     assert client.get('/api/publications',headers=READER).json()['total'] == 2
 
 
+def test_partial_download_is_reported_separately_from_full_period_success(api):
+    from app.collectors import Batch, Document
+    from app.jobs import request_job, run_once
+    client, sessions, _, store = api
+    with sessions() as db:
+        source = Source(name='SIDOF',kind='sidof',urls=['https://sidof.segob.gob.mx/dof/sidof'])
+        db.add(source);db.commit()
+        job = request_job(db,source.id,'test',date(2026,11,1),date(2026,11,2))
+        document = Document('CONTROLLED-PARTIAL','https://sidof.segob.gob.mx/notas/docFuente/1',
+            'Controlled publication','Saved valid text',date(2026,11,2),raw=b'controlled')
+        run_once(db,job_id=job.id,storage=store,collector=lambda *a,**kw:Batch([document],False,
+            {'queue':[{'day':'2026-11-01','failed':True}]},'Controlled partial',['2026-11-01: HTTP 404']))
+    result = client.get('/api/dashboard',headers=READER).json()['sources'][0]
+    assert result['publication_count'] == 1 and result['last_download_at']
+    assert result['last_full_review_at'] is None
+    assert result['pending_dates'] == ['2026-11-01']
+    assert result['latest_check_status'] == 'partial'
+
+
 def test_daily_sidof_refresh_uses_seven_days_and_exposes_check_details(api):
     from app.collectors.sidof import API_BASE
     client, sessions, _, _ = api

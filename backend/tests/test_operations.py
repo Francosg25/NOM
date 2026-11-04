@@ -1,5 +1,5 @@
 """Regression tests for durable work, inherited rules and opt-in automation."""
-from datetime import date, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -51,6 +51,39 @@ def test_catalogue_edits_are_durable_bounded_and_keep_decisions(state):
     assert relation.decision == 'descartada'
     assert db.scalar(select(func.count(Alert.id)).where(Alert.catalog_id == family.id)) == 3
     assert reevaluate_batch(db) is None
+
+
+def test_unattended_sidof_cycles_recheck_without_duplicates_and_advance_to_next_day(state, monkeypatch):
+    from app import jobs, operations
+    from app.collectors.sidof import API_BASE
+    db, source, store = state
+    clock = {'now':datetime(2026,10,29,18,tzinfo=timezone.utc)}
+    monkeypatch.setattr(jobs,'utcnow',lambda:clock['now'])
+    monkeypatch.setattr(operations,'utcnow',lambda:clock['now'])
+    source.kind='sidof';source.urls=[API_BASE];source.schedule_enabled=True
+    source.schedule_start=date(2026,10,23);source.frequency_hours=1;db.commit()
+    original=Document('CONTROLLED-OLD','https://sidof.segob.gob.mx/notas/docFuente/1',
+        'Existing publication','Unchanged content',date(2026,10,29),raw=b'original')
+    added=Document('CONTROLLED-NEW','https://sidof.segob.gob.mx/notas/docFuente/2',
+        'Next day publication','New content',date(2026,10,30),raw=b'new')
+    def collect(*args,**kwargs):
+        return Batch([original] + ([added] if clock['now'].day == 30 else []),False,
+            {'queue':[{'day':'2026-10-28','failed':True}]},'Controlled daily check',['2026-10-28: HTTP 404'])
+    first = db.get(Job,schedule_due(db,clock['now'])[0])
+    run_once(db,job_id=first.id,collector=collect,storage=store)
+    assert first.new_count == 1 and first.requested_by == 'scheduler'
+    assert schedule_due(db,clock['now']) == []
+    clock['now'] += timedelta(hours=1)
+    repeated = db.get(Job,schedule_due(db,clock['now'])[0])
+    run_once(db,job_id=repeated.id,collector=collect,storage=store)
+    assert repeated.new_count == repeated.modified_count == 0
+    clock['now'] += timedelta(days=1)
+    tomorrow = db.get(Job,schedule_due(db,clock['now'])[0])
+    assert tomorrow.period_end == date(2026,10,30) and tomorrow.continuation is None
+    run_once(db,job_id=tomorrow.id,collector=collect,storage=store)
+    assert tomorrow.new_count == 1 and tomorrow.status == 'partial'
+    assert db.scalar(select(func.count(Publication.id))) == 2
+    assert db.scalar(select(func.count(Version.id))) == 2
 
 
 def test_ancestor_rules_reach_products_with_traceable_origin(state):

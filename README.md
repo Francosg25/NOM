@@ -1,6 +1,6 @@
 # norma. · NOM Monitor
 
-Versión **0.5.0**. Boletín de publicaciones relacionadas con NOM, con **SIDOF como única fuente activa**, interfaz Español/English y una lectura sencilla: una tipografía, fondo claro, búsqueda y publicaciones en una sola columna.
+Versión **0.5.1**. Boletín de publicaciones relacionadas con NOM, con **SIDOF como única fuente activa**, interfaz Español/English y una lectura sencilla: una tipografía, fondo claro, búsqueda y publicaciones en una sola columna.
 
 ## Iniciar en Windows
 
@@ -9,6 +9,10 @@ Versión **0.5.0**. Boletín de publicaciones relacionadas con NOM, con **SIDOF 
 3. Ejecuta **INICIAR_LOCAL.cmd** y abre http://127.0.0.1:8000.
 
 El ZIP incluye la interfaz compilada. No requiere Node para abrirlo. Usa Python 3.12 o 3.13 autorizado. Si actualizas una instalación existente, conserva su `.env` y la carpeta `data`; no borres la base ni las copias descargadas. Al actualizar desde Git, ejecuta ACTUALIZAR_INTERFAZ.cmd antes de iniciar.
+
+## Actualización automática
+
+El servidor consulta SIDOF cada hora por defecto, también cuando nadie visita el portal. Cerrar el navegador no detiene las consultas. En local, la computadora y el servidor deben permanecer encendidos y sin suspenderse. En App Service, habilita Always On y conserva MONITOR_ENABLED=true y SCHEDULER_ENABLED=true. El portal muestra próxima consulta automática, última descarga, última revisión completa y fechas pendientes. Las nuevas publicaciones aparecen al volver a abrir el portal. Consultar SIDOF es una actualización manual adicional.
 
 ## Uso
 

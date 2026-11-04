@@ -1,6 +1,6 @@
 # Portal en Azure App Service Linux
 
-La versión actual es 0.5.0 y el seguimiento activo utiliza únicamente SIDOF. No se requieren permisos ni certificados para consultar DOF HTML, PLATIICA o SNICE desde esta versión. El historial de esas fuentes se conserva desactivado.
+La versión actual es 0.5.1 y el seguimiento activo utiliza únicamente SIDOF. No se requieren permisos ni certificados para consultar DOF HTML, PLATIICA o SNICE desde esta versión. El historial de esas fuentes se conserva desactivado.
 
 La instalación sencilla utiliza el App Service existente: **Linux, Python 3.13, Basic B1, una instancia**. Sirve la web y ejecuta el monitor desde un solo proceso. No necesita crear PostgreSQL, Blob, Entra ni un WebJob.
 
@@ -48,7 +48,7 @@ No hace falta instalar el trabajador externo. Si se elige hacerlo más adelante,
 
 - `/api/health` responde y la portada carga sin pantalla de acceso.
 - Español / English cambia interfaz, fechas y la guía Cómo funciona / How it works.
-- `/api/health` identifica la compilación en `frontend.version` y `frontend.source_sha256`; debe corresponder a la marca v0.5.0 de la pantalla.
+- `/api/health` identifica la compilación en `frontend.version` y `frontend.source_sha256`; debe corresponder a la marca v0.5.1 de la pantalla.
 - “Consultar fuentes” deja una ejecución y después resultados o un error visible.
 - Una copia del documento se puede recuperar después de reiniciar la aplicación.
 - Se conserva la base al volver a publicar el ZIP.
@@ -59,3 +59,11 @@ No hace falta instalar el trabajador externo. Si se elige hacerlo más adelante,
 El paquete preparado y las pruebas locales no equivalen a un despliegue real. No se crearon ni modificaron recursos Azure durante esta preparación.
 
 Documentación: [Python y archivos persistentes bajo /home](https://learn.microsoft.com/en-us/azure/app-service/configure-language-python), [Always On](https://learn.microsoft.com/en-us/azure/app-service/configure-common), [publicar ZIP con compilación](https://learn.microsoft.com/en-us/azure/app-service/deploy-zip).
+
+## Operación diaria sin visitas
+
+Mantener MONITOR_ENABLED=true y SCHEDULER_ENABLED=true, la fuente SIDOF activa y su programación habilitada (frecuencia predeterminada: una hora). Habilitar Always On en la configuración del App Service para mantener cargada la aplicación sin tráfico. La publicación del ZIP no activa por sí sola Always On.
+
+En Estado de SIDOF se distinguen la última descarga, el último periodo completado y las fechas pendientes, además de la próxima consulta programada. Para aceptar el despliegue, cerrar el navegador y comprobar después que aparezca una ejecución nueva solicitada por scheduler y que el historial/evidencia sobreviva a un reinicio. No se ha ejecutado este despliegue desde este entorno: no hay una identidad Azure configurada.
+
+Referencia: https://learn.microsoft.com/es-es/azure/app-service/configure-common

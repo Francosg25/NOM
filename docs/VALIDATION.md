@@ -1,5 +1,11 @@
 # Validación del portal
 
+## Estados y ciclo automático · 0.5.1
+
+158 pruebas backend aprobadas en Linux/Python 3.12. Se distinguen la última descarga de publicaciones, el último periodo completado y las fechas pendientes a partir del cursor persistido. El estado no afirma conectividad actual a partir de una descarga histórica.
+
+Una prueba con reloj controlado ejecuta tres ciclos del programador sin intervención del portal: primera descarga, repetición horaria sin versiones duplicadas y día siguiente con una publicación nueva pese a un HTTP 404 histórico. Es una simulación del ciclo; no equivale a observar un servidor real durante 24 horas. Los reinicios y persistencia se comprueban en el ZIP Linux. Windows y Azure real siguen pendientes de comprobación en sus entornos.
+
 ## SIDOF único e interfaz simplificada · 0.5.0
 
 156 pruebas backend aprobadas. Se comprueba que la actualización conserva documentos y evidencia, retira las fuentes anteriores y cancela sus trabajos en cola, de manera idempotente. El filtro del boletín selecciona SIDOF sin eliminar el archivo histórico. Compilación TypeScript/Vite y recorrido ES/EN del JS compilado comprobados. La revisión visual de escritorio utiliza muestras controladas, sin presentarlas como publicaciones reales. No se probó esta entrega en Windows ni se desplegó Azure.

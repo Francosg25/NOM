@@ -35,7 +35,7 @@ async def lifespan(app):
         await asyncio.to_thread(thread.join, 2)
 
 
-app = FastAPI(title='JE NOM Monitor', version='0.5.0', lifespan=lifespan,
+app = FastAPI(title='JE NOM Monitor', version='0.5.1', lifespan=lifespan,
               docs_url=None if production else '/api/docs', openapi_url=None if production else '/api/openapi.json')
 
 
@@ -230,6 +230,28 @@ def me(user: Identity = Depends(identity)):
     return {**user.__dict__, 'development_auth': user.auth_mode == 'development'}
 
 
+def source_progress(db, sources):
+    ids = [s.id for s in sources]
+    totals = {row[0]:row[1:] for row in db.execute(select(Publication.source_id,
+        func.count(Publication.id), func.max(Publication.last_seen_at))
+        .where(Publication.source_id.in_(ids), Publication.is_demo.is_(False)).group_by(Publication.source_id))}
+    ranked = select(Job.id, func.row_number().over(partition_by=Job.source_id,
+        order_by=(Job.requested_at.desc(), Job.id.desc())).label('position'))\
+        .where(Job.source_id.in_(ids)).subquery()
+    latest = {j.source_id:j for j in db.scalars(select(Job).where(Job.id.in_(
+        select(ranked.c.id).where(ranked.c.position == 1))))}
+    result = []
+    for source in sources:
+        count, downloaded = totals.get(source.id, (0, None))
+        job = latest.get(source.id)
+        queue = (job.continuation or {}).get('queue', []) if job else []
+        pending = sorted({item['day'] for item in queue if isinstance(item, dict) and item.get('day')})
+        result.append({**fields(source), 'publication_count':count, 'last_download_at':downloaded,
+            'last_full_review_at':source.last_success_at, 'pending_dates':pending,
+            'latest_check_status':job.status if job else None})
+    return result
+
+
 @app.get('/api/dashboard')
 def dashboard(db: Session = Depends(get_db), user: Identity = Depends(identity)):
     count = lambda stmt: db.scalar(stmt) or 0
@@ -240,7 +262,7 @@ def dashboard(db: Session = Depends(get_db), user: Identity = Depends(identity))
             'demo_count':count(select(func.count(Publication.id)).where(Publication.is_demo.is_(True))),
             'alerts_pending':count(select(func.count(Alert.id)).join(Publication).where(Alert.status != 'resuelta',Publication.is_demo.is_(False))),
             'sources_with_errors':sum(bool(s.last_error) for s in sources),
-            'upcoming':pub_dicts(db,upcoming), 'sources':[fields(s) for s in sources],
+            'upcoming':pub_dicts(db,upcoming), 'sources':source_progress(db,sources),
             'reevaluations_pending':count(select(func.count(Reevaluation.id)).where(Reevaluation.requested_revision > Reevaluation.completed_revision)),
             'scheduler_enabled':get_settings().scheduler_enabled,
             'monitor_enabled':get_settings().monitor_enabled}

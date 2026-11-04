@@ -569,7 +569,7 @@ function Bulletin() {
     }
   };
   const latest = sources
-    .map((s) => s.last_success_at as string)
+    .map((s) => s.last_download_at as string)
     .filter(Boolean)
     .sort()
     .at(-1);
@@ -703,14 +703,19 @@ function Bulletin() {
               <strong>
                 {t(
                   allFailed
-                    ? "La revisión de SIDOF quedó pendiente."
-                    : "La revisión de SIDOF quedó pendiente.",
+                    ? "Hay fechas pendientes de verificar."
+                    : "Hay fechas pendientes de verificar.",
                 )}
               </strong>
               <p>
                 {t(
-                  "Las publicaciones recuperadas siguen disponibles. Abre el detalle para ver qué falta revisar.",
-                  { failed: failedSources.length, total: activeSources.length },
+                  "{count} publicaciones guardadas. Abre el detalle para ver qué falta revisar.",
+                  {
+                    count: sources.reduce(
+                      (sum, item) => sum + (item.publication_count || 0),
+                      0,
+                    ),
+                  },
                 )}
               </p>
             </div>
@@ -764,12 +769,12 @@ function Bulletin() {
                 <span>
                   {activeJobs
                     ? t("Revisión en curso")
-                    : allFailed
-                      ? t("La revisión necesita atención")
-                      : latest
-                        ? t("Última consulta correcta: {date}", {
-                            date: format(latest, true),
-                          })
+                    : latest
+                      ? t("Última descarga: {date}", {
+                          date: format(latest, true),
+                        })
+                      : allFailed
+                        ? t("La revisión necesita atención")
                         : t("La primera consulta está pendiente")}
                 </span>
               </div>
@@ -1121,9 +1126,9 @@ function Bulletin() {
                       <span className={item.last_error ? "issue-text" : ""}>
                         {t(
                           item.last_error
-                            ? "Consulta incompleta"
+                            ? "Revisión parcial del periodo"
                             : item.last_success_at
-                              ? "Última consulta correcta"
+                              ? "Última revisión completa"
                               : "Pendiente de consultar",
                         )}
                       </span>
@@ -1158,6 +1163,21 @@ function Bulletin() {
                         <Icon name="external" size={14} />
                       </a>
                     ))}
+                    {item.pending_dates?.length > 0 && (
+                      <div className="pending-dates">
+                        <strong>{t("Fechas pendientes de verificar")}</strong>
+                        <p>
+                          {item.pending_dates
+                            .map((day: string) => format(day))
+                            .join(" · ")}
+                        </p>
+                      </div>
+                    )}
+                    <p className="schedule-note">
+                      {t(
+                        "El servidor consulta SIDOF automáticamente según la frecuencia indicada. Puedes cerrar el navegador; el servidor debe seguir encendido.",
+                      )}
+                    </p>
                     {item.last_error && (
                       <div className="source-failure">
                         <p>
@@ -1238,14 +1258,32 @@ function Bulletin() {
                       <dd>{format(item.last_attempt_at, true)}</dd>
                     </div>
                     <div>
-                      <dt>{t("Última consulta correcta")}</dt>
-                      <dd>{format(item.last_success_at, true)}</dd>
+                      <dt>{t("Publicaciones guardadas")}</dt>
+                      <dd>{item.publication_count || 0}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("Última descarga")}</dt>
+                      <dd>{format(item.last_download_at, true)}</dd>
+                    </div>
+                    <div>
+                      <dt>{t("Última revisión completa")}</dt>
+                      <dd>{format(item.last_full_review_at, true)}</dd>
                     </div>
                     <div>
                       <dt>{t("Frecuencia")}</dt>
                       <dd>
                         {item.schedule_enabled
                           ? t("Cada {hours} h", { hours: item.frequency_hours })
+                          : t("Manual")}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>{t("Próxima consulta automática")}</dt>
+                      <dd>
+                        {item.schedule_enabled &&
+                        dashboard.scheduler_enabled &&
+                        dashboard.monitor_enabled
+                          ? format(item.next_due_at, true)
                           : t("Manual")}
                       </dd>
                     </div>

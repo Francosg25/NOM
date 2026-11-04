@@ -9,6 +9,19 @@ import type { ReactNode } from "react";
 
 type Language = "es" | "en";
 const english: Record<string, string> = {
+  "Última descarga: {date}": "Last download: {date}",
+  "Última descarga": "Last download",
+  "Última revisión completa": "Last complete period check",
+  "Publicaciones guardadas": "Saved publications",
+  "Próxima consulta automática": "Next automatic check",
+  "Fechas pendientes de verificar": "Dates still to be checked",
+  "Hay fechas pendientes de verificar.": "Some dates still need checking.",
+  "{count} publicaciones guardadas. Abre el detalle para ver qué falta revisar.":
+    "{count} publications saved. Open the details to see what still needs checking.",
+  "Revisión parcial del periodo": "Partial period check",
+  "El servidor consulta SIDOF automáticamente según la frecuencia indicada. Puedes cerrar el navegador; el servidor debe seguir encendido.":
+    "The server checks SIDOF automatically at the listed interval. You can close the browser; the server must keep running.",
+
   "Publicaciones oficiales por fecha. Se guardan el texto disponible y una copia del original.":
     "Official publications by date. Available text and an original copy are saved.",
   "Hay publicaciones guardadas. La última revisión quedó incompleta.":
