@@ -1,0 +1,16 @@
+# Ejemplo de servicio systemd DE USUARIO; ajustar rutas y no ejecutar como root.
+# Instalar solo en el host de ejecución. No contiene secretos ni crea infraestructura.
+[Unit]
+Description=JE NOM Monitor - cola y programador
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/RUTA/NOM/backend
+EnvironmentFile=/RUTA/nom-production.env
+ExecStart=/RUTA/NOM/.venv/bin/python -m app.cli worker --poll --schedule
+Restart=on-failure
+RestartSec=20
+
+[Install]
+WantedBy=default.target

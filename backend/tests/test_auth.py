@@ -19,7 +19,7 @@ AUDIENCE = 'api://nom-monitor'
 @pytest.fixture
 def signing(monkeypatch):
     private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    settings = Settings(_env_file=None, environment='test', dev_auth_enabled=False,
+    settings = Settings(_env_file=None, environment='test', dev_auth_enabled=False, auth_mode='entra',
                         entra_tenant_id=TENANT, entra_audience=AUDIENCE)
     monkeypatch.setattr(auth, 'get_settings', lambda: settings)
     client = SimpleNamespace(get_signing_key_from_jwt=lambda token: SimpleNamespace(key=private.public_key()))
@@ -70,8 +70,18 @@ def test_bad_signature_and_unsigned_token_rejected(signing):
         auth.identity(authorization='Bearer ' + unsigned, x_dev_role='administrador')
 
 
-def test_no_anonymous_or_spoofed_local_role_by_default(monkeypatch):
+def test_open_portal_is_read_only_and_ignores_spoofed_role(monkeypatch):
     monkeypatch.setattr(auth, 'get_settings', lambda: Settings(_env_file=None, dev_auth_enabled=False))
+    user = auth.identity(authorization=None, x_dev_role='administrador')
+    assert (user.role, user.auth_mode) == ('consulta', 'portal')
+    with pytest.raises(HTTPException) as error:
+        auth.require_role('administrador')(user)
+    assert error.value.status_code == 403
+
+
+def test_optional_entra_requires_an_identity(monkeypatch):
+    settings = Settings(_env_file=None, auth_mode='entra', entra_tenant_id=TENANT, entra_audience=AUDIENCE)
+    monkeypatch.setattr(auth, 'get_settings', lambda: settings)
     with pytest.raises(HTTPException) as error:
         auth.identity(authorization=None, x_dev_role='administrador')
     assert error.value.status_code == 401
@@ -85,25 +95,31 @@ def test_local_auth_requires_explicit_enable(monkeypatch):
 
 
 def production_config(**overrides):
-    config = dict(environment='production', database_url='postgresql+psycopg://user:password@db.example/nom?sslmode=verify-full',
-                  storage_backend='azure', azure_storage_account_url='https://storage.blob.core.windows.net',
-                  entra_tenant_id=TENANT, entra_audience=AUDIENCE, dev_auth_enabled=False, demo_mode=False)
+    config = dict(environment='production', database_url='sqlite:////home/nom-monitor/nom.db',
+                  storage_backend='local', storage_path='/home/nom-monitor/evidence',
+                  auth_mode='portal', dev_auth_enabled=False, demo_mode=False)
     config.update(overrides)
     return Settings(_env_file=None, **config)
 
 
 @pytest.mark.parametrize('overrides', [
     {'dev_auth_enabled': True}, {'demo_mode': True},
-    {'database_url': 'sqlite:///data/nom.db'},
-    {'database_url': 'postgresql+psycopg://u:p@db.example/nom'},
-    {'database_url': 'postgresql+psycopg://u:p@db.example/nom?sslmode=disable'},
-    {'database_url': 'postgresql+psycopg://u:p@db.example/nom?sslmode=allow'},
-    {'storage_backend': 'local'}, {'entra_tenant_id': ''}, {'entra_audience': ''},
+    {'auth_mode': 'entra'}, {'storage_backend': 'azure'},
 ])
 def test_production_misconfiguration_is_rejected(overrides):
     with pytest.raises(ValidationError):
         production_config(**overrides)
 
 
-def test_production_configuration_accepts_required_services():
-    assert production_config().environment == 'production'
+def test_production_portal_needs_no_cloud_database_blob_or_login():
+    settings = production_config()
+    assert settings.environment == 'production' and settings.auth_mode == 'portal'
+    assert settings.database_url.startswith('sqlite:') and settings.storage_backend == 'local'
+    assert not settings.entra_tenant_id and not settings.azure_storage_account_url
+
+
+def test_cloud_adapters_remain_optional():
+    assert production_config(auth_mode='entra', entra_tenant_id=TENANT,
+        entra_audience=AUDIENCE, entra_app_service_auth=True).auth_mode == 'entra'
+    assert production_config(storage_backend='azure',
+        azure_storage_account_url='https://storage.blob.core.windows.net').storage_backend == 'azure'

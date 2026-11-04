@@ -1,32 +1,29 @@
-# Decisiones de arquitectura
+# Arquitectura del boletín
 
-JE NOM Monitor es un monolito modular: React/TypeScript/Vite, API FastAPI, SQLAlchemy y Alembic. El backend sirve el frontend compilado; el recopilador se ejecuta como proceso independiente. No requiere Docker ni un servicio de IA.
+La versión 0.5.0 utiliza únicamente SIDOF para el boletín. El inicio desactiva las demás fuentes, conserva sus documentos y cancela sus trabajos en cola. La interfaz filtra publicaciones y trabajos SIDOF, usa una sola familia tipográfica y una columna de lectura, sin radar ni columna lateral. Los conectores anteriores permanecen como código e historial, fuera del seguimiento activo.
 
-## Límites funcionales
+React/TypeScript/Vite y FastAPI forman una sola aplicación. El servidor sirve el frontend compilado y contiene un monitor en segundo plano para una instalación de una instancia.
 
-La recopilación produce evidencia y propuestas de relevancia. Una coincidencia no decide aplicabilidad legal ni permite/prohíbe importar. Los revisores deben contrastar el documento oficial y justificar sus decisiones. Un documento sin coincidencias permanece en revisión general. Las familias y reglas son datos editables; no hay una lista de tipos de producto codificada.
+## Lectura y diseño
 
-Las fechas de publicación, detección y vigencia son distintas. Una detección reciente puede corresponder a una publicación antigua. No se infiere una fecha de vigencia desde frases ambiguas. Las consultas se registran en UTC y la interfaz las presenta en America/Mexico_City.
+La interfaz es un boletín: cabecera editorial, navegación horizontal, portada, archivo y fuentes. No usa la estructura de panel lateral y tarjetas KPI de una aplicación analítica. Incluye temas guardados por navegador y una vista de lectura con historial. Español e inglés comparten las mismas consultas; solo cambian las etiquetas y el formato de fechas. El texto oficial se conserva en español sin una traducción automática atribuida a la fuente.
 
-## Persistencia y procesos
+## Datos y consultas
 
-- SQLite se reserva al desarrollo. Producción requiere PostgreSQL administrado persistente, por ejemplo Azure Database for PostgreSQL Flexible Server, sujeto a aprobación y disponibilidad corporativa.
-- Las migraciones se ejecutan explícitamente antes de arrancar; no deben ejecutarlas simultáneamente todas las instancias.
-- Los trabajos se solicitan por API y se conservan en la base. El servidor web no ejecuta la recopilación en una tarea efímera de memoria. Se necesita un trabajador independiente para consumir la cola.
-- Se conserva cada cambio respecto de la versión anterior, incluidas reversiones. El hash de contenido no elimina la historia A → B → A.
-- Evidencia mediante almacenamiento local en desarrollo o Azure Blob Storage en producción. Un archivo en el disco temporal de App Service no es almacenamiento de producción.
-- Mantener la base y Blob bajo políticas de copia de seguridad, retención y acceso corporativas. Las referencias de evidencia no deben ser URLs públicas de contenedores.
+SQLite conserva publicaciones, versiones y cola. Los archivos se guardan en carpetas locales con claves SHA-256. En App Service ambos viven bajo /home/nom-monitor. SQLite de producción usa diario DELETE; se opera con una instancia y un proceso web. PostgreSQL y Blob son adaptadores opcionales para otra escala; no son requisitos del portal.
 
-## Autenticación
+Con MONITOR_ENABLED=true, el ciclo de vida de FastAPI aplica migraciones, registra fuentes y arranca un hilo que consume la cola durable. SCHEDULER_ENABLED=true permite encolar consultas según su frecuencia. En el primer arranque SIDOF diario se habilita desde seis días antes de hoy, cada hora; las otras fuentes sin fecha inicial se habilitan desde hoy, cada 24 horas. Una fuente ya configurada conserva su elección. El SIDOF de referencia original se actualiza automáticamente solo si conserva exactamente la configuración del piloto, sin borrar documentos ni alterar una programación desactivada. Cerrar el navegador no detiene el monitor; apagar el servidor sí. Para usar el trabajador CLI externo se desactiva el integrado.
 
-Los roles son consulta, revisor y administrador. El backend verifica permisos en cada operación protegida. El modo local requiere activación explícita y no debe utilizarse en producción. Entra ID usa tokens de acceso firmados para la audiencia de la API, emisor y tenant configurados. La interfaz permite suministrar un token sin persistirlo; una experiencia SSO corporativa con MSAL puede integrarse posteriormente.
+Las consultas se deduplican por fuente activa. El botón del portal revisa siete días de SIDOF y las páginas existentes de las otras fuentes. Después de un fallo se permite reintentar tras un minuto desde la finalización; después de una consulta correcta se mantienen 15 minutos entre solicitudes. Los errores dejan intervalos pendientes; los intervalos programados parciales se reanudan. Cada observación enlaza la ejecución, el documento y la versión observada, incluso sin cambios. Se conservan las reversiones A → B → A. La identidad de una publicación es única por fuente e identificador; no se afirma deduplicación entre dos conectores diferentes.
 
-No se confía en cabeceras de identidad añadidas por un cliente. La autenticación de App Service puede añadirse como capa adicional, pero no sustituye la configuración de validación de la API. No se han creado registros de aplicaciones, roles ni recursos de Azure.
+## Acceso
 
-## Extensibilidad
+AUTH_MODE=portal es el valor por defecto: lectura sin cuenta ni token. El visitante puede consultar y solicitar una actualización acotada. No adquiere permisos para cambiar fuentes o decisiones, aunque envíe una cabecera de rol. En desarrollo local se puede activar el administrador con DEV_AUTH_ENABLED=true. Entra/Easy Auth queda como opción explícita, sin MSAL ni registros obligatorios para el portal.
 
-Los conectores se separan del trabajo, la API, el almacenamiento y las reglas. La interfaz opcional de análisis permite incorporar IA posteriormente con evidencia e incertidumbre, sin que sea necesaria para arrancar.
+## Alcance de la información
 
-## Estado inicial
+Las fechas oficiales, de detección y de vigencia se distinguen. No se infiere vigencia automáticamente. La lista reciente se ordena por fecha oficial, coloca las fechas desconocidas al final y permite filtrar 7/30 días. Los extractos son texto de la fuente, no resúmenes generados por IA. Un cambio de versión puede corresponder a texto o enlaces y no acredita por sí solo un cambio legal.
 
-El repositorio recibido no tenía archivos ni commits. No se encontró AGENTS.md ni NOM_Monitor_Piloto.zip en los archivos disponibles. No se afirma haber revisado o reutilizado ese piloto. Los parsers y su cobertura deben contrastarse con respuestas oficiales actuales antes de confiar en la vigilancia operativa.
+SIDOF diario consulta el manifiesto de ediciones, las notas de cada fecha y el detalle de las seleccionadas o sin título. Valida identidad, fecha y diario; conserva JSON como evidencia y texto extraído para búsqueda. Cada día registra conteos, IDs seleccionados, referencias sin clasificación y hashes de los índices. GET /api/jobs/{id} expone index_checks para el lector del portal. Una referencia pendiente no impide guardar una NOM válida, pero impide aprobar la cobertura completa. [Contrato y límites](SIDOF_DAILY.md).
+
+DOF HTML aporta descubrimiento complementario de su índice; PLATIICA y SNICE siguen páginas concretas. El catálogo y las propuestas JE anteriores continúan disponibles por API/CLI como funciones adicionales.

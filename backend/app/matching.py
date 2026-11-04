@@ -8,7 +8,8 @@ from typing import Protocol
 
 
 def normalized(text: str) -> str:
-    return "".join(c for c in unicodedata.normalize("NFKD", text.casefold()) if not unicodedata.combining(c))
+    return "".join('-' if c in '‐‑‒–—−' else c for c in unicodedata.normalize("NFKD", text.casefold())
+                   if not unicodedata.combining(c) and c != '\u00ad')
 
 
 @dataclass
@@ -28,6 +29,9 @@ def suggest(content: str, item) -> list[Match]:
         if not isinstance(term, str) or not term.strip():
             continue
         pattern = r"(?<!\w)" + re.escape(normalized(term.strip())) + r"(?!\w)"
+        if category == 'norma vigilada':
+            parts = re.split(r'[\s-]+', normalized(term.strip()))
+            pattern = r'(?<!\w)' + r'[\s-]*'.join(re.escape(part) for part in parts) + r'(?!\w)'
         hit = re.search(pattern, folded)
         if hit:
             # Text offsets are approximate under Unicode folding; preserve enough surrounding text.

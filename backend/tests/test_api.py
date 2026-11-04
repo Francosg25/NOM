@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from app import auth, main
 from app.config import Settings
 from app.db import get_db
-from app.models import Alert, Audit, Base, CatalogItem, Publication, Source, Version
+from app.models import Alert, Audit, Base, CatalogItem, Job, Publication, Source, Version
 from app.storage import LocalEvidenceStore
 
 
@@ -71,6 +71,152 @@ def test_empty_dashboard_and_protected_routes(api):
     assert client.get('/api/does-not-exist', headers=READER).status_code == 404
 
 
+def test_sidof_publication_filter_keeps_legacy_history_available(api):
+    client, sessions, _, _ = api
+    seed(sessions)
+    with sessions() as db:
+        source = Source(name='SIDOF',kind='sidof',urls=['https://sidof.segob.gob.mx/dof/sidof'])
+        db.add(source);db.flush()
+        db.add(Publication(source_id=source.id,official_id='CONTROLLED-SIDOF',title='Controlled SIDOF publication',url='https://sidof.segob.gob.mx/notas/docFuente/1'))
+        db.commit()
+    result = client.get('/api/publications?source_kind=sidof',headers=READER).json()
+    assert result['total'] == 1 and result['items'][0]['official_id'] == 'CONTROLLED-SIDOF'
+    assert client.get('/api/publications',headers=READER).json()['total'] == 2
+
+
+def test_partial_download_is_reported_separately_from_full_period_success(api):
+    from app.collectors import Batch, Document
+    from app.jobs import request_job, run_once
+    client, sessions, _, store = api
+    with sessions() as db:
+        source = Source(name='SIDOF',kind='sidof',urls=['https://sidof.segob.gob.mx/dof/sidof'])
+        db.add(source);db.commit()
+        job = request_job(db,source.id,'test',date(2026,11,1),date(2026,11,2))
+        document = Document('CONTROLLED-PARTIAL','https://sidof.segob.gob.mx/notas/docFuente/1',
+            'Controlled publication','Saved valid text',date(2026,11,2),raw=b'controlled')
+        run_once(db,job_id=job.id,storage=store,collector=lambda *a,**kw:Batch([document],False,
+            {'queue':[{'day':'2026-11-01','failed':True}]},'Controlled partial',['2026-11-01: HTTP 404']))
+    result = client.get('/api/dashboard',headers=READER).json()['sources'][0]
+    assert result['publication_count'] == 1 and result['last_download_at']
+    assert result['last_full_review_at'] is None
+    assert result['pending_dates'] == ['2026-11-01']
+    assert result['latest_check_status'] == 'partial'
+
+
+def test_daily_sidof_refresh_uses_seven_days_and_exposes_check_details(api):
+    from app.collectors.sidof import API_BASE
+    client, sessions, _, _ = api
+    with sessions() as db:
+        source = Source(name='SIDOF diario controlado', kind='sidof', urls=[API_BASE])
+        db.add(source); db.commit(); source_id = source.id
+    result = client.post('/api/refresh', headers=READER)
+    assert result.status_code == 202
+    job_id = result.json()['jobs'][0]
+    with sessions() as db:
+        job = db.get(Job, job_id)
+        assert job.source_id == source_id
+        assert (job.period_end - job.period_start).days == 6
+        check = {'day':str(job.period_end), 'notes_checked':35, 'selected_ids':['DOF:1'],
+                 'unresolved':[{'id':'DOF:2', 'url':'https://sidof.segob.gob.mx/notas/docFuente/2'}]}
+        db.add(Audit(actor='test', action='revisar_indice_diario', entity_type='job', entity_id=job_id, after=check)); db.commit()
+    assert client.get(f'/api/jobs/{job_id}', headers=READER).json()['index_checks'] == [check]
+
+
+def test_catalog_save_enqueues_without_scanning_archive(api):
+    from app.models import Reevaluation
+    from app.operations import reevaluate_batch
+    from sqlalchemy import event
+    client,sessions,_,_=api
+    _,_,pub_id,_,_=seed(sessions)
+    with sessions() as db:
+        version=Version(publication_id=pub_id,content='nuevo criterio',content_hash='x')
+        db.add(version);db.flush();db.get(Publication,pub_id).current_version_id=version.id;db.commit()
+    queries=[]
+    engine=sessions.kw['bind']
+    def record(conn,cursor,statement,parameters,context,many): queries.append(statement.lower())
+    event.listen(engine,'before_cursor_execute',record)
+    try:
+        response=client.post('/api/catalog',headers=ADMIN,json={'kind':'familia','name':'Nueva','keywords':['nuevo criterio']})
+    finally: event.remove(engine,'before_cursor_execute',record)
+    assert response.status_code==201
+    assert not any('from publications' in sql for sql in queries)
+    with sessions() as db:
+        assert db.scalar(select(Reevaluation).where(Reevaluation.catalog_id==response.json()['id']))
+        assert reevaluate_batch(db)['created']==1
+    assert client.get('/api/reevaluations',headers=READER).json()['pending']==0
+
+
+def test_search_matches_models_and_current_document_content(api):
+    client,sessions,_,_=api
+    _,catalog_id,pub_id,_,_=seed(sessions)
+    with sessions() as db:
+        db.get(CatalogItem,catalog_id).model='MODEL-UNIQUE'
+        version=Version(publication_id=pub_id,content='texto-unico-interno',content_hash='x')
+        db.add(version);db.flush();db.get(Publication,pub_id).current_version_id=version.id;db.commit()
+    assert client.get('/api/catalog?q=MODEL-UNIQUE',headers=READER).json()['total']==1
+    assert client.get('/api/publications?q=texto-unico-interno',headers=READER).json()['total']==1
+
+
+def test_source_schedule_requires_valid_start_and_urls(api):
+    client,_,_,_=api
+    source={'kind':'sidof','name':'Referencia','urls':['https://sidof.segob.gob.mx/notas/docFuente/5758923']}
+    assert client.post('/api/sources',headers=ADMIN,json={**source,'schedule_enabled':True}).status_code==422
+    created=client.post('/api/sources',headers=ADMIN,json=source)
+    assert created.status_code==201
+    enabled=client.patch(f'/api/sources/{created.json()["id"]}',headers=ADMIN,json={'schedule_enabled':True,'schedule_start':'2025-06-02'})
+    assert enabled.status_code==200 and enabled.json()['schedule_enabled']
+    assert client.patch(f'/api/sources/{created.json()["id"]}',headers=READER,json={'schedule_enabled':False}).status_code==403
+
+
+def test_public_auth_configuration_has_no_secrets(api):
+    client,_,_,_=api
+    result=client.get('/api/auth/config')
+    assert result.status_code==200
+    assert set(result.json())=={'tenant_id','client_id','scopes','app_service','development','mode','demo_enabled'}
+
+
+def test_served_frontend_reports_release_and_revalidates_html(api, tmp_path, monkeypatch):
+    import json
+    client, _, settings, _ = api
+    settings.frontend_dist = str(tmp_path)
+    manifest = {'version':'0.3.0', 'source_sha256':'test-build'}
+    (tmp_path / 'portal-release.json').write_text(json.dumps(manifest), encoding='utf-8')
+    (tmp_path / 'index.html').write_text('<html lang="es">Controlled UI</html>', encoding='utf-8')
+    monkeypatch.setattr(main, 'dist', tmp_path)
+    health = client.get('/api/health')
+    assert health.json()['frontend'] == manifest
+    assert health.headers['cache-control'] == 'no-store'
+    assert client.get('/').headers['cache-control'] == 'no-cache'
+
+
+@pytest.mark.parametrize('kind,url', [
+    ('dof', 'https://sidof.segob.gob.mx/notas/5758923'),
+    ('dof', 'https://www.dof.gob.mx/nota_detalle.php?codigo=5758923'),
+    ('platiica', 'https://platiica.economia.gob.mx/'),
+    ('snice', 'https://www.snice.gob.mx/'),
+])
+def test_source_form_rejects_incompatible_index_or_homepage(api, kind, url):
+    client, _, _, _ = api
+    assert client.post('/api/sources', headers=ADMIN, json={'name':'Fuente', 'kind':kind, 'urls':[url]}).status_code == 422
+
+
+def test_publication_list_query_count_does_not_grow_with_rows(api):
+    from sqlalchemy import event
+    client,sessions,_,_=api
+    source_id,_,_,_,_=seed(sessions)
+    with sessions() as db:
+        for i in range(30):
+            db.add(Publication(source_id=source_id,official_id=f'perf-{i}',url='',title=f'Muestra {i}'))
+        db.commit()
+    engine=sessions.kw['bind'];counts=[]
+    def record(*args): counts.append(1)
+    event.listen(engine,'before_cursor_execute',record)
+    try:
+        assert client.get('/api/publications?page_size=25',headers=READER).json()['total']==31
+    finally: event.remove(engine,'before_cursor_execute',record)
+    assert len(counts)<=5
+
+
 def test_catalog_hierarchy_incomplete_data_soft_disable_and_audit(api):
     client, sessions, _, _ = api
     family = client.post('/api/catalog', headers=ADMIN, json={'kind':'familia','name':'Ventilación'}).json()
@@ -87,7 +233,7 @@ def test_catalog_hierarchy_incomplete_data_soft_disable_and_audit(api):
     assert client.get('/api/catalog?active=true', headers=READER).json()['total'] == 2
     with sessions() as db:
         assert db.get(CatalogItem, product['id']) is not None
-        changes = db.scalars(select(Audit).where(Audit.entity_type == 'catalog')).all()
+        changes = db.scalars(select(Audit).where(Audit.entity_type == 'catalog').order_by(Audit.id)).all()
         assert len(changes) == 4
         assert all(row.actor == 'dev:administrador' for row in changes)
         assert changes[-1].before['active'] is True and changes[-1].after['active'] is False
@@ -185,6 +331,30 @@ def test_persistent_job_request_no_in_memory_execution_and_duplicates(api):
     assert client.post('/api/jobs', headers=REVIEWER, json={**body,'period_end':'2019-12-31'}).status_code == 422
 
 
+def test_job_detail_retains_observed_version_after_later_updates(api):
+    from app.collectors import Batch, Document
+    from app.jobs import request_job, run_once
+    client, sessions, _, store = api
+    source_id, _, _, _, _ = seed(sessions)
+    day = date(2025, 6, 2)
+    with sessions() as db:
+        first = request_job(db, source_id, 'tester', day, day)
+        ids = [first.id]
+        for content in ('Contenido A', 'Contenido B'):
+            doc = Document('DOF:10001', 'https://www.dof.gob.mx/nota_detalle.php?codigo=10001',
+                'Muestra de ensayo', content, day, raw=content.encode())
+            run_once(db, storage=store, collector=lambda *a, **kw: Batch([doc], True, None, 'Cobertura controlada'))
+            if content == 'Contenido A':
+                ids.append(request_job(db, source_id, 'tester', day, day).id)
+    first = client.get(f'/api/jobs/{ids[0]}', headers=READER).json()
+    second = client.get(f'/api/jobs/{ids[1]}', headers=READER).json()
+    assert first['coverage'] == 'Cobertura controlada'
+    assert first['documents'][0]['official_id'] == 'DOF:10001'
+    assert first['documents'][0]['version_id'] != second['documents'][0]['version_id']
+    old_version = first['documents'][0]['version_id']
+    assert client.get(f'/api/versions/{old_version}/evidence', headers=READER).content == b'Contenido A'
+
+
 def test_verified_effective_dates_only_and_detection_vs_publication(api):
     client, sessions, _, _ = api
     _, _, pub_id, _, _ = seed(sessions)
@@ -240,4 +410,66 @@ def test_evidence_download_requires_identity_and_cannot_execute_html(api):
     assert response.headers['content-disposition'].startswith('attachment;')
     assert response.headers['x-content-type-options'] == 'nosniff'
     settings.dev_auth_enabled = False
-    assert client.get(f'/api/versions/{version_id}/evidence', headers=ADMIN).status_code == 401
+    assert client.get(f'/api/versions/{version_id}/evidence', headers=ADMIN).status_code == 200
+
+
+def test_open_portal_refreshes_fixed_sources_without_editing_them(api):
+    client, sessions, settings, _ = api
+    settings.dev_auth_enabled = False
+    source_id, _, _, _, _ = seed(sessions)
+    assert client.get('/api/me').json()['role'] == 'consulta'
+    assert client.get('/api/publications').status_code == 200
+    assert client.patch(f'/api/sources/{source_id}', headers=ADMIN, json={'active':False}).status_code == 403
+    first = client.post('/api/refresh')
+    assert first.status_code == 202 and len(first.json()['jobs']) == 1
+    assert client.post('/api/refresh').json()['jobs'] == first.json()['jobs']
+    with sessions() as db:
+        job = db.get(Job, first.json()['jobs'][0])
+        assert job.period_start == job.period_end
+        job.status, job.active_key = 'succeeded', None
+        db.commit()
+    assert client.post('/api/refresh').json()['recent_sources'] == 1
+
+
+def test_bulletin_orders_by_official_date_and_filters_real_changes(api):
+    client, sessions, _, _ = api
+    source_id, _, original_id, _, _ = seed(sessions)
+    with sessions() as db:
+        old = db.get(Publication, original_id)
+        unknown = Publication(source_id=source_id, official_id='undated', url='', title='Sin fecha')
+        newest = Publication(source_id=source_id, official_id='recent', url='', title='Reciente', published_on=main.mexico_today())
+        db.add_all([unknown, newest]); db.flush()
+        version = Version(publication_id=newest.id, sequence=2, content='Un extracto\n con espacios', content_hash='a')
+        db.add(version); db.flush(); newest.current_version_id = version.id
+        ids = [newest.id, old.id, unknown.id]; db.commit()
+    result = client.get('/api/publications?sort=published').json()['items']
+    assert [item['id'] for item in result] == ids
+    assert result[0]['excerpt'] == 'Un extracto con espacios' and result[0]['has_changes']
+    assert client.get(f'/api/publications?published_since={main.mexico_today()}').json()['total'] == 1
+    assert client.get('/api/publications?changes_only=true').json()['total'] == 1
+
+
+@pytest.mark.parametrize('status,seconds,allowed', [
+    ('failed', 120, True), ('partial', 120, True), ('interrupted', 120, True),
+    ('failed', 20, False), ('succeeded', 120, False),
+])
+def test_failed_source_can_retry_after_a_minute_but_success_keeps_cooldown(api, status, seconds, allowed):
+    from app.models import utcnow
+    client, sessions, _, _ = api
+    seed(sessions)
+    previous_id = client.post('/api/refresh').json()['jobs'][0]
+    with sessions() as db:
+        previous = db.get(Job, previous_id)
+        previous.status, previous.active_key = status, None
+        previous.requested_at = utcnow() - timedelta(seconds=seconds + 600)
+        previous.finished_at = utcnow() - timedelta(seconds=seconds)
+        # A successful check keeps the existing 15-minute request cooldown.
+        if status == 'succeeded':
+            previous.requested_at = utcnow() - timedelta(seconds=seconds)
+        db.commit()
+    result = client.post('/api/refresh').json()
+    assert bool(result['jobs']) is allowed
+    if allowed:
+        assert previous_id not in result['jobs']
+    else:
+        assert result['recent_sources'] == 1

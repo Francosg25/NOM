@@ -1,0 +1,84 @@
+{
+  "generated_at": "2026-11-02T22:42:31.220584+00:00",
+  "catalog_records_created": 11,
+  "products": 4,
+  "publications": 3,
+  "versions": 3,
+  "pending_catalogue_work": 0,
+  "relations": [
+    {
+      "official_id": "URL:https://platiica.economia.gob.mx/normalizacion/nom-014-ener-2025/",
+      "catalog": "MUESTRA PÚBLICA · Motores CA",
+      "kind": "subfamilia",
+      "decision": "propuesta",
+      "decided_by": null,
+      "reason": "Coincidencia de palabra clave: motores eléctricos; Coincidencia de norma vigilada: NOM-014-ENER-2025",
+      "owner": null
+    },
+    {
+      "official_id": "DOF:5758923",
+      "catalog": "MUESTRA PÚBLICA · Motores CA",
+      "kind": "subfamilia",
+      "decision": "propuesta",
+      "decided_by": null,
+      "reason": "Coincidencia de palabra clave: motor eléctrico; Coincidencia de palabra clave: motores eléctricos; Coincidencia de norma vigilada: NOM-014-ENER-2025",
+      "owner": null
+    },
+    {
+      "official_id": "URL:https://platiica.economia.gob.mx/normalizacion/nom-014-ener-2025/",
+      "catalog": "MUESTRA PÚBLICA · Motores CA · ficha por completar",
+      "kind": "producto",
+      "decision": "propuesta",
+      "decided_by": null,
+      "reason": "Coincidencia de palabra clave: motores eléctricos (regla heredada de subfamilia: MUESTRA PÚBLICA · Motores CA, id 2); Coincidencia de norma vigilada: NOM-014-ENER-2025 (regla heredada de subfamilia: MUESTRA PÚBLICA · Motores CA, id 2)",
+      "owner": null
+    },
+    {
+      "official_id": "DOF:5758923",
+      "catalog": "MUESTRA PÚBLICA · Motores CA · ficha por completar",
+      "kind": "producto",
+      "decision": "propuesta",
+      "decided_by": null,
+      "reason": "Coincidencia de palabra clave: motor eléctrico (regla heredada de subfamilia: MUESTRA PÚBLICA · Motores CA, id 2); Coincidencia de palabra clave: motores eléctricos (regla heredada de subfamilia: MUESTRA PÚBLICA · Motores CA, id 2); Coincidencia de norma vigilada: NOM-014-ENER-2025 (regla heredada de subfamilia: MUESTRA PÚBLICA · Motores CA, id 2)",
+      "owner": null
+    },
+    {
+      "official_id": "URL:https://platiica.economia.gob.mx/normalizacion/nom-014-ener-2025/",
+      "catalog": "MUESTRA PÚBLICA · Motores CC",
+      "kind": "subfamilia",
+      "decision": "propuesta",
+      "decided_by": null,
+      "reason": "Coincidencia de palabra clave: motores eléctricos",
+      "owner": null
+    },
+    {
+      "official_id": "DOF:5758923",
+      "catalog": "MUESTRA PÚBLICA · Motores CC",
+      "kind": "subfamilia",
+      "decision": "propuesta",
+      "decided_by": null,
+      "reason": "Coincidencia de palabra clave: motor eléctrico; Coincidencia de palabra clave: motores eléctricos",
+      "owner": null
+    },
+    {
+      "official_id": "URL:https://platiica.economia.gob.mx/normalizacion/nom-014-ener-2025/",
+      "catalog": "MUESTRA PÚBLICA · Motores CC · ficha por completar",
+      "kind": "producto",
+      "decision": "propuesta",
+      "decided_by": null,
+      "reason": "Coincidencia de palabra clave: motores eléctricos (regla heredada de subfamilia: MUESTRA PÚBLICA · Motores CC, id 4)",
+      "owner": null
+    },
+    {
+      "official_id": "DOF:5758923",
+      "catalog": "MUESTRA PÚBLICA · Motores CC · ficha por completar",
+      "kind": "producto",
+      "decision": "propuesta",
+      "decided_by": null,
+      "reason": "Coincidencia de palabra clave: motor eléctrico (regla heredada de subfamilia: MUESTRA PÚBLICA · Motores CC, id 4); Coincidencia de palabra clave: motores eléctricos (regla heredada de subfamilia: MUESTRA PÚBLICA · Motores CC, id 4)",
+      "owner": null
+    }
+  ],
+  "human_acceptance": "PENDIENTE_JE",
+  "note": "Categorías públicas incompletas. Las coincidencias por texto son propuestas y pueden ser falsos positivos; ninguna confirma aplicabilidad."
+}

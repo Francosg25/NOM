@@ -13,6 +13,7 @@ from urllib.robotparser import RobotFileParser
 
 import httpx
 from bs4 import BeautifulSoup
+from ..network import connection_issue, https_proxy_configured, verified_tls_context
 
 
 class CollectionError(RuntimeError):
@@ -23,6 +24,7 @@ HOSTS = {
     "dof": {"www.dof.gob.mx", "dof.gob.mx", "sidof.segob.gob.mx"},
     "platiica": {"platiica.economia.gob.mx"},
     "snice": {"www.snice.gob.mx", "snice.gob.mx"},
+    "sidof": {"sidof.segob.gob.mx"},
 }
 ALL_HOSTS = set().union(*HOSTS.values())
 USER_AGENT = "JE-NOM-Monitor/0.1 (+internal regulatory review; bounded retrieval)"
@@ -40,6 +42,7 @@ class Document:
     raw: bytes = b""
     media_type: str = "text/html"
     processing_note: str | None = None
+    links: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -49,6 +52,7 @@ class Batch:
     continuation: dict | None
     coverage: str
     errors: list[str] = field(default_factory=list)
+    checks: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -74,6 +78,8 @@ def validate_url(url: str, kind: str | None = None, *, resolve_dns: bool = False
             addresses = socket.getaddrinfo(p.hostname, 443, type=socket.SOCK_STREAM)
             if not addresses or any(not ipaddress.ip_address(a[4][0]).is_global for a in addresses):
                 raise ValueError("El destino no resuelve exclusivamente a direcciones públicas")
+    except socket.gaierror as exc:
+        raise CollectionError(f"[DNS_ERROR] No se pudo resolver el nombre del sitio oficial ({p.hostname}).") from exc
     except (ValueError, OSError) as exc:
         raise CollectionError(f"URL no permitida o DNS no verificable: {urlsplit(url).hostname or 'sin host'}") from exc
     return url
@@ -101,13 +107,31 @@ class SafeFetcher:
     """TLS verified, robots-aware, rate-limited HTTP client; redirects revalidated."""
 
     def __init__(self, *, client: httpx.Client | None = None, interval: float = 1.0,
-                 resolve_dns: bool = True, max_bytes: int = MAX_BYTES):
-        self.client = client or httpx.Client(timeout=httpx.Timeout(20, connect=10),
-                                            follow_redirects=False, headers={"User-Agent": USER_AGENT})
+                 resolve_dns: bool | None = None, max_bytes: int = MAX_BYTES, attempts: int = 3):
+        if resolve_dns is None:
+            from ..config import get_settings
+            proxy_dns = get_settings().source_dns_mode == 'proxy'
+            if proxy_dns and not https_proxy_configured():
+                raise CollectionError('[PROXY_CONFIGURATION] SOURCE_DNS_MODE=proxy requiere un proxy HTTPS configurado en el entorno o sistema')
+            resolve_dns = not proxy_dns
+        if client is not None:
+            self.client = client
+        else:
+            try:
+                context = verified_tls_context()
+            except (OSError, ValueError) as exc:
+                raise CollectionError('[TLS_CONFIGURATION] No se pudo cargar la configuración de certificados HTTPS. Ejecuta PREPARAR_LOCAL.cmd para actualizar dependencias y revisa SSL_CERT_FILE y SSL_CERT_DIR si están configurados.') from exc
+            try:
+                self.client = httpx.Client(verify=context, trust_env=True,
+                    timeout=httpx.Timeout(20, connect=10), follow_redirects=False,
+                    headers={"User-Agent": USER_AGENT, "Accept-Encoding":"identity"})
+            except (ValueError, httpx.InvalidURL) as exc:
+                raise CollectionError('[PROXY_CONFIGURATION] No se pudo iniciar el cliente HTTPS. Revisa el formato del proxy configurado.') from exc
         self._owns_client = client is None
         self.interval = interval
         self.resolve_dns = resolve_dns
         self.max_bytes = max_bytes
+        self.attempts = max(1, min(attempts, 3))
         self._last_request = 0.0
         self._robots: dict[str, RobotFileParser] = {}
 
@@ -117,14 +141,14 @@ class SafeFetcher:
 
     def _request(self, url: str) -> httpx.Response:
         validate_url(url, resolve_dns=self.resolve_dns)
-        for attempt in range(3):
+        for attempt in range(self.attempts):
             delay = self.interval - (time.monotonic() - self._last_request)
             if delay > 0:
                 time.sleep(delay)
             self._last_request = time.monotonic()
             try:
                 with self.client.stream("GET", url) as response:
-                    if response.status_code in {429, 502, 503, 504} and attempt < 2:
+                    if response.status_code in {429, 502, 503, 504} and attempt < self.attempts - 1:
                         time.sleep(min(2 ** attempt, 4))
                         continue
                     content = bytearray()
@@ -133,11 +157,16 @@ class SafeFetcher:
                         if len(content) > self.max_bytes:
                             raise CollectionError("Respuesta supera el límite de 12 MiB; procesamiento pendiente")
                     # Return a detached response after the bounded stream closes.
-                    return httpx.Response(response.status_code, headers=response.headers,
+                    headers = dict(response.headers)
+                    # iter_bytes already decoded HTTP compression. Do not decode twice.
+                    headers.pop('content-encoding', None)
+                    headers.pop('content-length', None)
+                    return httpx.Response(response.status_code, headers=headers,
                                           content=bytes(content), request=response.request)
-            except (httpx.TimeoutException, httpx.NetworkError) as exc:
-                if attempt == 2:
-                    raise CollectionError(f"Tiempo de espera o conexión fallida: {urlsplit(url).hostname}") from exc
+            except httpx.TransportError as exc:
+                issue = connection_issue(exc)
+                if not issue.retryable or attempt == self.attempts - 1:
+                    raise CollectionError(f"[{issue.code}] {issue.message} ({urlsplit(url).hostname}).") from exc
         raise CollectionError("Consulta agotó los reintentos")
 
     def _allowed(self, url: str):
@@ -212,7 +241,7 @@ def _publication_date(soup: BeautifulSoup, text: str) -> date | None:
             return date.fromisoformat(str(value)[:10])
         except ValueError:
             pass
-    match = re.search(r"(?:DOF\s*:|[Ff]echa de publicaci[oó]n\s*:)\s*(\d{2})/(\d{2})/(\d{4})", text)
+    match = re.search(r"(?:DOF\s*:|[Ff]echa de publicaci[oó]n(?: en el DOF)?\s*:)\s*(\d{1,2})/(\d{1,2})/(\d{4})", text)
     if match:
         try:
             return date(int(match[3]), int(match[2]), int(match[1]))
@@ -231,6 +260,11 @@ def extract_document(url: str, result: FetchResult, title_hint: str = "") -> Doc
             raise CollectionError("La nota DOF redirigió a otro identificador o a una portada; revisión pendiente")
     # Known official IDs first; stable URL identity otherwise (not a fabricated legal identifier).
     identifier = f"DOF:{code[0]}" if code and p.hostname in HOSTS["dof"] else "URL:" + url
+    sidof_id = re.fullmatch(r'/notas/(?:docFuente/)?(\d+)/?', p.path) if p.hostname == 'sidof.segob.gob.mx' else None
+    if sidof_id:
+        identifier = f"DOF:{sidof_id[1]}"
+        if result.url and urlsplit(result.url).path.rstrip('/') != p.path.rstrip('/'):
+            raise CollectionError('SIDOF redirigió a otro documento; revisión pendiente')
     if result.media_type == "application/pdf" or result.body.startswith(b"%PDF-"):
         note = None
         content = ""
@@ -254,18 +288,31 @@ def extract_document(url: str, result: FetchResult, title_hint: str = "") -> Doc
     soup = _soup(result.body)
     date_text = soup.get_text(" ", strip=True)
     published = _publication_date(soup, date_text)
-    title_node = soup.select_one("h1") or soup.select_one("h2") or soup.title
+    title_node = next((n for selector in ('h1','h2','title') for n in soup.select(selector) if n.get_text(strip=True)), None)
     title = title_hint or (title_node.get_text(" ", strip=True) if title_node else "Documento sin título")
     for node in soup.select("script, style, nav, header, footer, form, noscript, .menu, .navigation, .breadcrumb"):
         node.decompose()
-    node = (soup.select_one("#DivDetalle") or soup.select_one(".DetaDoc") or
+    known_node = None
+    if sidof_id and p.path.startswith('/notas/docFuente/') and soup.h1 and re.search(r'norma|acuerdo|aviso|decreto|resoluci',soup.h1.get_text(),re.I):
+        known_node = soup.body
+    if p.hostname in HOSTS['snice'] and p.path.endswith('seguridad.normatividad.html'):
+        heading = next((h for h in soup.select('h2') if 'Normatividad' in h.get_text()),None)
+        if heading: known_node = heading.find_parent(class_='col-md-12')
+    node = (known_node or soup.select_one("#DivDetalle") or soup.select_one(".DetaDoc") or
             soup.select_one("article") or soup.select_one("main") or soup.body or soup)
     content = "\n".join(line.strip() for line in node.get_text("\n", strip=True).splitlines() if line.strip())
     if not content:
         raise CollectionError("Documento HTML sin contenido útil; no se registra como versión vacía")
-    note = None if node is not soup.body and node is not soup else "Extracción general HTML: revisar posible ruido de navegación"
+    note = None if known_node is not None or node is not soup.body and node is not soup else "Extracción general HTML: revisar posible ruido de navegación"
+    links = set()
+    for anchor in node.select('a[href]'):
+        target = urljoin(url, str(anchor['href']))
+        try:
+            links.add(normalize_url(target))
+        except CollectionError:
+            continue
     return Document(identifier, url, title, content, published, _kind(title), result.body,
-                    result.media_type, note)
+                    result.media_type, note, sorted(links))
 
 
 def _index_links(url: str, result: FetchResult, day: date) -> tuple[list[dict], list[str], bool]:
@@ -319,6 +366,10 @@ def collect(kind: str, urls: list[str], period_start: date, period_end: date,
         raise CollectionError("Fuente sin URLs configuradas; cobertura pendiente")
     if kind == "dof" and len(urls) != 1:
         raise CollectionError("DOF requiere un único índice base; no se ignorarán URLs adicionales")
+    if kind == 'sidof' and any('/dof/sidof' in urlsplit(u).path for u in urls):
+        from .sidof import collect_daily, validate_api_urls
+        validate_api_urls(urls)
+        return collect_daily(urls, period_start, period_end, continuation, limit, fetcher=fetcher)
     if kind in {"platiica", "snice"} and any(urlsplit(u).path in {"", "/"} for u in urls):
         raise CollectionError("Configurar fichas o publicaciones concretas; una portada no es un canal de descubrimiento")
     if continuation and (continuation.get("kind") != kind or continuation.get("start") != period_start.isoformat()
@@ -351,6 +402,8 @@ def collect(kind: str, urls: list[str], period_start: date, period_end: date,
                 result = client(item["url"])
                 requests += 1
                 document = extract_document(item["url"], result, item.get("title", ""))
+                if kind == 'dof' and document.published_on and not period_start <= document.published_on <= period_end:
+                    raise CollectionError('La nota DOF tiene fecha fuera del periodo solicitado; comprobar índice o redirección')
                 output.append(document)
                 state["pending"].pop(0)
                 state["seen"].append(item["url"])
@@ -378,6 +431,9 @@ def collect(kind: str, urls: list[str], period_start: date, period_end: date,
                 result = client(url)
                 requests += 1
                 docs, indexes, explicit_empty = _index_links(url, result, day)
+                # A self-link or a previously visited page is not evidence that an
+                # otherwise empty/unknown index has been covered.
+                indexes = [u for u in indexes if u != normalize_url(url) and u not in state['visited_indexes']]
                 if not docs and not indexes and not explicit_empty:
                     raise CollectionError("Índice DOF sin notas ni ausencia explícita: estructura desconocida; periodo pendiente")
                 state["indexes"].pop(0)

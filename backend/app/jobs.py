@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 from copy import deepcopy
 import json
+import re
 import threading
 import uuid
 from contextlib import contextmanager
@@ -15,7 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
 from .collectors import collect, CollectionError
-from .matching import suggest
+from .matching import suggest, normalized
 from .models import Alert, Audit, CatalogItem, Job, Publication, Source, SourceRun, Version, utcnow
 from .storage import get_storage
 
@@ -52,6 +53,7 @@ def request_job(db: Session, source_id: int, actor: str, period_start: date | No
         raise ValueError("La fuente está desactivada")
     if continuation is not None:
         expected_config = {"kind": source.kind, "urls": list(source.urls)}
+        if source.expected_terms: expected_config['expected_terms'] = list(source.expected_terms)
         if continuation.get("source_config") != expected_config:
             raise ValueError("La configuración de la fuente cambió o el cursor no conserva su configuración; solicite de nuevo el periodo completo sin reanudar")
         continuation = deepcopy(continuation)
@@ -89,9 +91,11 @@ def request_job(db: Session, source_id: int, actor: str, period_start: date | No
     return job
 
 
-def claim_job(db: Session) -> Job | None:
+def claim_job(db: Session, job_id: str | None = None) -> Job | None:
     recover_interrupted(db)
-    candidates = db.scalars(select(Job).where(Job.status == "queued").order_by(Job.requested_at).limit(20)).all()
+    query = select(Job).where(Job.status == 'queued')
+    if job_id: query = query.where(Job.id == job_id)
+    candidates = db.scalars(query.order_by(Job.requested_at).limit(20)).all()
     for candidate in candidates:
         token = str(uuid.uuid4())
         now = utcnow()
@@ -107,6 +111,7 @@ def claim_job(db: Session) -> Job | None:
                              period_start=candidate.period_start, period_end=candidate.period_end,
                              continuation=candidate.continuation, status="running",
                              source_snapshot={"name": source.name, "kind": source.kind, "urls": list(source.urls),
+                                              "expected_terms":list(source.expected_terms),
                                               "frequency_hours": source.frequency_hours, "coverage": source.coverage}))
             db.commit()
             return candidate
@@ -150,13 +155,24 @@ def _digest(document) -> str:
     # Navigation bytes are deliberately excluded once useful text is extracted.
     content = {"title": document.title, "content": document.content, "kind": document.kind,
                "published_on": str(document.published_on) if document.published_on else None,
-               "processing_note": document.processing_note}
+               "processing_note": document.processing_note, "links": sorted(document.links)}
     if not document.content.strip():
         content["binary_sha256"] = hashlib.sha256(document.raw).hexdigest()
     return hashlib.sha256(json.dumps(content, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
 
 
-def ingest_document(db: Session, source: Source, document, storage, *, is_demo: bool = False) -> str:
+def _record_observation(db, job_id, publication, version, outcome):
+    if job_id is None:
+        return
+    db.add(Audit(actor='sistema', action='observar_documento', entity_type='job', entity_id=job_id,
+                 after={'source_id': publication.source_id, 'official_id': publication.official_id,
+                        'publication_id': publication.id, 'media_type': version.media_type,
+                        'url': publication.url, 'published_on': str(publication.published_on) if publication.published_on else None,
+                        'version_id': version.id, 'outcome': outcome}))
+
+
+def ingest_document(db: Session, source: Source, document, storage, *, is_demo: bool = False,
+                    job_id: str | None = None) -> str:
     """Save a useful version; comparing against latest preserves A→B→A reversions."""
     pub = db.scalar(select(Publication).where(Publication.source_id == source.id, Publication.official_id == document.official_id))
     now = utcnow()
@@ -174,12 +190,14 @@ def ingest_document(db: Session, source: Source, document, storage, *, is_demo: 
     content_hash = _digest(document)
     if previous and previous.content_hash == content_hash:
         _refresh_proposals(db, pub, previous, actor="sistema")
+        _record_observation(db, job_id, pub, previous, 'unchanged')
         return "unchanged"
     raw = document.raw or document.content.encode("utf-8")
     evidence_key = storage.put(raw, document.media_type)
     version = Version(publication_id=pub.id, sequence=(previous.sequence + 1 if previous else 1),
                       content=document.content, content_hash=content_hash, evidence_key=evidence_key,
                       media_type=document.media_type, captured_at=now, processing_note=document.processing_note)
+    version.links = list(document.links)
     db.add(version)
     db.flush()
     pub.current_version_id = version.id
@@ -202,21 +220,37 @@ def ingest_document(db: Session, source: Source, document, storage, *, is_demo: 
     _refresh_proposals(db, pub, version, update_existing=True)
     db.add(Audit(actor="sistema", action="detectar_publicacion" if created else "nueva_version", entity_type="publication",
                  entity_id=str(pub.id), after={"version_id": version.id, "sequence": version.sequence, "hash": content_hash, "is_demo": is_demo}))
+    _record_observation(db, job_id, pub, version, 'new' if created else 'modified')
     return "new" if created else "modified"
 
 
-def _refresh_proposals(db: Session, pub: Publication, version: Version, *, update_existing: bool = False, actor: str = "sistema") -> int:
+def _refresh_proposals(db: Session, pub: Publication, version: Version, *, update_existing: bool = False, actor: str = "sistema",
+                       items=None, catalog=None) -> int:
     created = 0
     general = db.scalar(select(Alert).where(Alert.publication_id == pub.id, Alert.catalog_id.is_(None)))
     if general is None:
         db.add(Alert(publication_id=pub.id, catalog_id=None, reason="Relevancia por evaluar: revisión general obligatoria",
                      evidence=f"Publicación detectada; versión {version.sequence}. No se infiere aplicabilidad legal."))
         created += 1
-    for item in db.scalars(select(CatalogItem).where(CatalogItem.active.is_(True), CatalogItem.is_demo == pub.is_demo)).all():
-        matches = suggest(pub.title + "\n" + version.content, item)
+    catalog = catalog if catalog is not None else db.scalars(select(CatalogItem).where(CatalogItem.is_demo == pub.is_demo)).all()
+    by_id = {item.id: item for item in catalog}
+    existing_by_id = {a.catalog_id: a for a in db.scalars(select(Alert).where(Alert.publication_id == pub.id)).all()}
+    for item in items if items is not None else catalog:
+        if not item.active or item.is_demo != pub.is_demo:
+            continue
+        matches, ancestor, seen = [], item, set()
+        while ancestor is not None and ancestor.id not in seen:
+            seen.add(ancestor.id)
+            if ancestor.active:
+                inherited = suggest(pub.title + "\n" + version.content, ancestor)
+                if ancestor.id != item.id:
+                    for match in inherited:
+                        match.reason += f' (regla heredada de {ancestor.kind}: {ancestor.name}, id {ancestor.id})'
+                matches.extend(inherited)
+            ancestor = by_id.get(ancestor.parent_id)
         if not matches:
             continue
-        existing = db.scalar(select(Alert).where(Alert.publication_id == pub.id, Alert.catalog_id == item.id))
+        existing = existing_by_id.get(item.id)
         if existing and not update_existing:
             continue  # A catalogue edit never silently resets a reviewer's decision.
         reason = "; ".join(match.reason for match in matches)
@@ -248,8 +282,8 @@ def reevaluate_all(db: Session, actor: str = "sistema") -> int:
     return sum(reevaluate_publication(db, pub.id, actor) for pub in db.scalars(select(Publication)).all())
 
 
-def run_once(db: Session, *, collector=collect, storage=None, limit: int = 40) -> Job | None:
-    job = claim_job(db)
+def run_once(db: Session, *, collector=collect, storage=None, limit: int = 40, job_id: str | None = None) -> Job | None:
+    job = claim_job(db, job_id)
     if job is None:
         return None
     token = job.lease_token
@@ -264,8 +298,13 @@ def run_once(db: Session, *, collector=collect, storage=None, limit: int = 40) -
         with heartbeat(db, job_id, token):
             batch = collector(source_kind, urls, start, end, continuation, limit=limit)
             for document in batch.documents:
+                expected_terms = snapshot.get('expected_terms', [])
+                compact = lambda text: re.sub(r'[\s-]', '', normalized(text))
+                body = compact(document.title + '\n' + document.content)
+                if any(compact(term) not in body for term in expected_terms if term.strip()):
+                    raise CollectionError('Referencia esperada ausente; no se guardó la respuesta como publicación válida')
                 _own(db, job, token)
-                outcome = ingest_document(db, source, document, storage)
+                outcome = ingest_document(db, source, document, storage, job_id=job_id)
                 job.reviewed_count += 1
                 job.new_count += int(outcome == "new")
                 job.modified_count += int(outcome == "modified")
@@ -274,7 +313,11 @@ def run_once(db: Session, *, collector=collect, storage=None, limit: int = 40) -
             job.continuation = deepcopy(batch.continuation)
             if job.continuation is not None:
                 job.continuation["source_config"] = {"kind": source_kind, "urls": list(urls)}
+                if snapshot.get('expected_terms'): job.continuation['source_config']['expected_terms'] = list(snapshot['expected_terms'])
             errors = getattr(batch, "errors", [])
+            for check in getattr(batch, 'checks', []):
+                db.add(Audit(actor='sistema', action='revisar_indice_diario', entity_type='job',
+                    entity_id=job_id, after=check))
             job.error_count = len(errors)
             job.error = "\n".join(errors)[:5000] or None
             job.status = "succeeded" if batch.complete and not errors else "partial"
@@ -282,7 +325,7 @@ def run_once(db: Session, *, collector=collect, storage=None, limit: int = 40) -
             source.last_error = job.error
             if job.status == "succeeded":
                 source.last_success_at = utcnow()
-            _finish(db, job, run)
+            _finish(db, job, run, coverage=source.coverage)
     except Exception as exc:
         db.rollback()
         db.refresh(job)
@@ -299,12 +342,13 @@ def run_once(db: Session, *, collector=collect, storage=None, limit: int = 40) -
     return job
 
 
-def _finish(db: Session, job: Job, run: SourceRun):
+def _finish(db: Session, job: Job, run: SourceRun, coverage: str | None = None):
     job.finished_at = utcnow()
     job.active_key = None
     job.lease_token = None
     for field in ("status", "reviewed_count", "new_count", "modified_count", "error_count", "error", "continuation", "finished_at"):
         setattr(run, field, getattr(job, field))
     db.add(Audit(actor="sistema", action="finalizar_consulta", entity_type="job", entity_id=job.id,
-                 after={"status": job.status, "new": job.new_count, "modified": job.modified_count, "errors": job.error_count}))
+                 after={"status": job.status, "new": job.new_count, "modified": job.modified_count,
+                        "errors": job.error_count, 'coverage': coverage}))
     db.commit()

@@ -1,58 +1,69 @@
-# Preparación de despliegue en Azure App Service
+# Portal en Azure App Service Linux
 
-Este documento prepara el despliegue; no publica ni crea recursos. Antes de desplegar, confirmar con TI:
+La versión actual es 0.5.1 y el seguimiento activo utiliza únicamente SIDOF. No se requieren permisos ni certificados para consultar DOF HTML, PLATIICA o SNICE desde esta versión. El historial de esas fuentes se conserva desactivado.
 
-1. Sistema operativo de App Service, plan, runtime Python soportado, arquitectura y mecanismo de despliegue. No se presupone Linux ni compatibilidad con WebJobs.
-2. Tenant Entra ID, registro de la API y cliente, audiencia, asignación de roles `consulta`, `revisor`, `administrador`, usuarios/grupos autorizados y redirecciones. Rechazar acceso anónimo.
-3. Base PostgreSQL administrada aprobada, TLS, DNS, firewall/red privada, credencial de ejecución y de migraciones. No existe una base corporativa asumida.
-4. Cuenta y contenedor privado de Blob Storage, identidad administrada con Storage Blob Data Contributor, retención y copias de seguridad. No usar el disco temporal para evidencia o base.
-5. Salida HTTPS a las fuentes, robots.txt y condiciones de acceso; DNS, proxy corporativo y CA de confianza. Nunca desactivar TLS ni sortear CAPTCHA.
-6. Dónde correr el trabajador, reinicios, supervisión y frecuencia. No activar programación hasta validar una consulta manual y un periodo retrospectivo.
+La instalación sencilla utiliza el App Service existente: **Linux, Python 3.13, Basic B1, una instancia**. Sirve la web y ejecuta el monitor desde un solo proceso. No necesita crear PostgreSQL, Blob, Entra ni un WebJob.
 
-Para Entra, configurar tokens de acceso **v2** para la API (`api.requestedAccessTokenVersion=2` en su registro), audiencia exactamente igual a `ENTRA_AUDIENCE` y tenant GUID en `ENTRA_TENANT_ID`. Definir y asignar los tres roles de aplicación indicados. Los tokens de identidad de otro cliente no sustituyen el token de acceso para la API. Si se usa el token store de App Service, confirmar scopes y que `/.auth/me` entregue ese token de acceso; el backend seguirá comprobando firma, emisor, audiencia, tenant, expiración y roles. Si ese flujo no se configura, la interfaz admite pegar un token en memoria para una prueba controlada; no implementa adquisición interactiva MSAL por sí sola.
+## Preparar y publicar
 
-## Compilación y paquete
-
-En un agente de compilación con Node y Python compatibles:
+1. En un equipo o agente con Node.js, ejecutar `cd frontend && npm ci && cd ..` y `bash scripts/package-appservice.sh`.
+2. El archivo `data/nom-appservice.zip` contiene `backend/`, `frontend/dist/`, `startup.sh` y `requirements.txt` en la raíz. También incorpora el código de la interfaz y los comandos de prueba en Windows. No contiene datos locales, secretos ni entornos virtuales. No hace falta Node en App Service: la interfaz ya está compilada.
+3. En App Service, configurar **SCM_DO_BUILD_DURING_DEPLOYMENT=true** y el comando de inicio **bash startup.sh**. Mantener Python 3.13 y habilitar **Always On**.
+4. Publicar el ZIP mediante un método corporativo permitido o Azure CLI autenticada:
 
 ```bash
-cd frontend
-npm ci
-npm run build
-cd ../backend
-python -m pip install -r requirements.txt
-python -m pytest -q
+az webapp deploy --resource-group '<GRUPO_DE_RECURSOS>' --name '<NOMBRE_DE_WEB_APP>' --src-path data/nom-appservice.zip
 ```
 
-Empaquetar `backend/` y `frontend/dist/` manteniendo su disposición relativa. El runtime no necesita Node si recibe el frontend ya compilado. Conservar `requirements.txt`, `alembic.ini`, migraciones y módulos de `app`. No incluir `.env`, `.venv`, datos de pruebas, bases SQLite ni credenciales.
+No registrar nombres internos de recursos ni credenciales en el repositorio.
 
-Configurar mediante ajustes de aplicación las variables de `.env.example` adaptadas a producción. `ENVIRONMENT=production`, autenticación local deshabilitada, conexión PostgreSQL con TLS, almacenamiento Blob y tenant/audiencia reales. Los secretos se suministran mediante configuración segura o referencias Key Vault aprobadas, nunca en el repositorio.
+## Valores de arranque
 
-Antes de dar tráfico: ejecutar `python -m alembic upgrade head` desde `backend/`, con una sola instancia de migración y respaldo previo. Después inicializar las fuentes según README. Las migraciones son explícitas y no se ejecutan automáticamente al iniciar cada servidor.
+El script establece estos valores solo si no se proporcionaron otros:
 
-Si se confirma App Service Linux con Python, un comando de inicio posible desde `backend/` es:
+| Variable | Valor |
+| --- | --- |
+| ENVIRONMENT | production |
+| AUTH_MODE | portal |
+| DEV_AUTH_ENABLED | false |
+| MONITOR_ENABLED | true |
+| SCHEDULER_ENABLED | true |
+| DATABASE_URL | sqlite:////home/nom-monitor/nom.db |
+| STORAGE_BACKEND | local |
+| STORAGE_PATH | /home/nom-monitor/evidence |
 
-```bash
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
+Si existen ajustes anteriores de Entra/Blob/PostgreSQL, revisar las variables efectivas para elegir estos valores. No copiar el modo local de administrador al despliegue público.
 
-Configurar el directorio de trabajo/puerto según el mecanismo de despliegue real. Si App Service es Windows y no ofrece el runtime Python requerido, confirmar un alojamiento compatible aprobado o cambiar el SO con autorización; no se afirma que el mismo comando resuelva esa incompatibilidad.
+El modo portal permite consultar publicaciones y solicitar una revisión sin iniciar sesión. Cambiar URLs, catálogos o decisiones conserva permisos de edición; el visitante es lector. El inicio aplica migraciones e inicializa fuentes sin publicaciones inventadas. En la primera preparación habilita programación de las fuentes configuradas; respeta las que ya tengan fecha/frecuencia configuradas.
 
-## Trabajador y programación: decisión pendiente
+## Persistencia y consultas
 
-El trabajador usa el mismo PostgreSQL y Blob que la API. Primero levantar el consumidor de cola en un proceso supervisado y solicitar el trabajo manual desde la aplicación. Comprobar el identificador, progreso persistente, evidencia y resultados.
+El código de Python puede ejecutarse desde una carpeta temporal de Oryx. Por eso **base y documentos se guardan bajo /home/nom-monitor**, fuera del contenido desplegado. En el App Service Linux integrado, comprobar que el almacenamiento persistente de /home esté habilitado; si corresponde a la configuración, usar `WEBSITES_ENABLE_APP_SERVICE_STORAGE=true`.
 
-Alternativas a evaluar según el plan y SO: WebJob continuo/programado si es compatible, Azure Functions con temporizador que encole/ejecute el comando, o un agente corporativo/Windows Task Scheduler aprobado. No ejecutar simultáneamente varios programadores. Un temporizador debe encolar el intervalo explícito y usar la deduplicación del trabajo. La frecuencia deseada de una fuente es metadato: por sí sola no activa programación.
+Usar una instancia, `--workers 1` y el monitor integrado para este piloto con SQLite. El modo de diario de SQLite en producción es DELETE para no usar WAL sobre el volumen compartido. No se ha validado escalado a varias instancias. El monitor se detiene si se apaga o descarga el App Service; Always On mantiene cargada la app. La cola y las consultas pendientes permanecen en SQLite. Los intervalos fallidos se reintentan sin interpretar un error como ausencia de cambios.
 
-Una ejecución parcial conserva continuación; una fallida no equivale a un periodo cubierto. Revisar interrupciones, completar retrospectivas y verificar todas las ediciones antes de marcar cobertura. Mantener alertas operativas por fallos reiterados o ausencia de consultas exitosas.
+No hace falta instalar el trabajador externo. Si se elige hacerlo más adelante, desactivar `MONITOR_ENABLED` en la web.
 
-## Comprobación después del despliegue
+## Comprobar en la instancia real
 
-- `/api/health` responde; una ruta API protegida rechaza al anónimo.
-- Un usuario consulta no puede cambiar catálogo ni decisiones; revisor y administrador tienen sus permisos esperados.
-- La UI compilada carga desde FastAPI y las llamadas usan la misma aplicación.
-- Una consulta manual deja trabajo y evidencia recuperables después de reiniciar web y trabajador.
-- PostgreSQL y Blob permanecen disponibles después de reiniciar/escalar App Service.
-- Revisar logs sin tokens ni contenidos sensibles; definir retención y responsables operativos.
+- `/api/health` responde y la portada carga sin pantalla de acceso.
+- Español / English cambia interfaz, fechas y la guía Cómo funciona / How it works.
+- `/api/health` identifica la compilación en `frontend.version` y `frontend.source_sha256`; debe corresponder a la marca v0.5.1 de la pantalla.
+- “Consultar fuentes” deja una ejecución y después resultados o un error visible.
+- Una copia del documento se puede recuperar después de reiniciar la aplicación.
+- Se conserva la base al volver a publicar el ZIP.
+- La API diaria `https://sidof.segob.gob.mx/dof/sidof` es accesible desde Azure con TLS verificado y las reglas de robots. La primera revisión cubre siete días y después se programa cada hora.
+- “Ver revisión diaria” muestra conteos y referencias pendientes. Buscar `NOM-EM-023-SE-2026` después de consultar el 2 de noviembre de 2026 permite repetir la comprobación conocida; la ventana automática puede requerir ampliar fechas si se prueba más adelante.
+- DOF HTML, PLATIICA y SNICE son accesibles desde la red de Azure. Un fallo de DOF no impide procesar SIDOF, aunque seguirá mostrándose como fuente incompleta.
 
-La compilación local no valida el runtime, SSO ni conectividad de Azure. Esas pruebas requieren la configuración real y autorización de despliegue.
+El paquete preparado y las pruebas locales no equivalen a un despliegue real. No se crearon ni modificaron recursos Azure durante esta preparación.
+
+Documentación: [Python y archivos persistentes bajo /home](https://learn.microsoft.com/en-us/azure/app-service/configure-language-python), [Always On](https://learn.microsoft.com/en-us/azure/app-service/configure-common), [publicar ZIP con compilación](https://learn.microsoft.com/en-us/azure/app-service/deploy-zip).
+
+## Operación diaria sin visitas
+
+Mantener MONITOR_ENABLED=true y SCHEDULER_ENABLED=true, la fuente SIDOF activa y su programación habilitada (frecuencia predeterminada: una hora). Habilitar Always On en la configuración del App Service para mantener cargada la aplicación sin tráfico. La publicación del ZIP no activa por sí sola Always On.
+
+En Estado de SIDOF se distinguen la última descarga, el último periodo completado y las fechas pendientes, además de la próxima consulta programada. Para aceptar el despliegue, cerrar el navegador y comprobar después que aparezca una ejecución nueva solicitada por scheduler y que el historial/evidencia sobreviva a un reinicio. No se ha ejecutado este despliegue desde este entorno: no hay una identidad Azure configurada.
+
+Referencia: https://learn.microsoft.com/es-es/azure/app-service/configure-common

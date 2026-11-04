@@ -10,4 +10,4 @@ npm ci
 npm run build
 cd ../backend
 ../.venv/bin/python -m app.cli init-db
-echo 'Entorno preparado; inicie API y trabajador según README.'
+echo 'Entorno preparado; inicie la API según README. El monitor ya está integrado.'

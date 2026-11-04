@@ -27,6 +27,8 @@ def identity(authorization: str | None = Header(None), x_dev_role: str | None = 
         if role not in ROLES:
             raise HTTPException(403, 'Rol local desconocido')
         return Identity(f'dev:{role}', f'Usuario local ({role})', role, 'development')
+    if settings.auth_mode == 'portal':
+        return Identity('portal', 'Lector del boletín', 'consulta', 'portal')
     if not authorization or not authorization.startswith('Bearer '):
         raise HTTPException(401, 'Se requiere un token de Microsoft Entra ID', headers={'WWW-Authenticate':'Bearer'})
     if not re.fullmatch(r'[a-fA-F0-9-]{36}', settings.entra_tenant_id):

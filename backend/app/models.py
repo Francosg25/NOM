@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone
 from typing import Any
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -18,12 +18,16 @@ class Source(Base):
     name: Mapped[str] = mapped_column(String(200))
     kind: Mapped[str] = mapped_column(String(40))
     urls: Mapped[list] = mapped_column(JSON, default=list)
+    expected_terms: Mapped[list] = mapped_column(JSON, default=list)
     frequency_hours: Mapped[int] = mapped_column(default=24)
     active: Mapped[bool] = mapped_column(default=True)
     coverage: Mapped[str] = mapped_column(Text, default='Validación en vivo pendiente')
     last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_error: Mapped[str | None] = mapped_column(Text)
+    schedule_enabled: Mapped[bool] = mapped_column(default=False)
+    schedule_start: Mapped[date | None] = mapped_column(Date)
+    next_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class CatalogItem(Base):
@@ -50,7 +54,8 @@ class CatalogItem(Base):
 
 class Publication(Base):
     __tablename__ = 'publications'
-    __table_args__ = (UniqueConstraint('source_id', 'official_id', name='uq_publication_source_official'),)
+    __table_args__ = (UniqueConstraint('source_id', 'official_id', name='uq_publication_source_official'),
+                      Index('ix_publications_demo_detected', 'is_demo', 'detected_at'),)
     id: Mapped[int] = mapped_column(primary_key=True)
     source_id: Mapped[int] = mapped_column(ForeignKey('sources.id'))
     official_id: Mapped[str] = mapped_column(String(500))
@@ -80,11 +85,13 @@ class Version(Base):
     media_type: Mapped[str] = mapped_column(String(120), default='text/html')
     captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     processing_note: Mapped[str | None] = mapped_column(Text)
+    links: Mapped[list] = mapped_column(JSON, default=list)
 
 
 class Alert(Base):
     __tablename__ = 'alerts'
-    __table_args__ = (UniqueConstraint('publication_id', 'catalog_id', name='uq_alert_catalog'),)
+    __table_args__ = (UniqueConstraint('publication_id', 'catalog_id', name='uq_alert_catalog'),
+                      Index('ix_alerts_catalog', 'catalog_id'),)
     id: Mapped[int] = mapped_column(primary_key=True)
     publication_id: Mapped[int] = mapped_column(ForeignKey('publications.id'))
     catalog_id: Mapped[int | None] = mapped_column(ForeignKey('catalog.id'))
@@ -151,6 +158,7 @@ class SourceRun(Base):
 
 class Audit(Base):
     __tablename__ = 'audit'
+    __table_args__ = (Index('ix_audit_entity_action', 'entity_type', 'entity_id', 'action', 'id'),)
     id: Mapped[int] = mapped_column(primary_key=True)
     actor: Mapped[str] = mapped_column(String(200))
     action: Mapped[str] = mapped_column(String(80))
@@ -159,3 +167,16 @@ class Audit(Base):
     before: Mapped[dict | None] = mapped_column(JSON)
     after: Mapped[dict | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Reevaluation(Base):
+    """Durable, coalesced catalogue work. Saving a product never scans the archive."""
+    __tablename__ = 'reevaluations'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    catalog_id: Mapped[int] = mapped_column(ForeignKey('catalog.id'), unique=True)
+    requested_revision: Mapped[int] = mapped_column(default=1)
+    completed_revision: Mapped[int] = mapped_column(default=0)
+    cursor: Mapped[int] = mapped_column(default=0)
+    actor: Mapped[str] = mapped_column(String(200))
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    error: Mapped[str | None] = mapped_column(Text)

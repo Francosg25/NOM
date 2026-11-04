@@ -1,18 +1,31 @@
 # Fuentes y cobertura de recopilación
 
+Desde la versión 0.5.0, SIDOF es la única fuente activa. DOF HTML, PLATIICA y SNICE se retiran del seguimiento, sin borrar sus registros históricos. Las descripciones de esos conectores que siguen documentan el alcance anterior. El diagnóstico ahora consulta únicamente SIDOF.
+
 Esta versión propone relaciones para revisión humana; no determina aplicabilidad
 legal ni autorización de importación. «Completa» en una ejecución significa que
 se agotó la cola de esa consulta configurada. No significa cobertura normativa completa.
 
 ## Estado de validación
 
-El 2 de noviembre de 2026 el entorno negó la conexión HTTPS a
-`www.dof.gob.mx/robots.txt`: el proxy devolvió `CONNECT 403 Forbidden` (Envoy).
-No hubo respuesta del servidor oficial y no se intentó eludir la restricción.
-Las pruebas del parser usan muestras sintéticas identificadas como tales; no son
-capturas descargadas de publicaciones oficiales. La validación en vivo de DOF,
-PLATIICA y SNICE queda **pendiente**. Tampoco se tuvo acceso al archivo
-`NOM_Monitor_Piloto.zip`; no se afirma haber revisado sus tres URLs.
+La versión 0.4.0 incorpora la API diaria SIDOF como canal principal. La consulta
+real del 3 de noviembre recuperó **DOF:5802721 / NOM-EM-023-SE-2026**, publicada
+el 2 de noviembre. Se consultaron las 35 notas de ese día: una seleccionada y
+ocho referencias sin título ni texto pendientes de revisión. La repetición y
+persistencia se documentan en [SIDOF diario](SIDOF_DAILY.md). No se declara
+cobertura integral mientras existan referencias sin clasificar.
+
+### Antecedente del piloto de referencia
+
+El 2 de noviembre de 2026 se consultó el ZIP del piloto y el programa descargó
+las tres URLs concretas de SIDOF, PLATIICA y SNICE. Se guardaron las capturas
+originales en el almacén de evidencia, se verificó su SHA-256 al recuperarlas y se repitió la consulta sin
+crear versiones duplicadas. Los informes están en [aceptación](PILOT_ACCEPTANCE.md).
+El índice diario DOF sigue pendiente: robots.txt devolvió HTTP 503, no se eludió
+ese fallo y el resultado global no se marca como aprobado. Las muestras sintéticas
+y los extractos de capturas oficiales están separados en los tests. En el
+repositorio público estos extractos están reducidos y usan HTML mínimo preparado
+para pruebas; no incluyen los metadatos ni contactos de las respuestas íntegras.
 
 Antes de habilitar una fuente en producción se deben permitir los destinos
 oficiales necesarios, verificar sus condiciones de uso y robots, guardar muestras
@@ -48,16 +61,14 @@ Seguimiento de **fichas/documentos concretos** configurados por el administrador
 en `platiica.economia.gob.mx`. No hay descubrimiento global de nuevas fichas.
 La URL normalizada es la identidad provisional cuando no existe un identificador
 oficial extraíble; no se presenta ese identificador técnico como número de NOM.
-Una portada sin ruta no se admite como sustituto de una ficha. Deben configurarse
-las URLs reales del piloto o fichas verificadas antes de usar este canal.
+Una portada sin ruta no se admite como sustituto de una ficha. Se configura la ficha real del piloto NOM-014-ENER-2025. Se pueden agregar otras fichas verificadas, sin asumir cobertura global.
 
 ## SNICE
 
 Seguimiento de **publicaciones concretas HTML o PDF** en `www.snice.gob.mx` o
 `snice.gob.mx`. No se implementó un feed no verificado ni se afirma descubrir
 todas sus novedades. No se considera la portada un inventario de publicaciones.
-Se deben registrar enlaces oficiales específicos y confirmar el canal autorizado
-de novedades antes de ampliar el descubrimiento. Los periodos registrados para
+Se configura la página de normatividad del piloto, que no equivale a descargar el Anexo 2.4.1. Registrar enlaces específicos y confirmar un canal de novedades antes de ampliar el descubrimiento. Los periodos registrados para
 estos monitores indican cuándo se solicitó la comprobación, no una búsqueda
 retrospectiva garantizada del portal.
 
@@ -103,3 +114,33 @@ Para habilitar validación en vivo se requieren, según URLs configuradas:
 `www.dof.gob.mx`, `dof.gob.mx`, `sidof.segob.gob.mx`,
 `platiica.economia.gob.mx`, `www.snice.gob.mx`, `snice.gob.mx`.
 Agregar dominios al borrador no aplica permisos a la instancia en ejecución.
+
+## SIDOF diario, documentos conocidos y proxy
+
+El conector `sidof` admite dos configuraciones. La predeterminada es una única
+base `https://sidof.segob.gob.mx/dof/sidof`, con descubrimiento por fecha. Usa
+`diarios/porFecha/DD-MM-YYYY`, `notas/DD-MM-YYYY` y `notas/nota/CODIGO`.
+Para respuestas completamente vacías contrasta `diarios/AAAA` y exige una fecha
+declarada sin publicación. Todas las ediciones declaradas deben aportar notas.
+Se comprueban códigos, fechas y pertenencia a diario antes de guardar datos.
+
+Selecciona títulos con NOM, Norma Oficial Mexicana, Anexo 2.4.1 o reglas y
+criterios de comercio exterior. Las NMX no se incluyen automáticamente como
+NOM. Las notas sin título se consultan individualmente; si el detalle tampoco
+permite clasificarlas quedan pendientes con vínculo oficial y hash. Los
+errores y límites mantienen un cursor de continuación, sin saltar el detalle
+fallido. La evidencia de cada publicación seleccionada es el JSON íntegro
+recuperado, no un PDF individual inventado.
+
+La configuración con URLs `notas/docFuente/...` conserva el monitor de documentos
+conocidos. El documento piloto `DOF:5758923` permanece almacenado al actualizar
+la fuente predeterminada; no se cambia la configuración de un monitor personalizado.
+
+Las fuentes conocidas incluyen referencias esperadas. Si una página deja de
+contenerlas, el trabajador conserva el fallo y no sustituye la evidencia válida
+por una portada u otra respuesta. Las referencias se incluyen en la instantánea
+del trabajo y en el control de reanudación.
+
+Con `SOURCE_DNS_MODE=local` se comprueba DNS local público. `proxy` requiere
+un proxy configurado en el entorno que resuelva y controle destinos. Los hosts,
+TLS y redirecciones siguen restringidos. Véase PILOT_ACCEPTANCE.md.

@@ -1,0 +1,148 @@
+{
+  "generated_at": "2026-11-02T22:39:16.255173+00:00",
+  "period_start": "2025-06-02",
+  "period_end": "2025-06-02",
+  "passed": false,
+  "coverage_verified": false,
+  "sources": [
+    {
+      "source": "DOF / SIDOF",
+      "kind": "dof",
+      "urls": [
+        "https://www.dof.gob.mx/index.php"
+      ],
+      "jobs": [
+        {
+          "id": "7c144d57-0d34-4620-ac0c-d32cb1fb5a0c",
+          "status": "partial",
+          "new": 0,
+          "modified": 0,
+          "reviewed": 0
+        }
+      ],
+      "passed": false,
+      "evidence": [],
+      "errors": [
+        "robots.txt no verificable (HTTP 503); consulta suspendida"
+      ],
+      "expected_ids": null,
+      "observed_ids": [],
+      "unknown_publication_dates": [],
+      "observed_ids_in_period": [],
+      "versions_added": 0
+    },
+    {
+      "source": "PLATIICA",
+      "kind": "platiica",
+      "urls": [
+        "https://platiica.economia.gob.mx/normalizacion/nom-014-ener-2025/"
+      ],
+      "jobs": [
+        {
+          "id": "0ebfb28c-c601-40f6-a69c-a97d2187ae69",
+          "status": "succeeded",
+          "new": 0,
+          "modified": 0,
+          "reviewed": 1
+        }
+      ],
+      "passed": true,
+      "evidence": [
+        {
+          "official_id": "URL:https://platiica.economia.gob.mx/normalizacion/nom-014-ener-2025/",
+          "version_id": 1,
+          "sha256": "846c8bf0538e87497e46d1090424b331fb7bbf134781613fbd667e97733913eb",
+          "bytes": 97223,
+          "integrity": true,
+          "processing_note": null
+        }
+      ],
+      "errors": [],
+      "expected_ids": null,
+      "observed_ids": [
+        "URL:https://platiica.economia.gob.mx/normalizacion/nom-014-ener-2025/"
+      ],
+      "unknown_publication_dates": [],
+      "observed_ids_in_period": [
+        "URL:https://platiica.economia.gob.mx/normalizacion/nom-014-ener-2025/"
+      ],
+      "versions_added": 0
+    },
+    {
+      "source": "SNICE",
+      "kind": "snice",
+      "urls": [
+        "https://www.snice.gob.mx/cs/avi/snice/seguridad.normatividad.html"
+      ],
+      "jobs": [
+        {
+          "id": "b2f9a90a-8101-4494-be4d-d03f179c9bc1",
+          "status": "succeeded",
+          "new": 0,
+          "modified": 0,
+          "reviewed": 1
+        }
+      ],
+      "passed": true,
+      "evidence": [
+        {
+          "official_id": "URL:https://www.snice.gob.mx/cs/avi/snice/seguridad.normatividad.html",
+          "version_id": 2,
+          "sha256": "fb429b23ba02ae860e5b0a2269fcaeeac6f65fb7d9d3211c83e324b7b9b3b8bd",
+          "bytes": 26486,
+          "integrity": true,
+          "processing_note": null
+        }
+      ],
+      "errors": [],
+      "expected_ids": null,
+      "observed_ids": [
+        "URL:https://www.snice.gob.mx/cs/avi/snice/seguridad.normatividad.html"
+      ],
+      "unknown_publication_dates": [
+        "URL:https://www.snice.gob.mx/cs/avi/snice/seguridad.normatividad.html"
+      ],
+      "observed_ids_in_period": [],
+      "versions_added": 0
+    },
+    {
+      "source": "SIDOF · documento de referencia",
+      "kind": "sidof",
+      "urls": [
+        "https://sidof.segob.gob.mx/notas/docFuente/5758923"
+      ],
+      "jobs": [
+        {
+          "id": "a2cbcc1b-3ef2-4425-a169-3dcff7ddc701",
+          "status": "succeeded",
+          "new": 0,
+          "modified": 0,
+          "reviewed": 1
+        }
+      ],
+      "passed": true,
+      "evidence": [
+        {
+          "official_id": "DOF:5758923",
+          "version_id": 3,
+          "sha256": "11799e3c45c72fde99e42be78c56822bae8750b97279404714d9540aeb24ed32",
+          "bytes": 310024,
+          "integrity": true,
+          "processing_note": null
+        }
+      ],
+      "errors": [],
+      "expected_ids": null,
+      "observed_ids": [
+        "DOF:5758923"
+      ],
+      "unknown_publication_dates": [
+        "DOF:5758923"
+      ],
+      "observed_ids_in_period": [],
+      "versions_added": 0
+    }
+  ],
+  "technical_passed": false,
+  "note": "Una descarga válida no acredita cobertura integral ni aplicabilidad; contrastar inventario DOF y revisar catálogo con responsable JE."
+}

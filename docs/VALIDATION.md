@@ -1,51 +1,146 @@
-# Validación y limitaciones
+# Validación del portal
 
-Validación realizada el 2 de noviembre de 2026 en Linux con Python 3.12.14 y Node 24.19.0. Se usó un entorno virtual del proyecto y el lockfile de npm. No se desplegó Azure.
+## Estados y ciclo automático · 0.5.1
 
-## Comprobaciones ejecutadas
+158 pruebas backend aprobadas en Linux/Python 3.12. Se distinguen la última descarga de publicaciones, el último periodo completado y las fechas pendientes a partir del cursor persistido. El estado no afirma conectividad actual a partir de una descarga histórica.
+
+Una prueba con reloj controlado ejecuta tres ciclos del programador sin intervención del portal: primera descarga, repetición horaria sin versiones duplicadas y día siguiente con una publicación nueva pese a un HTTP 404 histórico. Es una simulación del ciclo; no equivale a observar un servidor real durante 24 horas. Los reinicios y persistencia se comprueban en el ZIP Linux. Windows y Azure real siguen pendientes de comprobación en sus entornos.
+
+## SIDOF único e interfaz simplificada · 0.5.0
+
+156 pruebas backend aprobadas. Se comprueba que la actualización conserva documentos y evidencia, retira las fuentes anteriores y cancela sus trabajos en cola, de manera idempotente. El filtro del boletín selecciona SIDOF sin eliminar el archivo histórico. Compilación TypeScript/Vite y recorrido ES/EN del JS compilado comprobados. La revisión visual de escritorio utiliza muestras controladas, sin presentarlas como publicaciones reales. No se probó esta entrega en Windows ni se desplegó Azure.
+
+## Compatibilidad Windows · 0.4.1 · 3 de noviembre de 2026
+
+Las capturas del equipo corporativo confirman la interfaz 0.4.0 y el idioma
+inglés, pero muestran TLS_CERTIFICATE en las cuatro fuentes, sin consultas
+exitosas. El navegador también rechaza DOF; SIDOF responde al navegador y su
+base sin operación devuelve un mensaje 404. [Análisis y procedimiento](CONNECTION.md).
+
+La versión 0.4.1 usa el cliente de certificados nativo de Windows, añade el
+backend elegido y códigos de verificación al diagnóstico, enlaza al portal
+SIDOF y agrupa los botones de cada ejecución para evitar una fila separada
+para Retomar. No se aceptan certificados desconocidos automáticamente.
+
+154 pruebas backend aprobadas, incluidas selección de CryptoAPI mediante una
+dependencia controlada, prioridad de CA explícita, dependencia ausente y
+diagnóstico sin datos privados. Las pruebas se ejecutaron en Linux/Python 3.12;
+la rama Windows se verificó con inyección de dependencias, no con un Windows
+real. La conectividad corporativa debe volver a comprobarse con el diagnóstico
+de esta versión. Las pruebas anteriores no acreditan acceso en ese equipo.
+
+## SIDOF diario · 0.4.0 · 3 de noviembre de 2026
 
 | Comprobación | Resultado |
 | --- | --- |
-| Instalación `bash scripts/setup.sh` | Pasó: dependencias, `npm ci`, compilación y migraciones. Repetición idempotente con `.env` existente. |
-| Backend `python -m pytest -q` | 78 pruebas aprobadas; ninguna fallida, omitida ni esperada como fallo. |
-| Alembic `upgrade head` y `check` | Dos revisiones aplicadas, sin diferencias de esquema. |
-| Frontend `npm run build` | TypeScript y Vite aprobados; 29 módulos. |
-| Dependencias Python `pip check` | Sin incompatibilidades detectadas. |
-| Navegador Chromium | Cinco vistas, pantalla vacía, tabla de demo, detalle, descarga de evidencia, confirmación con autor/fecha, comentario y modo consulta comprobados. Sin errores JavaScript en ese recorrido. Vista móvil comprobada. |
-| Reinicio real de procesos web | La decisión, autor, comentario, archivo de evidencia y trabajo parcial siguieron disponibles con la misma base. |
-| Consulta manual real DOF por API + CLI | Registró trabajo, último intento, error y continuación. No creó publicaciones ni marcó última consulta exitosa. `worker --once` devolvió 2 (parcial), no un éxito falso. |
+| Backend | 150 pruebas aprobadas: incluye contrato JSON, tres ediciones, selección, notas sin título, fechas/identidades contradictorias, evidencia, repetición, continuaciones y errores independientes por día |
+| Frontend | TypeScript/Vite aprobados; 32 módulos y marca de compilación 0.4.0 |
+| ES/EN | Interacciones del JS compilado con JSDOM: lector diario, conteos, referencias pendientes y enlaces oficiales, además del recorrido y pruebas de idioma anteriores |
+| Paquete Linux 0.4.0 | ZIP extraído y startup.sh ejecutado en modo producción; lectura pública, edición restringida y SQLite/evidencia conservados después de reiniciar; sin Entra/Blob/PostgreSQL |
+| Prueba real SIDOF | Cinco publicaciones en cinco fechas; 523 notas examinadas; JSON conservado y recuperable. La NOM del 2 de noviembre se repitió con cero versiones adicionales |
+| Límites observados | 51 referencias sin clasificación; dos fechas con HTTP 404. No se aprueba cobertura integral de NOM |
 
-La suite incluye deduplicación entre ejecuciones, versiones A→B→A, reapertura auditada de revisiones tras un cambio, recuperación de errores, edición/paginación de índices DOF con muestras controladas, cola y periodos parciales, reanudación después de interrupción, cambio de configuración de fuente, exclusión mutua y propuestas de relevancia al editar reglas. Cubre fechas desconocidas/verificadas, confirmación/descarte, permisos, JWT firmados, auditoría, SSRF, robots, tamaños y demostración separada.
+El [detalle de la integración](SIDOF_DAILY.md) y el [informe reducido de evidencia](evidence/sidof-daily-2026-11-03.json)
+separan consulta técnica, preservación y cobertura. La base de prueba y las
+respuestas completas no se incluyen en el repositorio ni en el ZIP. La prueba
+usa Python 3.12/Linux; Windows corporativo, Python 3.13 y Azure real siguen
+pendientes de comprobación en esos entornos.
 
-El recorrido principal automatizado es `tests/test_jobs.py::test_main_flow_query_propose_review_and_evidence`: solicitud HTTP de consulta → procesamiento con conector inyectado → publicación persistida → propuesta basada en palabra clave → confirmación humana → comentario → descarga autenticada de evidencia. La respuesta de la fuente en esa prueba es una muestra sintética controlada, **no una consulta oficial validada**.
+## Antecedente 0.3.1 · 3 de noviembre de 2026
 
-Los tests de autenticación usan firma RSA y claves controladas para verificar firma, audiencia, emisor, tenant, expiración y permisos. No validan un registro Entra real. Las pruebas de base se ejecutan sobre SQLite temporal y no prueban un PostgreSQL remoto.
+La versión **0.3.1** abre sin cuenta con SQLite y archivos locales; el monitor está integrado y la interfaz es un boletín en español/inglés. Incorpora guía de uso, aviso de cobertura incompleta y selector de idioma con nombres completos. El cliente HTTPS carga autoridades del sistema y públicas, respeta almacenes explícitos y clasifica errores de red sin registrar credenciales. Entra, Blob y PostgreSQL son opcionales. La interfaz anterior de catálogo y decisiones sigue disponible solo por API/CLI.
 
-El aislamiento de red del ejecutor bloqueó el IPC interno de TestClient; se resolvió usando la excepción de ejecución soportada, conservando los tests. Hay una advertencia de depreciación de `anyio.abc.BlockingPortal` en Starlette; no impide las comprobaciones. La primera compilación señaló un import no utilizado, ya corregido. No quedan fallos de validación local sin diagnosticar.
+| Comprobación actual | Resultado |
+| --- | --- |
+| Backend | 130 pruebas aprobadas; incluye contexto TLS verificado, clasificación de errores, informe seguro y reintento de fuentes fallidas, además de la identidad de la compilación, monitor, acceso abierto y cola |
+| Frontend | TypeScript/Vite aprobados, 32 módulos; compilación con versión y huella de sus fuentes |
+| Interacciones ES/EN | Verificadas sobre el JS compilado con JSDOM y una respuesta API controlada: idioma persistente, URL `?lang=en`, búsqueda, temas, lectura/cierre, guía, fallo de todas las fuentes y descripción de error TLS en ambos idiomas |
+| Paquete Linux | Arranque real de startup.sh con ENVIRONMENT=production y sin Entra/Blob/PostgreSQL; la web/API responden y SQLite/evidencia sobreviven un reinicio |
+| Runtime de esta comprobación | Python 3.12; destino configurado para App Service Python 3.13, todavía sin prueba en Azure |
+| Revisión visual de escritorio | Portada, navegación horizontal y guía ES/EN verificadas en la entrega 0.3.0 con respuestas controladas; el cambio de conexión 0.3.1 se verificó con pruebas backend y DOM, sin nuevas consultas en vivo |
+| Windows | Los `.cmd` requieren comprobación en un equipo Windows; el entorno de validación es Linux |
 
-## Pendiente de validar
+La prueba de DOM comprueba interacciones; la vista de navegador comprueba el escritorio. La comprobación visual móvil y la aceptación de cobertura DOF que sigue continúan pendientes. El ZIP incorpora los comandos y archivos para probar en Windows, además de su entrada `startup.sh` para Azure. El arranque local impide servir una interfaz compilada con fuentes anteriores y avisa si ya existe otro servidor en el puerto.
 
-- Acceso y parsers con respuestas oficiales actuales de DOF, PLATIICA y SNICE. Una comprobación de robots DOF fue negada por el proxy con CONNECT 403; la consulta manual posterior tampoco pudo verificar DNS oficial desde este ejecutor. No hubo contenido oficial para validar. El borrador de red guardado no aplica permisos a la instancia actual.
-- Todas las ediciones y fechas de un periodo conocido, incluidos días sin publicación, con contraste manual. Las muestras sintéticas no prueban cobertura oficial.
-- URLs reales de fichas PLATIICA y publicaciones SNICE; no estuvieron disponibles las tres URLs del piloto ni su ZIP.
-- Ejecución nativa en Windows corporativo. Hay comandos sin activación de venv ni Docker y dependencia `tzdata`, pero no se probó un equipo Windows en esta sesión.
-- PostgreSQL administrado, Blob Storage, identidad administrada, Entra SSO y App Service reales. Deben probarse después de confirmar SO/runtime/plan, red y configuración, con autorización de despliegue.
-- Programación automática y supervisión del trabajador. No se activó ningún temporizador ni servicio de pago.
+## Resultados del piloto anterior · 2 de noviembre de 2026
 
-## Limitaciones concretas de la primera versión
+### Capturas reales
 
-1. DOF usa un índice HTML diario candidato y enlaces visibles. No se garantiza descubrir ediciones no enlazadas, enlaces generados por JavaScript, anexos no enlazados ni correcciones fuera del periodo solicitado. SIDOF no se implementa como API supuesta.
-2. PLATIICA y SNICE siguen documentos configurados; no descubren todas sus novedades. La consulta de una ficha actual no reconstruye automáticamente su historia anterior.
-3. PDF directo se descarga y extrae hasta 150 páginas. No hay OCR. Un archivo escaneado o ilegible deja un pendiente. Descargas mayores a 12 MiB quedan como URL pendiente en la continuación del trabajo y requieren intervención; no se almacena un archivo incompleto como evidencia íntegra.
-4. La extracción HTML general puede incluir ruido y dejar avisos de revisión. Una misma NOM publicada en dos agencias se conserva como dos documentos de fuente; no se fusiona automáticamente su identidad jurídica.
-5. Los criterios son transparentes y orientativos. No analizan por sí solos excepciones, transitorios, fechas relativas, alcance técnico ni aplicabilidad legal. No hay IA contratada ni decisiones automáticas de importación.
-6. La cola necesita un trabajador externo al proceso web. La frecuencia de una fuente es metadato hasta configurar un programador. La recuperación de un proceso muerto se detecta por arrendamiento vencido al volver a atender la cola/solicitar trabajo.
-7. El acceso corporativo está preparado mediante validación de tokens. La interfaz permite un token en memoria y puede aprovechar el token de App Service si TI configura ese flujo; no incluye un registro Entra ni una experiencia MSAL aprovisionada.
-8. La reevaluación del catálogo es síncrona y adecuada al primer volumen de uso. Para un catálogo/archivo grande conviene trasladarla a trabajos paginados. No se implementaron notificaciones por correo ni exportación, fuera del alcance solicitado.
-9. No se realizaron pruebas de carga ni una auditoría formal de seguridad. Antes de producción deben definirse monitoreo, copias, retención, asignaciones corporativas y recuperación operativa.
+El programa descarga y conserva tres documentos oficiales configurados. La
+aceptación de descubrimiento DOF sigue **sin aprobar**: su `robots.txt` responde
+HTTP 503 desde este ejecutor. No se omitió esa comprobación.
 
-## Configuración reutilizable del entorno cloud
+| Comprobación ejecutada | Resultado |
+| --- | --- |
+| Backend `python -m pytest -q` | **113 aprobadas**, sin fallos ni omisiones; una advertencia de depreciación de Starlette/AnyIO |
+| Frontend `npm run build` | TypeScript y Vite aprobados, 187 módulos; MSAL en un módulo separado |
+| Dependencias `python -m pip check` | Sin incompatibilidades |
+| Base nueva: `init-db` y `alembic check` | Tres revisiones aplicadas; sin diferencias de esquema |
+| Consulta real del recopilador | PLATIICA, SNICE y SIDOF conocido completados; DOF diario parcial con error visible |
+| Evidencia recuperada | SHA-256 correcto para los tres documentos |
+| Repetición real | Tres documentos observados otra vez; cero versiones adicionales |
+| Muestra pública JE y reevaluación | 11 registros, incluidos cuatro borradores de producto; propuestas pendientes de un responsable |
 
-Se guardaron `install_script`, `start_skill` y seis destinos oficiales en el borrador de configuración del entorno. Los presets de paquetes existentes se conservaron. No se solicitaron secretos ni se inventaron credenciales de Azure. El guardado no ejecuta instrucciones, aplica red ni publica una imagen.
+Evidencias reproducibles: [aceptación final por ejecución](evidence/acceptance-final.json),
+[primera descarga](evidence/acceptance-first.json),
+[repetición inicial](evidence/acceptance-repeat.json),
+[catálogo y propuestas](evidence/catalog-proposals.json) y
+[procedencia y hashes de los extractos](../backend/tests/fixtures/official/provenance.json).
 
-Para reutilizar la configuración, revise y guarde los cambios en los ajustes del entorno y publique el entorno cloud. Esa publicación es independiente de un despliegue en Azure. No se ha validado una restauración en una tarea nueva.
+`technical_passed` exige completar las fuentes activas y recuperar su evidencia.
+`coverage_verified` exige además que el inventario DOF **observado en los trabajos
+de esa validación**, con fechas explícitas, coincida con el inventario revisado
+manualmente del periodo. `passed` requiere ambos. Ninguno certifica aplicabilidad
+legal ni cobertura de documentos que las fuentes configuradas no descubren.
+
+## Regresiones cubiertas
+
+- Descubrimiento con índices, paginación, ediciones adicionales, límites y
+  continuación; error de una URL, índice desconocido y día explícitamente vacío.
+- Un enlace del índice a sí mismo no acredita cobertura; una nota fechada fuera
+  del periodo no se incorpora silenciosamente.
+- Inventarios históricos no satisfacen la aceptación de una consulta nueva.
+  También se comprueban evidencia corrupta, fechas desconocidas e inventarios
+  mal formados. La repetición conserva observación aunque no cree una versión.
+- Versiones A→B→A, enlaces modificados, recuperación de evidencia, reapertura
+  auditada, arrendamientos de trabajos y decisiones humanas conservadas.
+- Cola durable y por lotes al editar catálogo; herencia de reglas y programación
+  voluntaria con recuperación de intervalos y espera tras fallos.
+- Búsquedas por modelo/contenido; consultas SQL agrupadas para que las listas
+  no hagan una consulta adicional por fila.
+- Firma RSA, tenant, emisor, audiencia, expiración y roles para la opción Entra;
+  el portal de lectura no requiere esa opción.
+- Destinos HTTPS permitidos, redirecciones, robots, límites y compresión HTTP;
+  rechazo de portadas e índices incompatibles desde el formulario de fuentes.
+
+Los tests de conectores inyectados siguen siendo muestras controladas. Los de
+`test_official_snapshots.py` usan extractos públicos reducidos de las capturas,
+en una estructura HTML mínima preparada para pruebas. Se conserva un hash de
+extracto separado del hash original; no validan el DOM íntegro del portal, una
+nueva consulta de red ni cobertura integral. Las páginas completas se excluyen
+del repositorio público para no publicar metadatos o contactos del HTML.
+
+## CI y comprobaciones pendientes
+
+Se incluye CI con suite y compilación en Linux/Windows y una comprobación
+independiente sobre PostgreSQL 16: migraciones, persistencia, versiones,
+herencia, cola y programación. Su resultado se consulta en GitHub; la ejecución
+local anterior usa SQLite y no se presenta como validación de PostgreSQL.
+
+La [ejecución de CI del PR](https://github.com/Francosg25/NOM/actions/runs/41540706173)
+terminó antes de asignar un ejecutor y no ejecutó ningún paso. Por tanto,
+Linux/Windows en Actions y PostgreSQL siguen **sin validar en CI**; los resultados
+aprobados de esta página corresponden a la ejecución local. El impedimento de
+la cuenta de GitHub debe resolverse antes de repetir esas comprobaciones.
+
+La comprobación visual de esta ampliación no se completó. El navegador remoto
+no alcanzó la aplicación local; el ejecutor no tiene un Chromium utilizable.
+La compilación aprobada no sustituye una prueba visual, móvil o de SSO.
+
+Para verificar el boletín faltan: descubrimiento y contraste manual del periodo DOF,
+revisión visual, prueba en el equipo Windows corporativo y en el App Service real.
+Las fichas JE y decisiones solo son necesarias si se utiliza la función adicional de aplicabilidad.
+Entra, PostgreSQL y Blob son opciones y no condiciones para abrir el boletín.
+No se desplegó Azure ni se instalaron
+servicios permanentes. El [procedimiento de aceptación](PILOT_ACCEPTANCE.md)
+explica cómo repetir cada comprobación y qué evidencia debe aportar JE.

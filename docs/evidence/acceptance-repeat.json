@@ -1,0 +1,129 @@
+{
+  "generated_at": "2026-11-02T22:20:35.942343+00:00",
+  "period_start": "2025-06-02",
+  "period_end": "2025-06-02",
+  "passed": false,
+  "coverage_verified": false,
+  "sources": [
+    {
+      "source": "DOF / SIDOF",
+      "kind": "dof",
+      "urls": [
+        "https://www.dof.gob.mx/index.php"
+      ],
+      "jobs": [
+        {
+          "id": "963c1c70-a28c-4a1a-ad45-bfca03dae47b",
+          "status": "partial",
+          "new": 0,
+          "modified": 0,
+          "reviewed": 0
+        }
+      ],
+      "passed": false,
+      "evidence": [],
+      "errors": [
+        "robots.txt no verificable (HTTP 503); consulta suspendida"
+      ],
+      "expected_ids": null,
+      "observed_ids_in_period": [],
+      "versions_added": 0
+    },
+    {
+      "source": "PLATIICA",
+      "kind": "platiica",
+      "urls": [
+        "https://platiica.economia.gob.mx/normalizacion/nom-014-ener-2025/"
+      ],
+      "jobs": [
+        {
+          "id": "f91949ad-801a-4769-87dc-84bc99bd90ad",
+          "status": "succeeded",
+          "new": 0,
+          "modified": 0,
+          "reviewed": 1
+        }
+      ],
+      "passed": true,
+      "evidence": [
+        {
+          "official_id": "URL:https://platiica.economia.gob.mx/normalizacion/nom-014-ener-2025/",
+          "version_id": 1,
+          "sha256": "f294846b5e86f7f299a029330cee992108e3d028cf567a33c9ee2336e7368509",
+          "bytes": 97223,
+          "integrity": true,
+          "processing_note": null
+        }
+      ],
+      "errors": [],
+      "expected_ids": null,
+      "observed_ids_in_period": [
+        "URL:https://platiica.economia.gob.mx/normalizacion/nom-014-ener-2025/"
+      ],
+      "versions_added": 0
+    },
+    {
+      "source": "SNICE",
+      "kind": "snice",
+      "urls": [
+        "https://www.snice.gob.mx/cs/avi/snice/seguridad.normatividad.html"
+      ],
+      "jobs": [
+        {
+          "id": "41b33ef6-5c45-459e-a7d8-d526850e8568",
+          "status": "succeeded",
+          "new": 0,
+          "modified": 0,
+          "reviewed": 1
+        }
+      ],
+      "passed": true,
+      "evidence": [
+        {
+          "official_id": "URL:https://www.snice.gob.mx/cs/avi/snice/seguridad.normatividad.html",
+          "version_id": 2,
+          "sha256": "fb429b23ba02ae860e5b0a2269fcaeeac6f65fb7d9d3211c83e324b7b9b3b8bd",
+          "bytes": 26486,
+          "integrity": true,
+          "processing_note": null
+        }
+      ],
+      "errors": [],
+      "expected_ids": null,
+      "observed_ids_in_period": [],
+      "versions_added": 0
+    },
+    {
+      "source": "SIDOF · documento de referencia",
+      "kind": "sidof",
+      "urls": [
+        "https://sidof.segob.gob.mx/notas/docFuente/5758923"
+      ],
+      "jobs": [
+        {
+          "id": "7fa62484-25d6-489a-9ae0-695542ad1932",
+          "status": "succeeded",
+          "new": 0,
+          "modified": 0,
+          "reviewed": 1
+        }
+      ],
+      "passed": true,
+      "evidence": [
+        {
+          "official_id": "DOF:5758923",
+          "version_id": 3,
+          "sha256": "11799e3c45c72fde99e42be78c56822bae8750b97279404714d9540aeb24ed32",
+          "bytes": 310024,
+          "integrity": true,
+          "processing_note": null
+        }
+      ],
+      "errors": [],
+      "expected_ids": null,
+      "observed_ids_in_period": [],
+      "versions_added": 0
+    }
+  ],
+  "note": "Una descarga válida no acredita cobertura integral ni aplicabilidad; contrastar inventario DOF y revisar catálogo con responsable JE."
+}
