@@ -1,5 +1,7 @@
 # Arquitectura del boletín
 
+La versión 0.5.0 utiliza únicamente SIDOF para el boletín. El inicio desactiva las demás fuentes, conserva sus documentos y cancela sus trabajos en cola. La interfaz filtra publicaciones y trabajos SIDOF, usa una sola familia tipográfica y una columna de lectura, sin radar ni columna lateral. Los conectores anteriores permanecen como código e historial, fuera del seguimiento activo.
+
 React/TypeScript/Vite y FastAPI forman una sola aplicación. El servidor sirve el frontend compilado y contiene un monitor en segundo plano para una instalación de una instancia.
 
 ## Lectura y diseño

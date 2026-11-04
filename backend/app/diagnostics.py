@@ -1,4 +1,4 @@
-"""Read-only access test for the four pilot URLs; does not validate NOM coverage."""
+"""Read-only access test for SIDOF; does not validate NOM coverage."""
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -16,10 +16,7 @@ from .network import certificate_failure_details, https_proxy_configured, tls_ba
 from .collectors.sidof import API_BASE
 
 URLS = (
-    ('DOF', 'https://www.dof.gob.mx/index.php'),
-    ('PLATIICA', 'https://platiica.economia.gob.mx/normalizacion/nom-014-ener-2025/'),
     ('SIDOF', API_BASE + '/notas/' + datetime.now(ZoneInfo('America/Mexico_City')).strftime('%d-%m-%Y')),
-    ('SNICE', 'https://www.snice.gob.mx/cs/avi/snice/seguridad.normatividad.html'),
 )
 
 
@@ -53,7 +50,7 @@ def run_diagnostics():
             'custom_ca_configured':bool(os.environ.get('SSL_CERT_FILE') or os.environ.get('SSL_CERT_DIR')),
             'tls_backend_selected':tls_backend_selected(),
             'tls_verification':True, 'results':results,
-            'scope':'Prueba de acceso a las cuatro URLs del piloto; no cambia la base, las fuentes, el proxy ni los certificados del equipo. No valida cobertura completa de NOM.'}
+            'scope':'Prueba de acceso a la API oficial SIDOF; no cambia la base, las fuentes, el proxy ni los certificados del equipo. No valida cobertura completa de NOM.'}
 
 
 def main():

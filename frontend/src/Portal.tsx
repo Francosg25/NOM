@@ -16,7 +16,7 @@ type View = "actualidad" | "archivo" | "fuentes" | "guia";
 const views: { id: View; name: string }[] = [
   { id: "actualidad", name: "Novedades" },
   { id: "archivo", name: "Buscar publicaciones" },
-  { id: "fuentes", name: "Estado de las fuentes" },
+  { id: "fuentes", name: "Estado de SIDOF" },
   { id: "guia", name: "Cómo funciona" },
 ];
 const types: Record<string, string> = {
@@ -106,123 +106,32 @@ function Guide({ go }: { go: (view: View) => void }) {
   return (
     <section className="guide-page">
       <div className="section-intro">
-        <span className="eyebrow">{t("LA GUÍA / NOM MONITOR")}</span>
-        <h1>
-          {t("De la publicación a la lectura")}
-          <span className="accent">.</span>
-        </h1>
+        <h1>{t("Cómo funciona")}</h1>
         <p>
           {t(
-            "El portal revisa páginas oficiales configuradas, guarda lo que encuentra y te permite leerlo después. Así se usa.",
+            "SIDOF es la única fuente de este boletín. Los documentos oficiales se conservan en español.",
           )}
         </p>
       </div>
       <ol className="guide-steps">
         {[
-          [
-            "01",
-            "Consulta las fuentes",
-            "Pulsa Consultar fuentes. El servidor revisa las páginas registradas y guarda una copia de los documentos que puede recuperar. Con el monitor activo, repite la revisión según la frecuencia de cada fuente.",
-          ],
-          [
-            "02",
-            "Lee las publicaciones",
-            "En Novedades aparecen las publicaciones recuperadas. Busca una NOM o una palabra, filtra por fuente o fecha y abre un título para leer el documento.",
-          ],
-          [
-            "03",
-            "Comprueba el original",
-            "Dentro de cada publicación puedes abrir el sitio oficial, descargar la copia consultada y ver las versiones guardadas. Usa el documento oficial para verificar cualquier obligación.",
-          ],
-        ].map(([number, title, text]) => (
-          <li key={number}>
-            <span>{number}</span>
-            <div>
-              <h2>{t(title)}</h2>
-              <p>{t(text)}</p>
-            </div>
+          "Consulta SIDOF. La primera revisión cubre siete días y después se repite según su frecuencia.",
+          "Busca por NOM o palabra y abre una publicación para leer su texto y el original.",
+          "Una revisión parcial puede guardar publicaciones. Consulta el estado para ver qué falta revisar.",
+        ].map((text) => (
+          <li key={text}>
+            <p>{t(text)}</p>
           </li>
         ))}
       </ol>
-      <div className="guide-columns">
-        <section>
-          <span className="eyebrow">{t("CÓMO LEER EL RESULTADO")}</span>
-          <h2>{t("Cada estado tiene un significado.")}</h2>
-          <dl className="guide-legend">
-            <div>
-              <dt>{t("Primera copia")}</dt>
-              <dd>
-                {t(
-                  "Se guardó el documento por primera vez. Puede ser una publicación antigua encontrada hoy.",
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt>{t("Cambio detectado")}</dt>
-              <dd>
-                {t(
-                  "El contenido guardado cambió respecto a una copia anterior. No confirma por sí solo una modificación legal ni que aplique a tu producto.",
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt>{t("Consulta correcta")}</dt>
-              <dd>
-                {t(
-                  "La consulta terminó correctamente dentro de la cobertura configurada. No garantiza que se hayan encontrado todas las NOM.",
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt>{t("Consulta incompleta")}</dt>
-              <dd>
-                {t(
-                  "La fuente no pudo revisarse por completo. No significa que no existan novedades; se conserva la última copia válida.",
-                )}
-              </dd>
-            </div>
-          </dl>
-        </section>
-        <section className="guide-scope">
-          <span className="eyebrow">{t("QUÉ ESTÁS VIGILANDO")}</span>
-          <h2>{t("La cobertura depende de las páginas.")}</h2>
-          <p>
-            {t(
-              "SIDOF consulta ediciones y notas por fecha y selecciona publicaciones relacionadas con NOM y reglas de comercio exterior. La primera revisión cubre los últimos siete días. PLATIICA y SNICE siguen sus páginas configuradas. Las notas sin título ni texto quedan señaladas para revisión; encontrar todas las NOM aún requiere contraste con el DOF.",
-            )}
-          </p>
-          <p>
-            {t(
-              "Guardar un tema solo crea un acceso rápido a la búsqueda del archivo. El portal todavía no determina automáticamente qué norma aplica a cada producto JE ni envía avisos por correo.",
-            )}
-          </p>
-          <p>
-            {t(
-              "Español / English cambia todos los controles y la guía. Los documentos oficiales se conservan en el español original; no hay una traducción automática del texto legal.",
-            )}
-          </p>
-          <button className="text-button" onClick={() => go("fuentes")}>
-            {t("Ver qué páginas se consultan")}
-            <Icon name="arrow" />
-          </button>
-        </section>
-      </div>
-      <div className="guide-example">
-        <span className="eyebrow">{t("UN EJEMPLO DE USO")}</span>
-        <p>
-          {t(
-            "Si quieres revisar una norma: consulta las fuentes, busca su identificador —por ejemplo, NOM-014-ENER— y abre los resultados. Si la búsqueda está vacía, revisa el estado y las páginas de las fuentes antes de concluir que no hay publicaciones.",
-          )}
-        </p>
-        <button className="button ink" onClick={() => go("archivo")}>
-          {t("Ir a buscar publicaciones")}
-          <Icon name="arrow" />
-        </button>
-      </div>
+      <button className="button paper" onClick={() => go("fuentes")}>
+        {t("Estado de SIDOF")}
+      </button>
     </section>
   );
 }
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
+  if (["arrow", "external", "refresh"].includes(name)) return null;
   const paths: Record<string, ReactNode> = {
     arrow: <path d="M4 12h15m-6-6 6 6-6 6" />,
     external: <path d="M14 4h6v6m0-6L9 15M10 4H4v16h16v-6" />,
@@ -435,19 +344,10 @@ function Bulletin() {
   const [detail, setDetail] = useState<Row | null>(null);
   const [inspection, setInspection] = useState<Row | null>(null);
   const [versionId, setVersionId] = useState<number | null>(null);
-  const [term, setTerm] = useState("");
-  const [terms, setTerms] = useState<string[]>(() => {
-    try {
-      const v = JSON.parse(localStorage.getItem("nom-radar") || "[]");
-      return Array.isArray(v)
-        ? v.filter((x) => typeof x === "string").slice(0, 12)
-        : [];
-    } catch {
-      return [];
-    }
-  });
   const generation = useRef(0);
-  const sources: Row[] = dashboard.sources || [];
+  const sources: Row[] = (dashboard.sources || []).filter(
+    (s: Row) => s.kind === "sidof" && s.active,
+  );
   const activeJobs = jobs.some((j) => ["queued", "running"].includes(j.status));
   const admin = me?.role === "administrador";
   const request = useCallback(
@@ -504,6 +404,7 @@ function Bulletin() {
         page: String(page),
         page_size: "15",
         sort: "published",
+        source_kind: "sidof",
         is_demo: String(demo),
       });
       if (query.trim()) params.set("q", query.trim());
@@ -524,7 +425,13 @@ function Bulletin() {
         setDashboard(overview);
         setPublications(list.items);
         setTotal(list.total);
-        setJobs(runs.items);
+        setJobs(
+          runs.items.filter((job: Row) =>
+            overview.sources.some(
+              (s: Row) => s.id === job.source_id && s.kind === "sidof",
+            ),
+          ),
+        );
         setError("");
       } catch (e) {
         if (id === generation.current) setError((e as Error).message);
@@ -661,28 +568,6 @@ function Bulletin() {
       setUpdating(false);
     }
   };
-  const addTerm = (event: FormEvent) => {
-    event.preventDefault();
-    const value = term.trim();
-    if (!value || terms.includes(value) || terms.length >= 12) return;
-    const next = [...terms, value];
-    setTerms(next);
-    setTerm("");
-    try {
-      localStorage.setItem("nom-radar", JSON.stringify(next));
-    } catch {
-      /* Session still works without storage. */
-    }
-  };
-  const removeTerm = (value: string) => {
-    const next = terms.filter((x) => x !== value);
-    setTerms(next);
-    try {
-      localStorage.setItem("nom-radar", JSON.stringify(next));
-    } catch {
-      /* optional */
-    }
-  };
   const latest = sources
     .map((s) => s.last_success_at as string)
     .filter(Boolean)
@@ -759,14 +644,6 @@ function Bulletin() {
             {t("UN BOLETÍN DE JOHNSON ELECTRIC")}
           </span>
         </a>
-        <div className="masthead-note">
-          <span>
-            {t("Lo que se publica.")}
-            <br />
-            {t("Lo que cambia.")}
-          </span>
-          <small>{t("NOM Monitor / México")}</small>
-        </div>
         <button
           className={`button ink ${activeJobs ? "is-running" : ""}`}
           onClick={() => void refresh()}
@@ -778,7 +655,7 @@ function Bulletin() {
               ? "Consultando…"
               : updating
                 ? "Solicitando…"
-                : "Consultar fuentes",
+                : "Consultar SIDOF",
           )}
         </button>
       </header>
@@ -826,13 +703,13 @@ function Bulletin() {
               <strong>
                 {t(
                   allFailed
-                    ? "No se pudieron consultar las fuentes."
-                    : "La revisión tiene fuentes pendientes.",
+                    ? "La revisión de SIDOF quedó pendiente."
+                    : "La revisión de SIDOF quedó pendiente.",
                 )}
               </strong>
               <p>
                 {t(
-                  "{failed} de {total} fuentes activas tienen una revisión incompleta. No se ha confirmado la ausencia de novedades.",
+                  "Las publicaciones recuperadas siguen disponibles. Abre el detalle para ver qué falta revisar.",
                   { failed: failedSources.length, total: activeSources.length },
                 )}
               </p>
@@ -861,9 +738,11 @@ function Bulletin() {
             <div>
               <span className="eyebrow">{t("EL BOLETÍN")}</span>
               <h1>
-                {t("Normativa mexicana,")}
+                {t("Publicaciones NOM")}
                 <br />
-                <em>{t("a primera vista.")}</em>
+                <span className="intro-subtitle">
+                  {t("Publicaciones oficiales de SIDOF.")}
+                </span>
               </h1>
             </div>
             <div className="intro-note">
@@ -895,29 +774,6 @@ function Bulletin() {
                 </span>
               </div>
             </div>
-          </section>
-        )}
-        {view === "actualidad" && (
-          <section className="start-here" aria-label={t("Cómo empezar")}>
-            <span>{t("EMPIEZA AQUÍ")}</span>
-            <button
-              onClick={() => void refresh()}
-              disabled={!ready || updating || activeJobs}
-            >
-              <b>01</b>
-              {t("Consulta las fuentes")}
-              <Icon name="arrow" size={15} />
-            </button>
-            <button onClick={() => navigate("archivo")}>
-              <b>02</b>
-              {t("Busca una publicación")}
-              <Icon name="arrow" size={15} />
-            </button>
-            <button onClick={() => navigate("guia")}>
-              <b>03</b>
-              {t("Entiende los resultados")}
-              <Icon name="arrow" size={15} />
-            </button>
           </section>
         )}
         {view === "guia" && <Guide go={navigate} />}
@@ -1116,7 +972,7 @@ function Bulletin() {
                           ? "Ver todas las publicaciones"
                           : allFailed
                             ? "Revisar las conexiones"
-                            : "Consultar fuentes",
+                            : "Consultar SIDOF",
                       )}
                       <Icon name="arrow" />
                     </button>
@@ -1221,124 +1077,6 @@ function Bulletin() {
                   )}
                 </p>
               </section>
-              <aside className="margin-column">
-                <section className="radar">
-                  <span className="margin-number">{t("01 / TU RADAR")}</span>
-                  <h2>
-                    {t("Los temas")}
-                    <br />
-                    <em>{t("que te importan.")}</em>
-                  </h2>
-                  <p>
-                    {t("Guarda palabras para volver a buscarlas con un clic.")}
-                  </p>
-                  <form onSubmit={addTerm}>
-                    <input
-                      aria-label={t("Nuevo tema de seguimiento")}
-                      placeholder={t("Añade un tema…")}
-                      value={term}
-                      maxLength={60}
-                      onChange={(e) => setTerm(e.target.value)}
-                    />
-                    <button
-                      className="icon-button"
-                      aria-label={t("Guardar tema")}
-                      disabled={!term.trim() || terms.length >= 12}
-                    >
-                      <Icon name="plus" />
-                    </button>
-                  </form>
-                  <div className="saved-topics">
-                    {terms.map((value) => (
-                      <div key={value}>
-                        <button
-                          onClick={() => {
-                            setQuery(value);
-                            setPage(1);
-                          }}
-                        >
-                          {value}
-                          <Icon name="arrow" size={14} />
-                        </button>
-                        <button
-                          className="remove-topic"
-                          aria-label={t("Quitar tema {topic}", {
-                            topic: value,
-                          })}
-                          onClick={() => removeTerm(value)}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  {!terms.length && (
-                    <small>{t("Tu lista se guarda en este navegador.")}</small>
-                  )}
-                  <small className="radar-explanation">
-                    {t(
-                      "Busca en los documentos ya recuperados. No activa notificaciones.",
-                    )}
-                  </small>
-                </section>
-                <section className="sources-at-close">
-                  <span className="margin-number">{t("02 / AL CIERRE")}</span>
-                  <h2>
-                    {t("Las fuentes,")}
-                    <br />
-                    <em>{t("a la vista.")}</em>
-                  </h2>
-                  {sources.map((s) => (
-                    <button
-                      key={s.id}
-                      className="source-status"
-                      onClick={() => navigate("fuentes")}
-                    >
-                      <span>
-                        <i
-                          className={`status-dot ${s.last_error ? "issue" : s.last_success_at ? "good" : ""}`}
-                        />
-                        <strong>{s.kind.toUpperCase()}</strong>
-                      </span>
-                      <span>
-                        {t(
-                          s.last_error
-                            ? "Requiere atención"
-                            : s.last_success_at
-                              ? "Consulta correcta"
-                              : "Sin consultar",
-                        )}
-                        <small>
-                          {s.last_success_at
-                            ? format(s.last_success_at, true)
-                            : t("Primera revisión pendiente")}
-                        </small>
-                      </span>
-                    </button>
-                  ))}
-                  <button
-                    className="text-button"
-                    onClick={() => navigate("fuentes")}
-                  >
-                    {t("Ver cobertura y consultas")}
-                    <Icon name="arrow" size={16} />
-                  </button>
-                </section>
-                {dashboard.upcoming?.length > 0 && (
-                  <section className="datebook">
-                    <span className="margin-number">
-                      {t("03 / EN EL CALENDARIO")}
-                    </span>
-                    <h2>{t("Próximas fechas.")}</h2>
-                    {dashboard.upcoming.map((item: Row) => (
-                      <button key={item.id} onClick={() => void open(item.id)}>
-                        <span>{format(item.effective_on)}</span>
-                        <strong>{item.title}</strong>
-                      </button>
-                    ))}
-                  </section>
-                )}
-              </aside>
             </div>
           </>
         )}
@@ -1349,7 +1087,7 @@ function Bulletin() {
                 {t("DE DÓNDE VIENE LA INFORMACIÓN")}
               </span>
               <h1>
-                {t("¿Se pudo revisar?")}
+                {t("Estado de SIDOF")}
                 <span className="accent">.</span>
               </h1>
               <p>
@@ -1392,20 +1130,16 @@ function Bulletin() {
                     </div>
                     <h2>{sourceName(item)}</h2>
                     <p>
-                      {language === "en"
-                        ? t(
-                            dailySource(item)
-                              ? "coverage.sidof_daily"
-                              : `coverage.${item.kind}`,
-                          )
-                        : item.coverage}
+                      {t(
+                        "Publicaciones oficiales por fecha. Se guardan el texto disponible y una copia del original.",
+                      )}
                     </p>
-                    {language === "en" && (
+                    {
                       <details className="source-notes">
                         <summary>{t("Notas originales de la fuente")}</summary>
                         <p lang="es">{item.coverage}</p>
                       </details>
-                    )}
+                    }
                     {item.urls.map((url: string) => (
                       <a
                         key={url}
@@ -1426,7 +1160,13 @@ function Bulletin() {
                     ))}
                     {item.last_error && (
                       <div className="source-failure">
-                        <p>{t(sourceIssue(item.last_error))}</p>
+                        <p>
+                          {t(
+                            total > 0
+                              ? "Hay publicaciones guardadas. La última revisión quedó incompleta."
+                              : sourceIssue(item.last_error),
+                          )}
+                        </p>
                         <details className="source-problem">
                           <summary>{t("Detalle original del error")}</summary>
                           <p lang="es">{item.last_error}</p>
@@ -1601,7 +1341,7 @@ function Bulletin() {
           <span>{t("Un punto de consulta para la normativa mexicana.")}</span>
         </p>
         <div>
-          <span>DOF / SIDOF · PLATIICA · SNICE</span>
+          <span>SIDOF</span>
           {config?.demo_enabled && (
             <label>
               <input

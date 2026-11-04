@@ -163,7 +163,7 @@ def test_diagnostic_report_writes_json_without_proxy_or_ca_values(monkeypatch, t
     monkeypatch.setattr('sys.argv', ['diagnostics', '--output', str(output)])
     assert diagnostics.main() == 0
     report = json.loads(output.read_text(encoding='utf-8'))
-    assert len(report['results']) == 4
+    assert len(report['results']) == 1 and report['results'][0]['source'] == 'SIDOF'
     assert report['tls_verification'] and report['custom_ca_configured']
     assert 'PRIVATE_SECRET' not in str(report) and 'PRIVATE_CA_PATH' not in str(report)
     assert json.loads(capsys.readouterr().out) == report

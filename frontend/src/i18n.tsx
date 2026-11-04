@@ -9,6 +9,26 @@ import type { ReactNode } from "react";
 
 type Language = "es" | "en";
 const english: Record<string, string> = {
+  "Publicaciones oficiales por fecha. Se guardan el texto disponible y una copia del original.":
+    "Official publications by date. Available text and an original copy are saved.",
+  "Hay publicaciones guardadas. La última revisión quedó incompleta.":
+    "Publications have been saved. The latest check is incomplete.",
+  "Estado de SIDOF": "SIDOF status",
+  "Consultar SIDOF": "Check SIDOF",
+  "Publicaciones NOM": "NOM publications",
+  "Publicaciones oficiales de SIDOF.": "Official publications from SIDOF.",
+  "SIDOF es la única fuente de este boletín. Los documentos oficiales se conservan en español.":
+    "SIDOF is the only source for this bulletin. Official documents remain in Spanish.",
+  "Consulta SIDOF. La primera revisión cubre siete días y después se repite según su frecuencia.":
+    "Check SIDOF. The first check covers seven days and then repeats at the configured interval.",
+  "Busca por NOM o palabra y abre una publicación para leer su texto y el original.":
+    "Search for a NOM or keyword and open a publication to read its text and the original.",
+  "Una revisión parcial puede guardar publicaciones. Consulta el estado para ver qué falta revisar.":
+    "A partial check can save publications. Open the status page to see what still needs checking.",
+  "La revisión de SIDOF quedó pendiente.": "The SIDOF check is incomplete.",
+  "Las publicaciones recuperadas siguen disponibles. Abre el detalle para ver qué falta revisar.":
+    "Saved publications remain available. Open the details to see what still needs checking.",
+
   "Abrir el portal oficial de SIDOF": "Open the official SIDOF portal",
   "SIDOF · publicaciones diarias": "SIDOF · daily publications",
   diario: "daily",

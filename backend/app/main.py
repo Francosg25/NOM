@@ -35,7 +35,7 @@ async def lifespan(app):
         await asyncio.to_thread(thread.join, 2)
 
 
-app = FastAPI(title='JE NOM Monitor', version='0.4.1', lifespan=lifespan,
+app = FastAPI(title='JE NOM Monitor', version='0.5.0', lifespan=lifespan,
               docs_url=None if production else '/api/docs', openapi_url=None if production else '/api/openapi.json')
 
 
@@ -314,11 +314,13 @@ def update_catalog(id: int, body: CatalogInput, db: Session = Depends(get_db), u
 
 @app.get('/api/publications')
 def publications(q: str = '', kind: str | None = None, status: str | None = None, source_id: int | None = None,
+                 source_kind: Literal['sidof'] | None = None,
                  is_demo: bool = False, page: int = Query(1,ge=1), page_size: int = Query(25,ge=1,le=200),
                  sort: Literal['published','detected'] = 'detected', published_since: date | None = None,
                  changes_only: bool = False,
                  db: Session = Depends(get_db), user: Identity = Depends(identity)):
     stmt = select(Publication).where(Publication.is_demo == is_demo)
+    if source_kind: stmt = stmt.join(Source, Publication.source_id == Source.id).where(Source.kind == source_kind)
     stmt = stmt.order_by(Publication.published_on.desc().nulls_last(), Publication.detected_at.desc(), Publication.id.desc()) if sort == 'published' else stmt.order_by(Publication.detected_at.desc(), Publication.id.desc())
     if q: stmt = stmt.where(or_(Publication.title.ilike(f'%{q}%'),Publication.official_id.ilike(f'%{q}%'),
         select(Version.id).where(Version.id == Publication.current_version_id, Version.content.ilike(f'%{q}%')).exists()))

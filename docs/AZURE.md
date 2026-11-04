@@ -1,5 +1,7 @@
 # Portal en Azure App Service Linux
 
+La versión actual es 0.5.0 y el seguimiento activo utiliza únicamente SIDOF. No se requieren permisos ni certificados para consultar DOF HTML, PLATIICA o SNICE desde esta versión. El historial de esas fuentes se conserva desactivado.
+
 La instalación sencilla utiliza el App Service existente: **Linux, Python 3.13, Basic B1, una instancia**. Sirve la web y ejecuta el monitor desde un solo proceso. No necesita crear PostgreSQL, Blob, Entra ni un WebJob.
 
 ## Preparar y publicar
@@ -46,7 +48,7 @@ No hace falta instalar el trabajador externo. Si se elige hacerlo más adelante,
 
 - `/api/health` responde y la portada carga sin pantalla de acceso.
 - Español / English cambia interfaz, fechas y la guía Cómo funciona / How it works.
-- `/api/health` identifica la compilación en `frontend.version` y `frontend.source_sha256`; debe corresponder a la marca v0.4.1 de la pantalla.
+- `/api/health` identifica la compilación en `frontend.version` y `frontend.source_sha256`; debe corresponder a la marca v0.5.0 de la pantalla.
 - “Consultar fuentes” deja una ejecución y después resultados o un error visible.
 - Una copia del documento se puede recuperar después de reiniciar la aplicación.
 - Se conserva la base al volver a publicar el ZIP.

@@ -1,5 +1,9 @@
 # Validación del portal
 
+## SIDOF único e interfaz simplificada · 0.5.0
+
+156 pruebas backend aprobadas. Se comprueba que la actualización conserva documentos y evidencia, retira las fuentes anteriores y cancela sus trabajos en cola, de manera idempotente. El filtro del boletín selecciona SIDOF sin eliminar el archivo histórico. Compilación TypeScript/Vite y recorrido ES/EN del JS compilado comprobados. La revisión visual de escritorio utiliza muestras controladas, sin presentarlas como publicaciones reales. No se probó esta entrega en Windows ni se desplegó Azure.
+
 ## Compatibilidad Windows · 0.4.1 · 3 de noviembre de 2026
 
 Las capturas del equipo corporativo confirman la interfaz 0.4.0 y el idioma

@@ -71,6 +71,19 @@ def test_empty_dashboard_and_protected_routes(api):
     assert client.get('/api/does-not-exist', headers=READER).status_code == 404
 
 
+def test_sidof_publication_filter_keeps_legacy_history_available(api):
+    client, sessions, _, _ = api
+    seed(sessions)
+    with sessions() as db:
+        source = Source(name='SIDOF',kind='sidof',urls=['https://sidof.segob.gob.mx/dof/sidof'])
+        db.add(source);db.flush()
+        db.add(Publication(source_id=source.id,official_id='CONTROLLED-SIDOF',title='Controlled SIDOF publication',url='https://sidof.segob.gob.mx/notas/docFuente/1'))
+        db.commit()
+    result = client.get('/api/publications?source_kind=sidof',headers=READER).json()
+    assert result['total'] == 1 and result['items'][0]['official_id'] == 'CONTROLLED-SIDOF'
+    assert client.get('/api/publications',headers=READER).json()['total'] == 2
+
+
 def test_daily_sidof_refresh_uses_seven_days_and_exposes_check_details(api):
     from app.collectors.sidof import API_BASE
     client, sessions, _, _ = api

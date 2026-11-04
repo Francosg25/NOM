@@ -1,5 +1,7 @@
 # Fuentes sin conexión / Source connection failures
 
+Desde 0.5.0, el diagnóstico comprueba únicamente SIDOF. Los errores de otras fuentes descritos más abajo corresponden al historial de diagnóstico anterior. El boletín ya no consulta esas fuentes.
+
 La versión 0.4.1 usa **CryptoAPI de Windows mediante truststore** para construir y validar la cadena de certificados, incluidos los intermedios que Windows pueda recuperar. Linux/App Service conserva OpenSSL con autoridades del sistema y certifi. Se mantiene la validación de certificado y nombre de servidor. No se instalan certificados ni se modifica la configuración de red. Desde 0.4.0, la prueba SIDOF consulta la API de notas del día, el mismo canal usado por el descubrimiento diario.
 
 `SSL_CERT_FILE` o `SSL_CERT_DIR`, si ya están configurados, siguen siendo la selección explícita de certificados. Una ruta inválida produce un error visible; no se sustituye silenciosamente. Los proxies de entorno y el proxy estático del sistema se siguen leyendo mediante HTTPX. No se ejecutan archivos PAC ni se copian credenciales del navegador.

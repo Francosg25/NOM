@@ -1,77 +1,43 @@
-# norma. · JE NOM Monitor
+# norma. · NOM Monitor
 
-Un portal para leer publicaciones y cambios de la normativa mexicana. Interfaz en **Español / English**, con búsqueda, filtros por fecha/fuente/tipo, temas guardados y lectura de documentos con historial.
+Versión **0.5.0**. Boletín de publicaciones relacionadas con NOM, con **SIDOF como única fuente activa**, interfaz Español/English y una lectura sencilla: una tipografía, fondo claro, búsqueda y publicaciones en una sola columna.
 
-El portal abre directamente. La instalación sencilla usa **SQLite y archivos locales**, y el servidor consulta las fuentes en segundo plano. No requiere Entra, Blob Storage, PostgreSQL, Foundry, Docker ni un WebJob.
+## Iniciar en Windows
 
-## Probar en Windows
+1. Cierra el servidor anterior con Ctrl+C. Extrae todo el ZIP; no ejecutes los comandos dentro del archivo comprimido.
+2. Ejecuta **PREPARAR_LOCAL.cmd**.
+3. Ejecuta **INICIAR_LOCAL.cmd** y abre http://127.0.0.1:8000.
 
-La versión actual es **0.4.1**: encabezado **norma.**, fondo papel, navegación horizontal y selector visible **Español / English**. Incluye descubrimiento diario mediante la API oficial SIDOF y validación nativa de certificados en Windows. Una barra lateral verde con Productos/Alertas corresponde a la interfaz anterior.
+El ZIP incluye la interfaz compilada. No requiere Node para abrirlo. Usa Python 3.12 o 3.13 autorizado. Si actualizas una instalación existente, conserva su `.env` y la carpeta `data`; no borres la base ni las copias descargadas. Al actualizar desde Git, ejecuta ACTUALIZAR_INTERFAZ.cmd antes de iniciar.
 
-Desde el ZIP, extrae todo en una carpeta y ejecuta **PREPARAR_LOCAL.cmd**, después **INICIAR_LOCAL.cmd**. El ZIP incluye la interfaz compilada; para esa prueba solo necesitas Python 3.12 o 3.13 autorizado. [Instrucciones completas ES/EN](docs/LOCAL.md).
+## Uso
 
-Si actualizas desde Git, usa la rama **feature/piloto-verificable**; cierra el servidor anterior, ejecuta **ACTUALIZAR_INTERFAZ.cmd** y vuelve a abrir **INICIAR_LOCAL.cmd**. El arranque comprueba la compilación y evita abrir una versión anterior que siga ocupando el puerto.
+- **Consultar SIDOF** solicita una consulta de los últimos siete días. El servidor también consulta automáticamente con la frecuencia configurada, mientras permanezca encendido.
+- **Novedades** muestra las publicaciones recuperadas ordenadas por fecha oficial. La fecha de detección se conserva por separado.
+- **Buscar publicaciones** permite buscar por NOM o palabra, fecha, tipo y cambios guardados.
+- Abre un título para leer su contenido, consultar versiones, descargar la copia original y visitar SIDOF.
+- **Estado de SIDOF** muestra la programación y el historial. Ver revisión diaria permite inspeccionar fechas, notas y referencias pendientes.
 
-Para preparar manualmente un clon, necesitas también Node.js compatible con Vite (se validó Node 24). Desde la carpeta del repositorio, en PowerShell:
+Las revisiones parciales pueden haber guardado publicaciones válidas. SIDOF es una fuente oficial, pero que una consulta termine no garantiza cobertura integral, ni determina aplicabilidad a productos JE. Las notas sin información suficiente y las fechas no verificadas quedan pendientes.
 
-```powershell
-py -3.13 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-cd frontend
-npm ci
-npm run build
-cd ..
-.\INICIAR_LOCAL.cmd
-```
+La actualización desactiva DOF HTML, PLATIICA y SNICE y cancela sus consultas en cola. Conserva las publicaciones, evidencia y trabajos históricos. El boletín filtra por SIDOF; los registros anteriores siguen disponibles en la API para trazabilidad. No se borran documentos para cambiar de fuente.
 
-Si tienes Python 3.12, usa `py -3.12` en el primer comando. Abre http://127.0.0.1:8000. Solo necesitas la ventana del portal: aplica las migraciones, registra las fuentes y atiende la cola automáticamente. Las consultas comienzan tras el arranque y se repiten según la frecuencia de cada fuente. No inicies además el trabajador antiguo.
+## Local y Azure
 
-Si ya existe un `.env`, añade `AUTH_MODE=portal`, `MONITOR_ENABLED=true` y `SCHEDULER_ENABLED=true`. No borres la base existente. `DEV_AUTH_ENABLED=true` y `DEV_DEFAULT_ROLE=administrador` permiten editar el seguimiento localmente, sin pantalla de acceso. El despliegue público utiliza lectura abierta; la edición de fuentes y decisiones no se habilita al visitante.
+La instalación usa FastAPI, React, SQLite y archivos locales. Abre sin cuenta. La edición local puede habilitarse con la configuración de desarrollo; el visitante de producción es lector.
 
-Para arrancar manualmente, desde `backend/`:
+En **App Service Linux/Python 3.13**, usa `startup.sh`, una instancia y un proceso web; la base y evidencia se guardan bajo `/home/nom-monitor`. Always On mantiene la aplicación cargada. No requiere Foundry, Entra, Blob, Docker ni un trabajador externo. El despliegue en la instancia real continúa pendiente de prueba.
 
-```powershell
-..\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
-```
-
-Con las variables del ejemplo, ese proceso ya incluye el monitor. En Linux/macOS: `bash scripts/setup.sh`, después `cd backend && ../.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000`.
-
-## El recorrido
-
-1. **El boletín** muestra las publicaciones por fecha oficial. La detección tiene su propia fecha; encontrar hoy una norma antigua no la convierte en nueva.
-2. **Explorar publicaciones** busca en títulos, identificadores y texto conservado. Puedes filtrar últimos 7/30 días, fuente, tipo o documentos con versiones nuevas.
-3. **Tu radar** guarda palabras en el navegador para repetir búsquedas; no crea una cuenta ni implica cobertura automática de todos los productos JE.
-4. **Las fuentes** muestra páginas vigiladas, frecuencia, errores y consultas. **Ver revisión diaria** abre el detalle SIDOF: fecha, notas revisadas, publicaciones seleccionadas y referencias pendientes con enlace oficial. En local, “Editar seguimiento” ajusta URLs y frecuencia.
-5. **Consultar fuentes** revisa los últimos siete días de SIDOF y las páginas configuradas de las otras fuentes. Se reutiliza una consulta en curso; una revisión fallida puede reintentarse después de un minuto y una correcta mantiene la espera de 15 minutos. Por defecto, SIDOF se programa cada hora mientras el servidor siga encendido.
-6. Al abrir un documento puedes leer el texto extraído, ver versiones, descargar la copia y abrir la fuente oficial.
-
-El selector **Español / English** recuerda el idioma y admite `?lang=en` o `?lang=es`. La guía **Cómo funciona / How it works** explica el recorrido y los estados. Los controles, explicaciones y mensajes de conexión se muestran en ambos idiomas; los títulos, documentos y detalles originales de las fuentes conservan su idioma.
-
-Si fallan las fuentes, ejecuta **DIAGNOSTICAR_CONEXION.cmd** para obtener `data/diagnostico_conexion.json`. Distingue problemas de certificados, DNS, proxy y espera sin exponer credenciales ni cambiar la base. [Diagnóstico de conexiones ES/EN](docs/CONNECTION.md).
-
-## Azure App Service
-
-El paquete está adaptado a **Linux/Python 3.13, una instancia y un proceso web**. `startup.sh` usa SQLite en `/home/nom-monitor/nom.db`, archivos en `/home/nom-monitor/evidence` y el monitor integrado. Habilita Always On para que siga consultando sin visitas. Consulta [despliegue sencillo](docs/AZURE.md).
+Para generar el ZIP desde un clon con dependencias frontend instaladas:
 
 ```bash
 bash scripts/package-appservice.sh
 ```
 
-El ZIP incorpora la interfaz compilada y `requirements.txt` en la raíz para Oryx. No incluye bases, `.env`, credenciales ni entornos virtuales.
+Windows usa validación nativa de certificados mediante truststore. Ejecuta **DIAGNOSTICAR_CONEXION.cmd** para comprobar la API SIDOF; se guarda `data/diagnostico_conexion.json`. No se desactiva HTTPS ni se aceptan certificados desconocidos automáticamente.
 
-## Qué fuentes cubre
+## English
 
-**SIDOF es el canal diario principal**: consulta ediciones y notas por fecha en `https://sidof.segob.gob.mx/dof/sidof`, selecciona títulos relacionados con NOM y reglas de comercio exterior y conserva el detalle JSON original, su texto y fecha oficial. El primer arranque consulta siete días; después revisa hoy y ayer cada hora. Revisa también el detalle de notas sin título. Si falta información para clasificarlas, las conserva como referencias pendientes en el registro de consulta.
+SIDOF is the bulletin's only active source. Select English at the top. Search, filters, reading, versions and daily-check details remain available; official documents stay in Spanish. The simpler interface uses one type family and a single column. Legacy source records are retained, with their monitoring disabled. Partial checks may save valid publications and do not establish complete NOM coverage or product applicability.
 
-DOF HTML es un canal complementario. PLATIICA sigue las fichas configuradas y SNICE sus páginas configuradas. **No se ha acreditado cobertura de todas las NOM**: una consulta técnica correcta puede contener referencias sin título/texto pendientes de revisión. No se eluden errores de certificados o robots. [Integración y prueba real SIDOF](docs/SIDOF_DAILY.md).
-
-[Fuentes y límites](docs/SOURCES.md) · [Evidencia del piloto](docs/PILOT_ACCEPTANCE.md) · [Arquitectura](docs/ARCHITECTURE.md) · [Validación](docs/VALIDATION.md)
-
-## Desarrollo y opciones
-
-Desde `backend/`: `python -m pytest -q`. Desde `frontend/`: `npm run build`. No requieren servicios Azure. El catálogo JE y las propuestas anteriores siguen disponibles en la API/CLI para usos adicionales, fuera de la navegación principal del boletín.
-
-Para un trabajador externo, desactiva `MONITOR_ENABLED` y utiliza `python -m app.cli worker --poll --schedule`; no ejecutes ambos modos a la vez. PostgreSQL, Entra/Easy Auth y el adaptador Blob son opcionales. Para Blob se instalan dependencias adicionales con `pip install -r backend/requirements-azure.txt`.
-
-Las muestras sintéticas requieren una base separada cuyo nombre incluya `demo`, `ENVIRONMENT=development` y `DEMO_MODE=true`. `python -m app.cli demo` no carga normas oficiales ni se ejecuta al iniciar el portal.
+[SIDOF diario](docs/SIDOF_DAILY.md) · [Conexiones](docs/CONNECTION.md) · [Azure](docs/AZURE.md) · [Validación](docs/VALIDATION.md)

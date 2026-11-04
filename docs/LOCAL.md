@@ -1,5 +1,7 @@
 # Probar NOM Monitor / Run NOM Monitor locally
 
+La versión actual es 0.5.0: SIDOF es la única fuente activa y la interfaz utiliza una tipografía, una columna y menos elementos decorativos. Se retiraron el radar y la columna lateral. Las instrucciones de arranque se mantienen; las referencias a fuentes múltiples de versiones previas ya no corresponden al seguimiento actual.
+
 ## Español
 
 La versión **0.4.1** tiene un encabezado grande **norma.**, fondo color papel y navegación horizontal. Arriba están los botones **Español** y **English**. Incluye consulta diaria SIDOF y validación nativa de certificados de Windows. Al actualizar, ejecuta PREPARAR_LOCAL.cmd para instalar la dependencia de Windows. Si ves una barra lateral verde con Inicio, Alertas y Productos, estás viendo una versión anterior.

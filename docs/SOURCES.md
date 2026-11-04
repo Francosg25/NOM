@@ -1,5 +1,7 @@
 # Fuentes y cobertura de recopilación
 
+Desde la versión 0.5.0, SIDOF es la única fuente activa. DOF HTML, PLATIICA y SNICE se retiran del seguimiento, sin borrar sus registros históricos. Las descripciones de esos conectores que siguen documentan el alcance anterior. El diagnóstico ahora consulta únicamente SIDOF.
+
 Esta versión propone relaciones para revisión humana; no determina aplicabilidad
 legal ni autorización de importación. «Completa» en una ejecución significa que
 se agotó la cola de esa consulta configurada. No significa cobertura normativa completa.

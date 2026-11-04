@@ -20,12 +20,6 @@ from .storage import get_storage
 
 
 INITIAL_SOURCES = (
-    ("DOF / SIDOF", "dof", ["https://www.dof.gob.mx/index.php"],
-     "Índice diario DOF: descubrimiento de notas y enlaces de edición visibles. Validación en vivo pendiente; no cubre cambios no enlazados ni garantiza todas las ediciones."),
-    ("PLATIICA", "platiica", ['https://platiica.economia.gob.mx/normalizacion/nom-014-ener-2025/'],
-     "Ficha NOM-014-ENER-2025 del piloto. Seguimiento de texto y enlaces, no descubrimiento global. Descarga por validar en esta instalación."),
-    ("SNICE", "snice", ['https://www.snice.gob.mx/cs/avi/snice/seguridad.normatividad.html'],
-     "Página de normatividad NOM del piloto. Conserva cambios de texto y enlaces; no consolida automáticamente el Anexo 2.4.1."),
     ("SIDOF · publicaciones diarias", 'sidof', [API_BASE],
      "SIDOF diario: ediciones y notas por fecha. Selecciona NOM y reglas de comercio exterior; conserva el detalle JSON oficial. No determina aplicabilidad a productos."),
 )
@@ -39,6 +33,24 @@ def init_sources(db):
                           expected_terms=terms, frequency_hours=1 if kind == 'sidof' else 24))
     db.commit()
     upgrade_sidof_source(db)
+    retire_legacy_sources(db)
+
+
+def retire_legacy_sources(db):
+    """SIDOF-only portal; keep historical documents and jobs for traceability."""
+    for source in db.scalars(select(Source).where(Source.kind != 'sidof', Source.kind != 'demo')):
+        if source.active or source.schedule_enabled:
+            source.active = False
+            source.schedule_enabled = False
+            source.next_due_at = None
+            db.add(Audit(actor='sistema', action='retirar_fuente', entity_type='sources', entity_id=str(source.id),
+                after={'active':False, 'preserved_publications':True}))
+        for job in db.scalars(select(Job).where(Job.source_id == source.id, Job.status == 'queued')):
+            job.status = 'cancelled'
+            job.active_key = None
+            job.finished_at = utcnow()
+            job.error = 'Fuente retirada: el portal utiliza únicamente SIDOF.'
+    db.commit()
 
 
 def upgrade_sidof_source(db):
