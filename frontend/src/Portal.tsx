@@ -182,7 +182,7 @@ function DateMark({ value }: { value?: string }) {
     </div>
   );
 }
-function Reader({
+export function Reader({
   title,
   children,
   close,

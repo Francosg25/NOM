@@ -6,7 +6,7 @@ if (-not (Test-Path '.venv\Scripts\python.exe')) {
     if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear el entorno. Utilice Python 3.12 o 3.13 autorizado.' }
 }
 $Python = Join-Path $ProjectRoot '.venv\Scripts\python.exe'
-& $Python -m pip install -r backend\requirements.txt
+& $Python -m pip install --require-hashes -r backend\requirements.txt
 if ($LASTEXITCODE -ne 0) { throw 'Falló la instalación de Python' }
 if (-not (Test-Path '.env')) { Copy-Item '.env.example' '.env' }
 Set-Location (Join-Path $ProjectRoot 'frontend')

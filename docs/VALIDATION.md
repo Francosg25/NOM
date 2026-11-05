@@ -1,5 +1,16 @@
 # Validación del portal
 
+## Calidad operativa · 0.6.0 · 5 de noviembre de 2026
+
+- 174 pruebas backend aprobadas en Linux/Python 3.12; cobertura de líneas y ramas combinadas 80.33%, con umbral de 80% en CI. Una advertencia de depreciación Starlette/AnyIO.
+- Ruff (lint y formato de todo app) y Bandit (severidad media/alta) aprobados. Dependencias transitivas universales con hashes; instalación sincronizada del lock de desarrollo comprobada en este entorno.
+- Dos pruebas de componentes/interacción aprobadas. TypeScript/Vite aprobados. Seis recorridos Playwright sobre FastAPI real con base temporal: escritorio/móvil, ES/EN persistente, búsqueda, teclado, descarga y axe WCAG A/AA. Las muestras están identificadas como controladas.
+- ZIP extraído y startup.sh ejecutado en producción: readiness del monitor, publicación controlada, reinicio, respaldo online y arranque contra la restauración. La sonda recuperó el mismo hash de evidencia original después de ambos cambios.
+- Se conserva la refactorización de Copilot y los estados 0.5.1; se extraen routers de publicaciones y operación sin cambiar contratos. La restauración prueba daños/ausencias e impide sobrescribir una instalación existente.
+- CI prepara Linux/Windows Python 3.12/3.13, PostgreSQL, navegador, calidad y artefactos. Estos resultados locales no acreditan que esas ejecuciones remotas hayan terminado ni que el App Service real esté validado. No se crearon recursos ni alertas Azure, no se configuraron respaldos automáticos y no se obtuvo una aceptación normativa humana.
+- La [ejecución remota de esta PR](https://github.com/Francosg25/NOM/actions/runs/42042209139) terminó sin ejecutar pasos (las listas de pasos de los trabajos están vacías). La validación remota sigue pendiente; no se conoce la causa exacta a través de la conexión disponible. Los resultados aprobados anteriores corresponden al entorno local.
+
+
 ## Estados y ciclo automático · 0.5.1
 
 158 pruebas backend aprobadas en Linux/Python 3.12. Se distinguen la última descarga de publicaciones, el último periodo completado y las fechas pendientes a partir del cursor persistido. El estado no afirma conectividad actual a partir de una descarga histórica.
@@ -8,7 +19,7 @@ Una prueba con reloj controlado ejecuta tres ciclos del programador sin interven
 
 ## SIDOF único e interfaz simplificada · 0.5.0
 
-156 pruebas backend aprobadas. Se comprueba que la actualización conserva documentos y evidencia, retira las fuentes anteriores y cancela sus trabajos en cola, de manera idempotente. El filtro del boletín selecciona SIDOF sin eliminar el archivo histórico. Compilación TypeScript/Vite y recorrido ES/EN del JS compilado comprobados. La revisión visual de escritorio utiliza muestras controladas, sin presentarlas como publicaciones reales. No se probó esta entrega en Windows ni se desplegó Azure.
+156 pruebas backend aprobadas en Windows/Python 3.13.5. Se comprueba que la actualización conserva documentos y evidencia, retira las fuentes anteriores y cancela sus trabajos en cola, de manera idempotente. El filtro del boletín selecciona SIDOF sin eliminar el archivo histórico. Compilación TypeScript/Vite, `pip check` e integridad de Alembic aprobados. La revisión visual de escritorio utiliza muestras controladas, sin presentarlas como publicaciones reales. CI ahora incluye Python 3.12 y 3.13 en Ubuntu y Windows; esa matriz remota y el despliegue Azure no se han ejecutado en esta validación.
 
 ## Compatibilidad Windows · 0.4.1 · 3 de noviembre de 2026
 
