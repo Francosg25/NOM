@@ -8,6 +8,7 @@
 - ZIP extraído y startup.sh ejecutado en producción: readiness del monitor, publicación controlada, reinicio, respaldo online y arranque contra la restauración. La sonda recuperó el mismo hash de evidencia original después de ambos cambios.
 - Se conserva la refactorización de Copilot y los estados 0.5.1; se extraen routers de publicaciones y operación sin cambiar contratos. La restauración prueba daños/ausencias e impide sobrescribir una instalación existente.
 - CI prepara Linux/Windows Python 3.12/3.13, PostgreSQL, navegador, calidad y artefactos. Estos resultados locales no acreditan que esas ejecuciones remotas hayan terminado ni que el App Service real esté validado. No se crearon recursos ni alertas Azure, no se configuraron respaldos automáticos y no se obtuvo una aceptación normativa humana.
+- La [ejecución remota de esta PR](https://github.com/Francosg25/NOM/actions/runs/42042209139) terminó sin ejecutar pasos (las listas de pasos de los trabajos están vacías). La validación remota sigue pendiente; no se conoce la causa exacta a través de la conexión disponible. Los resultados aprobados anteriores corresponden al entorno local.
 
 
 ## Estados y ciclo automático · 0.5.1
