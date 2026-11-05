@@ -1,6 +1,6 @@
 # Portal en Azure App Service Linux
 
-La versión actual es 0.5.0 y el seguimiento activo utiliza únicamente SIDOF. No se requieren permisos ni certificados para consultar DOF HTML, PLATIICA o SNICE desde esta versión. El historial de esas fuentes se conserva desactivado.
+La versión actual es 0.5.0 y el seguimiento activo utiliza únicamente SIDOF. DOF HTML, PLATIICA y SNICE no se consultan; sus registros históricos se conservan desactivados.
 
 La instalación sencilla utiliza el App Service existente: **Linux, Python 3.13, Basic B1, una instancia**. Sirve la web y ejecuta el monitor desde un solo proceso. No necesita crear PostgreSQL, Blob, Entra ni un WebJob.
 
@@ -34,7 +34,7 @@ El script establece estos valores solo si no se proporcionaron otros:
 
 Si existen ajustes anteriores de Entra/Blob/PostgreSQL, revisar las variables efectivas para elegir estos valores. No copiar el modo local de administrador al despliegue público.
 
-El modo portal permite consultar publicaciones y solicitar una revisión sin iniciar sesión. Cambiar URLs, catálogos o decisiones conserva permisos de edición; el visitante es lector. El inicio aplica migraciones e inicializa fuentes sin publicaciones inventadas. En la primera preparación habilita programación de las fuentes configuradas; respeta las que ya tengan fecha/frecuencia configuradas.
+El modo portal permite consultar publicaciones y solicitar una revisión sin iniciar sesión. Cambiar URLs, catálogos o decisiones conserva permisos de edición; el visitante es lector. El inicio aplica migraciones e inicializa SIDOF sin publicaciones inventadas y programa solo esa fuente cuando no existe una fecha de programación previa.
 
 ## Persistencia y consultas
 
@@ -54,7 +54,7 @@ No hace falta instalar el trabajador externo. Si se elige hacerlo más adelante,
 - Se conserva la base al volver a publicar el ZIP.
 - La API diaria `https://sidof.segob.gob.mx/dof/sidof` es accesible desde Azure con TLS verificado y las reglas de robots. La primera revisión cubre siete días y después se programa cada hora.
 - “Ver revisión diaria” muestra conteos y referencias pendientes. Buscar `NOM-EM-023-SE-2026` después de consultar el 2 de noviembre de 2026 permite repetir la comprobación conocida; la ventana automática puede requerir ampliar fechas si se prueba más adelante.
-- DOF HTML, PLATIICA y SNICE son accesibles desde la red de Azure. Un fallo de DOF no impide procesar SIDOF, aunque seguirá mostrándose como fuente incompleta.
+- Las fuentes históricas DOF HTML, PLATIICA y SNICE no forman parte de la comprobación de despliegue actual.
 
 El paquete preparado y las pruebas locales no equivalen a un despliegue real. No se crearon ni modificaron recursos Azure durante esta preparación.
 
