@@ -1,4 +1,5 @@
 """Private evidence storage. Keys are content addressed and never public URLs."""
+
 from __future__ import annotations
 
 import hashlib
@@ -48,17 +49,21 @@ class AzureBlobEvidenceStore:
         # Optional Azure SDKs are loaded only for the production adapter.
         from azure.identity import DefaultAzureCredential
         from azure.storage.blob import BlobServiceClient
+
         self.client = BlobServiceClient(account_url, credential=DefaultAzureCredential())
         self.container = self.client.get_container_client(container)
 
     def put(self, raw: bytes, media_type: str = "application/octet-stream") -> str:
         from azure.core.exceptions import ResourceExistsError
         from azure.storage.blob import ContentSettings
+
         digest = hashlib.sha256(raw).hexdigest()
         key = f"sha256/{digest[:2]}/{digest}.bin"
         try:
             self.container.upload_blob(
-                key, raw, overwrite=False,
+                key,
+                raw,
+                overwrite=False,
                 content_settings=ContentSettings(content_type=media_type),
                 metadata={"sha256": digest},
             )
@@ -76,6 +81,7 @@ class AzureBlobEvidenceStore:
 def get_storage(settings=None) -> EvidenceStore:
     if settings is None:
         from .config import get_settings
+
         settings = get_settings()
     if settings.storage_backend == "azure":
         return AzureBlobEvidenceStore(settings.azure_storage_account_url, settings.azure_storage_container)

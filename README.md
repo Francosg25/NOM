@@ -1,6 +1,8 @@
 # norma. · NOM Monitor
 
-Versión **0.5.1**. Boletín de publicaciones relacionadas con NOM, con **SIDOF como única fuente activa**, interfaz Español/English y una lectura sencilla: una tipografía, fondo claro, búsqueda y publicaciones en una sola columna.
+Versión **0.6.0**. Boletín de publicaciones relacionadas con NOM, con **SIDOF como única fuente activa**, interfaz Español/English y una lectura sencilla: una tipografía, fondo claro, búsqueda y publicaciones en una sola columna.
+
+Esta versión añade respaldos/restauración verificables, supervisión del monitor, sonda de despliegue, pruebas de navegador/accesibilidad y dependencias transitivas fijadas con hashes. Mantiene la instalación sencilla. [Operación y aceptación Azure](docs/OPERATIONS.md) · [Calidad y dependencias](docs/QUALITY.md) · [Revisión experta de cobertura](docs/COVERAGE_REVIEW.md). El despliegue y la aceptación reales siguen pendientes.
 
 ## Iniciar en Windows
 

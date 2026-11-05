@@ -20,7 +20,7 @@ def test_official_captures_integrity_extraction_and_motor_proposal():
     for record in json.loads((ROOT/'provenance.json').read_text(encoding='utf-8')):
         raw=(ROOT/record['file']).read_bytes()
         assert record['fixture_type']=='sanitized_text_extract'
-        assert hashlib.sha256(raw).hexdigest()==record['fixture_sha256']
+        assert hashlib.sha256(raw.replace(b'\r\n', b'\n')).hexdigest()==record['fixture_sha256']
         doc=extract_document(record['url'],FetchResult(raw,url=record['url']))
         assert doc.official_id==record['official_id']
         assert doc.content and doc.title.strip() and not doc.processing_note

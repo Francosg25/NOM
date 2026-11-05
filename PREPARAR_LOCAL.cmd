@@ -5,7 +5,7 @@ if not exist ".venv\Scripts\python.exe" (
   py -3 -m venv .venv
   if errorlevel 1 goto :failed
 )
-".venv\Scripts\python.exe" -m pip install -r backend\requirements.txt
+".venv\Scripts\python.exe" -m pip install --require-hashes -r backend\requirements.txt
 if errorlevel 1 goto :failed
 if not exist ".env" copy ".env.example" ".env" >nul
 if not exist "frontend\dist\portal-release.json" (
