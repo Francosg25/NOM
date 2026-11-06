@@ -9,6 +9,62 @@ import type { ReactNode } from "react";
 
 type Language = "es" | "en";
 const english: Record<string, string> = {
+  "Consultar producto": "Product lookup",
+  "REVISIÓN PRELIMINAR": "PRELIMINARY REVIEW",
+  "Consultar por producto": "Search by product",
+  "Ingresa una fracción arancelaria mexicana o describe el producto. Buscaremos coincidencias en las publicaciones SIDOF guardadas.":
+    "Enter a Mexican tariff code or describe the product. We will search saved SIDOF publications for matches.",
+  "Buscar por": "Search by",
+  "Fracción arancelaria mexicana": "Mexican tariff code",
+  "Descripción del producto": "Product description",
+  "Fracción arancelaria / NICO": "Tariff code / NICO",
+  "Descripción, materiales o uso": "Description, materials or use",
+  "Ej. 8501.10.01 o 8501.10.01 00": "E.g. 8501.10.01 or 8501.10.01 00",
+  "Ej. motor eléctrico de corriente continua para actuador":
+    "E.g. DC electric motor for an actuator",
+  "Buscar posibles coincidencias": "Search for possible matches",
+  "Buscando…": "Searching…",
+  "La fracción admite 8 dígitos o 10 con NICO. Para descripción, incluye tipo de producto, material y uso cuando los conozcas.":
+    "The tariff code accepts 8 digits, or 10 with NICO. For descriptions, include product type, material and use when known.",
+  "Coincidencias para revisar": "Matches to review",
+  "{count} resultados": "{count} results",
+  "Coincidencias textuales en publicaciones SIDOF guardadas. No determinan si una NOM aplica al producto ni sustituyen la clasificación arancelaria o revisión de la disposición oficial.":
+    "Text matches in saved SIDOF publications. They do not determine whether a NOM applies to the product and do not replace tariff classification or review of the official instrument.",
+  "No encontramos coincidencias en las publicaciones guardadas.":
+    "No matches were found in saved publications.",
+  "Esto no confirma que no existan NOM aplicables: el archivo puede estar incompleto o la publicación puede no mencionar esos términos.":
+    "This does not confirm that no NOMs apply: the archive may be incomplete or a publication may not mention these terms.",
+  "Coincidencia de fracción": "Tariff-code match",
+  "Coincidencia de fracción base": "Base tariff-code match",
+  "Coincidencia por descripción": "Description match",
+  "Términos encontrados": "Matched terms",
+  "Se muestran los primeros 30 resultados más relevantes.":
+    "Showing the 30 most relevant results.",
+  "Como administrador, puedes guardar esta entrada para que el monitor la compare con publicaciones actuales y futuras.":
+    "As an administrator, you can save this entry so the monitor can compare it with current and future publications.",
+  "Guardar para seguimiento": "Save for monitoring",
+  "Guardando…": "Saving…",
+  "Producto guardado para seguimiento automático de publicaciones y posibles coincidencias.":
+    "Product saved for automatic monitoring of publications and possible matches.",
+  "Seguimiento activo": "Monitoring active",
+  "Actualizar coincidencias": "Refresh matches",
+  "Las propuestas se generan al procesar publicaciones y requieren revisión humana; no son decisiones de aplicabilidad.":
+    "Suggestions are generated as publications are processed and require human review; they are not applicability decisions.",
+  "Aún no hay propuestas de coincidencia para este producto.":
+    "There are no match suggestions for this product yet.",
+  "Productos en seguimiento": "Products being monitored",
+  "Selecciona un producto guardado": "Select a saved product",
+  pendiente: "pending",
+  propuesta: "suggested",
+  en_revision: "in review",
+  resuelta: "resolved",
+  confirmada: "confirmed",
+  descartada: "dismissed",
+  "Ingresa una fracción mexicana de 8 dígitos, o 10 con NICO.":
+    "Enter an 8-digit Mexican tariff code, or 10 digits with NICO.",
+  "Agrega palabras descriptivas del producto, como tipo, material o uso.":
+    "Add descriptive product words, such as type, material or use.",
+
   "Última descarga: {date}": "Last download: {date}",
   "Última descarga": "Last download",
   "Última revisión completa": "Last complete period check",

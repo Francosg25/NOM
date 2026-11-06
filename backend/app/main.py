@@ -28,6 +28,7 @@ from .config import get_settings
 from .db import get_db
 from .routers.operations import router as operations_router
 from .routers.publications import router as publications_router
+from .routers.product_search import router as product_search_router
 from .schemas import Input
 from .models import (
     Alert,
@@ -69,6 +70,7 @@ app = FastAPI(
 
 app.include_router(operations_router)
 app.include_router(publications_router)
+app.include_router(product_search_router)
 
 
 @app.middleware("http")
@@ -367,6 +369,7 @@ def alerts(
     q: str = "",
     status: str | None = None,
     decision: str | None = None,
+    catalog_id: int | None = None,
     general: bool = False,
     is_demo: bool = False,
     page: int = Query(1, ge=1),
@@ -381,6 +384,8 @@ def alerts(
         stmt = stmt.where(Alert.status == status)
     if decision:
         stmt = stmt.where(Alert.decision == decision)
+    if catalog_id is not None:
+        stmt = stmt.where(Alert.catalog_id == catalog_id)
     if general:
         stmt = stmt.where(Alert.catalog_id.is_(None))
     rows, result = paginate(db, stmt, page, page_size)

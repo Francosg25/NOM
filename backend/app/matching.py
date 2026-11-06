@@ -42,14 +42,25 @@ def suggest(content: str, item) -> list[Match]:
             excerpt = content[max(0, hit.start() - 90) : min(len(content), hit.end() + 160)]
             found.append(Match(f"Coincidencia de {category}: {term}", excerpt))
     tariff = re.sub(r"\D", "", item.tariff_code or "")
+    nico = re.sub(r"\D", "", getattr(item, "nico", None) or "")
     if len(tariff) == 8:
-        pattern = r"(?<!\d)" + r"[.\s-]*".join(tariff) + r"(?!\d)"
-        hit = re.search(pattern, content)
-        if hit:
+        base = r"(?<!\d)" + r"[.\s-]*".join(tariff)
+        exact = None
+        if len(nico) == 2:
+            exact = re.search(base + r"[.\s-]*" + r"[.\s-]*".join(nico) + r"(?!\d)", content)
+            if exact:
+                found.append(
+                    Match(
+                        f"Fracción y NICO configurados: {item.tariff_code} {nico}",
+                        content[max(0, exact.start() - 80) : exact.end() + 120],
+                    )
+                )
+        base_hit = None if exact else re.search(base + r"(?:[.\s-]*\d{2})?(?!\d)", content)
+        if base_hit:
             found.append(
                 Match(
-                    f"Fracción arancelaria configurada: {item.tariff_code}",
-                    content[max(0, hit.start() - 80) : hit.end() + 120],
+                    f"Fracción base configurada: {item.tariff_code}",
+                    content[max(0, base_hit.start() - 80) : base_hit.end() + 120],
                 )
             )
     return found

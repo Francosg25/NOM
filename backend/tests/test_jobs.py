@@ -167,6 +167,15 @@ def test_transparent_matching_norm_synonym_tariff_and_boundaries():
     assert all(match.reason and match.evidence for match in result)
 
 
+def test_tariff_matching_distinguishes_exact_and_base_nico_matches():
+    item = SimpleNamespace(keywords=[], synonyms=[], watched_norms=[], tariff_code="85011001", nico="12")
+    exact = suggest("Fracción 8501.10.01 12", item)
+    base = suggest("Fracción 8501.10.01 13", item)
+    assert len(exact) == len(base) == 1
+    assert "NICO configurados" in exact[0].reason
+    assert "Fracción base configurada" in base[0].reason
+
+
 def test_period_validation(database):
     db, _, _, source_id = database
     with pytest.raises(ValueError):

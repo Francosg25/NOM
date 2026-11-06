@@ -21,10 +21,11 @@ El servidor consulta SIDOF cada hora por defecto, también cuando nadie visita e
 - **Consultar SIDOF** solicita una consulta de los últimos siete días. El servidor también consulta automáticamente con la frecuencia configurada, mientras permanezca encendido.
 - **Novedades** muestra las publicaciones recuperadas ordenadas por fecha oficial. La fecha de detección se conserva por separado.
 - **Buscar publicaciones** permite buscar por NOM o palabra, fecha, tipo y cambios guardados.
+- **Consultar producto** busca coincidencias textuales en las publicaciones SIDOF guardadas usando una fracción mexicana de 8 dígitos (o 10 con NICO) o una descripción. Muestra los términos y el fragmento encontrado para revisión. Una persona con rol administrador puede guardar la entrada en el catálogo para reevaluar publicaciones actuales y proponer coincidencias en las nuevas; se muestran en esa vista y requieren revisión humana.
 - Abre un título para leer su contenido, consultar versiones, descargar la copia original y visitar SIDOF.
 - **Estado de SIDOF** muestra la programación y el historial. Ver revisión diaria permite inspeccionar fechas, notas y referencias pendientes.
 
-Las revisiones parciales pueden haber guardado publicaciones válidas. SIDOF es una fuente oficial, pero que una consulta termine no garantiza cobertura integral, ni determina aplicabilidad a productos JE. Las notas sin información suficiente y las fechas no verificadas quedan pendientes.
+La consulta por producto solo busca texto en el archivo SIDOF guardado; no consulta una base oficial de fracciones ni garantiza que el archivo esté completo. Guardar un producto requiere permisos de administrador y registra sus datos en el catálogo local para el seguimiento futuro. Una coincidencia es una pista para revisión humana, no una determinación de aplicabilidad. La fracción arancelaria por sí sola puede no describir todos los aspectos relevantes del producto. Las revisiones parciales pueden haber guardado publicaciones válidas; las notas sin información suficiente y las fechas no verificadas quedan pendientes.
 
 La actualización desactiva DOF HTML, PLATIICA y SNICE y cancela sus consultas en cola. Conserva las publicaciones, evidencia y trabajos históricos. El boletín filtra por SIDOF; los registros anteriores siguen disponibles en la API para trazabilidad. No se borran documentos para cambiar de fuente.
 
@@ -44,6 +45,6 @@ Windows usa validación nativa de certificados mediante truststore. Ejecuta **DI
 
 ## English
 
-SIDOF is the bulletin's only active source. Select English at the top. Search, filters, reading, versions and daily-check details remain available; official documents stay in Spanish. The simpler interface uses one type family and a single column. Legacy source records are retained, with their monitoring disabled. Partial checks may save valid publications and do not establish complete NOM coverage or product applicability.
+SIDOF is the bulletin's only active source. Select English at the top. Search, filters, reading, versions and daily-check details remain available; official documents stay in Spanish. Product lookup searches saved publication text by a Mexican tariff code (8 digits, or 10 with NICO) or product description and shows evidence for human review. Administrators can save entries for ongoing monitoring and review proposed matches. It does not use an official tariff database or decide applicability. Legacy source records are retained, with their monitoring disabled. Partial checks may save valid publications and do not establish complete NOM coverage.
 
 [SIDOF diario](docs/SIDOF_DAILY.md) · [Conexiones](docs/CONNECTION.md) · [Azure](docs/AZURE.md) · [Validación](docs/VALIDATION.md)

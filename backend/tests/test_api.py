@@ -473,3 +473,84 @@ def test_failed_source_can_retry_after_a_minute_but_success_keeps_cooldown(api, 
         assert previous_id not in result['jobs']
     else:
         assert result['recent_sources'] == 1
+
+
+def test_product_search_supports_mexican_tariff_codes_and_descriptions(api):
+    client, sessions, _, _ = api
+    with sessions() as db:
+        source = Source(
+            name='SIDOF controlado',
+            kind='sidof',
+            urls=['https://sidof.segob.gob.mx/dof/sidof'],
+        )
+        db.add(source)
+        db.flush()
+        publications = [
+            Publication(
+                source_id=source.id,
+                official_id='CONTROLLED-TARIFF',
+                url='https://sidof.segob.gob.mx/notas/docFuente/1',
+                title='Publicación controlada de seguridad eléctrica',
+                kind='norma_definitiva',
+                published_on=date(2026, 1, 2),
+            ),
+            Publication(
+                source_id=source.id,
+                official_id='CONTROLLED-DESCRIPTION',
+                url='https://sidof.segob.gob.mx/notas/docFuente/2',
+                title='Publicación controlada de motores',
+                kind='proyecto',
+                published_on=date(2026, 1, 3),
+            ),
+        ]
+        db.add_all(publications)
+        db.flush()
+        versions = [
+            Version(
+                publication_id=publications[0].id,
+                content='Fracción arancelaria: 8501.10.01. La disposición contiene requisitos.',
+                content_hash='controlled-tariff',
+            ),
+            Version(
+                publication_id=publications[1].id,
+                content='Requisitos para motor eléctrico de corriente continua utilizado en actuadores.',
+                content_hash='controlled-description',
+            ),
+        ]
+        db.add_all(versions)
+        db.flush()
+        for publication, version in zip(publications, versions):
+            publication.current_version_id = version.id
+        db.commit()
+
+    tariff = client.post('/api/product-search', json={
+        'mode': 'fraccion', 'value': '8501.10.01',
+    })
+    assert tariff.status_code == 200
+    assert tariff.json()['total'] == 1
+    assert tariff.json()['results'][0]['match']['type'] == 'fraccion_exacta'
+    assert '8501.10.01' in tariff.json()['results'][0]['match']['evidence']
+
+    description = client.post('/api/product-search', json={
+        'mode': 'descripcion', 'value': 'motor eléctrico corriente continua',
+    })
+    assert description.status_code == 200
+    assert description.json()['total'] == 1
+    assert description.json()['results'][0]['publication']['official_id'] == 'CONTROLLED-DESCRIPTION'
+    assert description.json()['results'][0]['match']['matched_terms'] == [
+        'motor', 'electrico', 'corriente', 'continua',
+    ]
+
+    invalid = client.post('/api/product-search', json={
+        'mode': 'fraccion', 'value': '8501.10',
+    })
+    assert invalid.status_code == 422
+
+
+def test_alerts_can_be_filtered_for_a_tracked_product(api):
+    client, sessions, _, _ = api
+    _, catalog_id, _, _, _ = seed(sessions)
+    result = client.get(f'/api/alerts?catalog_id={catalog_id}', headers=READER)
+    assert result.status_code == 200
+    assert result.json()['total'] == 1
+    assert result.json()['items'][0]['catalog_id'] == catalog_id

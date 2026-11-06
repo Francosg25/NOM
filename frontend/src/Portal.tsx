@@ -12,10 +12,11 @@ import { LanguageProvider, useLanguage } from "./i18n";
 import { version as portalVersion } from "../package.json";
 
 type Row = Record<string, any>;
-type View = "actualidad" | "archivo" | "fuentes" | "guia";
+type View = "actualidad" | "archivo" | "producto" | "fuentes" | "guia";
 const views: { id: View; name: string }[] = [
   { id: "actualidad", name: "Novedades" },
   { id: "archivo", name: "Buscar publicaciones" },
+  { id: "producto", name: "Consultar producto" },
   { id: "fuentes", name: "Estado de SIDOF" },
   { id: "guia", name: "Cómo funciona" },
 ];
@@ -331,6 +332,13 @@ function Bulletin() {
   const [jobs, setJobs] = useState<Row[]>([]);
   const [total, setTotal] = useState(0);
   const [query, setQuery] = useState("");
+  const [productMode, setProductMode] = useState<"fraccion" | "descripcion">("fraccion");
+  const [productValue, setProductValue] = useState("");
+  const [productSearch, setProductSearch] = useState<Row | null>(null);
+  const [productBusy, setProductBusy] = useState(false);
+  const [trackedProduct, setTrackedProduct] = useState<Row | null>(null);
+  const [trackedProducts, setTrackedProducts] = useState<Row[]>([]);
+  const [productAlerts, setProductAlerts] = useState<Row[]>([]);
   const [source, setSource] = useState("");
   const [period, setPeriod] = useState("all");
   const [kind, setKind] = useState("");
@@ -513,6 +521,113 @@ function Bulletin() {
       setUpdating(false);
     }
   };
+  const searchProduct = async (event: FormEvent) => {
+    event.preventDefault();
+    setProductBusy(true);
+    setProductSearch(null);
+    setTrackedProduct(null);
+    setProductAlerts([]);
+    setError("");
+    try {
+      setProductSearch(
+        await request("/product-search", "POST", {
+          mode: productMode,
+          value: productValue,
+        }),
+      );
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setProductBusy(false);
+    }
+  };
+  const loadProductAlerts = useCallback(
+    async (catalogId: number) => {
+      const result = await request(`/alerts?catalog_id=${catalogId}&page_size=50`);
+      setProductAlerts(result.items);
+    },
+    [request],
+  );
+  const saveProductForMonitoring = async () => {
+    const digits = productValue.replace(/\D/g, "");
+    const stopWords = new Set([
+      "and", "con", "del", "desde", "for", "las", "los", "para", "por",
+      "the", "una", "uno", "unos", "unas", "uso", "de", "el", "en", "la", "o", "y",
+    ]);
+    if (
+      productMode === "fraccion" &&
+      (!/^[0-9.\s-]+$/.test(productValue.trim()) || ![8, 10].includes(digits.length))
+    ) {
+      setError("Ingresa una fracción mexicana de 8 dígitos, o 10 con NICO.");
+      return;
+    }
+    const words =
+      productMode === "descripcion"
+        ? Array.from(
+            new Set(
+              (productValue.toLocaleLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || [])
+                .filter((word) => !stopWords.has(word)),
+            ),
+          ).slice(0, 100)
+        : [];
+    if (productMode === "descripcion" && words.length === 0) {
+      setError("Agrega palabras descriptivas del producto, como tipo, material o uso.");
+      return;
+    }
+    setProductBusy(true);
+    setError("");
+    try {
+      const item = await request("/catalog", "POST", {
+        kind: "producto",
+        name:
+          productMode === "fraccion"
+            ? `Fracción MX ${digits}`
+            : productValue.trim().slice(0, 300),
+        description:
+          productMode === "fraccion"
+            ? `Seguimiento por fracción arancelaria mexicana ${digits}`
+            : productValue.trim(),
+        tariff_code: productMode === "fraccion" ? digits.slice(0, 8) : null,
+        nico: productMode === "fraccion" && digits.length === 10 ? digits.slice(8) : null,
+        keywords: words,
+        synonyms: [],
+        watched_norms: [],
+        technical: {},
+        owner: me?.id || "JE",
+        active: true,
+        is_demo: false,
+      });
+      setTrackedProduct(item);
+      setTrackedProducts((items) => [item, ...items.filter((existing) => existing.id !== item.id)]);
+      await loadProductAlerts(item.id);
+      setNotice("Producto guardado para seguimiento automático de publicaciones y posibles coincidencias.");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setProductBusy(false);
+    }
+  };
+  useEffect(() => {
+    if (view !== "producto" || !trackedProduct?.id) return;
+    const timer = window.setInterval(() => {
+      void loadProductAlerts(trackedProduct.id).catch((e) => setError((e as Error).message));
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [view, trackedProduct?.id, loadProductAlerts]);
+  useEffect(() => {
+    if (!ready || !admin || view !== "producto") return;
+    let live = true;
+    void request("/catalog?kind=producto&active=true&is_demo=false&page_size=100")
+      .then((result) => {
+        if (live) setTrackedProducts(result.items);
+      })
+      .catch((e) => {
+        if (live) setError((e as Error).message);
+      });
+    return () => {
+      live = false;
+    };
+  }, [ready, admin, view, request]);
   const open = async (id: number) => {
     try {
       const doc = await request(`/publications/${id}`);
@@ -782,6 +897,210 @@ function Bulletin() {
           </section>
         )}
         {view === "guia" && <Guide go={navigate} />}
+        {view === "producto" && (
+          <section className="product-search-page">
+            <div className="section-intro">
+              <span className="eyebrow">{t("REVISIÓN PRELIMINAR")}</span>
+              <h1>
+                {t("Consultar por producto")}
+                <span className="accent">.</span>
+              </h1>
+              <p>
+                {t(
+                  "Ingresa una fracción arancelaria mexicana o describe el producto. Buscaremos coincidencias en las publicaciones SIDOF guardadas.",
+                )}
+              </p>
+            </div>
+            <form className="product-search-form" onSubmit={(event) => void searchProduct(event)}>
+              <label>
+                {t("Buscar por")}
+                <select
+                  value={productMode}
+                  onChange={(event) => {
+                    setProductMode(event.target.value as "fraccion" | "descripcion");
+                    setProductSearch(null);
+                  }}
+                >
+                  <option value="fraccion">{t("Fracción arancelaria mexicana")}</option>
+                  <option value="descripcion">{t("Descripción del producto")}</option>
+                </select>
+              </label>
+              <label className="product-query">
+                {productMode === "fraccion"
+                  ? t("Fracción arancelaria / NICO")
+                  : t("Descripción, materiales o uso")}
+                <input
+                  required
+                  maxLength={500}
+                  value={productValue}
+                  onChange={(event) => setProductValue(event.target.value)}
+                  placeholder={
+                    productMode === "fraccion"
+                      ? t("Ej. 8501.10.01 o 8501.10.01 00")
+                      : t("Ej. motor eléctrico de corriente continua para actuador")
+                  }
+                />
+              </label>
+              <button className="button ink" type="submit" disabled={!ready || productBusy}>
+                <Icon name="search" />
+                {t(productBusy ? "Buscando…" : "Buscar posibles coincidencias")}
+              </button>
+            </form>
+            <p className="product-search-hint">
+              {t(
+                "La fracción admite 8 dígitos o 10 con NICO. Para descripción, incluye tipo de producto, material y uso cuando los conozcas.",
+              )}
+            </p>
+            {admin && (
+              <div className="product-tracking-control">
+                <p>
+                  {t(
+                    "Como administrador, puedes guardar esta entrada para que el monitor la compare con publicaciones actuales y futuras.",
+                  )}
+                </p>
+                <button
+                  className="button paper"
+                  type="button"
+                  onClick={() => void saveProductForMonitoring()}
+                  disabled={!productValue.trim() || productBusy}
+                >
+                  {t(productBusy ? "Guardando…" : "Guardar para seguimiento")}
+                </button>
+              </div>
+            )}
+            {admin && trackedProducts.length > 0 && (
+              <label className="tracked-product-select">
+                {t("Productos en seguimiento")}
+                <select
+                  value={trackedProduct?.id || ""}
+                  onChange={(event) => {
+                    const selected = trackedProducts.find(
+                      (item) => String(item.id) === event.target.value,
+                    );
+                    setTrackedProduct(selected || null);
+                    setProductAlerts([]);
+                    if (selected)
+                      void loadProductAlerts(selected.id).catch((e) =>
+                        setError((e as Error).message),
+                      );
+                  }}
+                >
+                  <option value="">{t("Selecciona un producto guardado")}</option>
+                  {trackedProducts.map((item) => (
+                    <option key={item.id} value={item.id}>{item.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {trackedProduct && (
+              <section className="tracked-product">
+                <div className="section-rule">
+                  <h2>{t("Seguimiento activo")}: {trackedProduct.name}</h2>
+                  <button
+                    className="text-button"
+                    onClick={() => void loadProductAlerts(trackedProduct.id).catch((e) => setError((e as Error).message))}
+                  >
+                    {t("Actualizar coincidencias")}
+                  </button>
+                </div>
+                <p className="product-search-hint">
+                  {t(
+                    "Las propuestas se generan al procesar publicaciones y requieren revisión humana; no son decisiones de aplicabilidad.",
+                  )}
+                </p>
+                {productAlerts.length === 0 ? (
+                  <p className="empty-edition">
+                    {t("Aún no hay propuestas de coincidencia para este producto.")}
+                  </p>
+                ) : (
+                  productAlerts.map((alert: Row) => (
+                    <article className="product-match" key={alert.id}>
+                      <button
+                        className="headline-link"
+                        onClick={() => void open(alert.publication_id)}
+                      >
+                        {alert.publication_title}
+                      </button>
+                      <p className="article-excerpt">{alert.reason}</p>
+                      <div className="article-meta">
+                        <span>{t(alert.status)}</span>
+                        <span>{t(alert.decision)}</span>
+                      </div>
+                    </article>
+                  ))
+                )}
+              </section>
+            )}
+            {productSearch && (
+              <section className="product-search-results" aria-live="polite">
+                <div className="section-rule">
+                  <h2>{t("Coincidencias para revisar")}</h2>
+                  <span>{t("{count} resultados", { count: productSearch.total })}</span>
+                </div>
+                <p className="product-search-disclaimer">{t(productSearch.disclaimer)}</p>
+                {productSearch.results.length === 0 ? (
+                  <div className="empty-edition">
+                    <h2>{t("No encontramos coincidencias en las publicaciones guardadas.")}</h2>
+                    <p>
+                      {t(
+                        "Esto no confirma que no existan NOM aplicables: el archivo puede estar incompleto o la publicación puede no mencionar esos términos.",
+                      )}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="product-match-list">
+                    {productSearch.results.map((result: Row) => {
+                      const publication = result.publication;
+                      const match = result.match;
+                      return (
+                        <article className="product-match" key={publication.id}>
+                          <div className="article-kicker">
+                            <span>{t(publication.source_name)}</span>
+                            <span>{t(types[publication.kind] || "Publicación")}</span>
+                            <b className="change-flag">
+                              {t(
+                                match.type === "fraccion_exacta"
+                                  ? "Coincidencia de fracción"
+                                  : match.type === "fraccion_base"
+                                    ? "Coincidencia de fracción base"
+                                    : "Coincidencia por descripción",
+                              )}
+                            </b>
+                          </div>
+                          <button
+                            className="headline-link"
+                            onClick={() => void open(publication.id)}
+                          >
+                            {publication.title}
+                          </button>
+                          <p className="article-excerpt" lang="es">{match.evidence}</p>
+                          {match.matched_terms.length > 0 && (
+                            <p className="matched-terms">
+                              {t("Términos encontrados")}: {match.matched_terms.join(", ")}
+                            </p>
+                          )}
+                          <div className="article-meta">
+                            <span>
+                              {publication.published_on
+                                ? format(publication.published_on)
+                                : t("Sin fecha oficial confirmada")}
+                            </span>
+                            <span>{publication.official_id}</span>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+                {productSearch.truncated && (
+                  <p className="product-search-hint">
+                    {t("Se muestran los primeros 30 resultados más relevantes.")}
+                  </p>
+                )}
+              </section>
+            )}
+          </section>
+        )}
         {view === "archivo" && (
           <section className="section-intro">
             <span className="eyebrow">{t("LA HEMEROTECA")}</span>

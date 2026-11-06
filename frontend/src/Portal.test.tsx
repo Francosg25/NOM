@@ -75,4 +75,95 @@ describe("public portal", () => {
       vi.unstubAllGlobals();
     }
   });
+
+  it("searches saved NOM publications by Mexican tariff code or product description", async () => {
+    const user = userEvent.setup();
+    const fetch = vi.fn(async (input: string, init?: RequestInit) => {
+      const url = new URL(input, "http://localhost");
+      let data: unknown = {};
+      if (url.pathname === "/api/me") data = { role: "consulta" };
+      if (url.pathname === "/api/dashboard") data = { sources: [] };
+      if (url.pathname === "/api/publications") data = { total: 0, items: [] };
+      if (url.pathname === "/api/jobs") data = { items: [] };
+      if (url.pathname === "/api/product-search") {
+        const body = JSON.parse(String(init?.body));
+        data = {
+          mode: body.mode,
+          value: body.value,
+          total: 1,
+          truncated: false,
+          disclaimer: "Coincidencias textuales en publicaciones SIDOF guardadas. No determinan si una NOM aplica al producto ni sustituyen la clasificación arancelaria o revisión de la disposición oficial.",
+          results: [{
+            publication: {
+              id: 8, title: "Publicación controlada NOM", official_id: "CONTROLLED-8",
+              published_on: "2026-01-02", kind: "norma_definitiva", source_name: "SIDOF",
+            },
+            match: {
+              type: body.mode === "fraccion" ? "fraccion_exacta" : "descripcion",
+              matched_terms: [body.value], evidence: "Evidencia textual controlada.",
+            },
+          }],
+        };
+      }
+      return new Response(JSON.stringify(data), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetch);
+    try {
+      render(<Portal />);
+      await user.click(await screen.findByRole("button", { name: "Consultar producto" }));
+      await user.type(screen.getByLabelText("Fracción arancelaria / NICO"), "85011001");
+      await user.click(screen.getByRole("button", { name: "Buscar posibles coincidencias" }));
+      expect(await screen.findByRole("button", { name: "Publicación controlada NOM" })).toBeVisible();
+      expect(screen.getByText("Evidencia textual controlada.")).toBeVisible();
+      expect(fetch.mock.calls.some(([url]) => url.endsWith("/api/product-search"))).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("lets administrators save a tariff code for ongoing monitoring and review suggestions", async () => {
+    const user = userEvent.setup();
+    const fetch = vi.fn(async (input: string, init?: RequestInit) => {
+      const url = new URL(input, "http://localhost");
+      let data: unknown = {};
+      if (url.pathname === "/api/me") data = { role: "administrador" };
+      if (url.pathname === "/api/dashboard") data = { sources: [] };
+      if (url.pathname === "/api/publications") data = { total: 0, items: [] };
+      if (url.pathname === "/api/jobs") data = { items: [] };
+      if (url.pathname === "/api/catalog" && init?.method === "POST") {
+        const body = JSON.parse(String(init.body));
+        data = {
+          ...body, id: 21, missing_fields: [],
+        };
+      }
+      if (url.pathname === "/api/catalog" && init?.method !== "POST") data = { items: [] };
+      if (url.pathname === "/api/alerts") {
+        data = {
+          items: [{
+            id: 31, publication_id: 8, publication_title: "NOM para revisión",
+            reason: "Coincidencia de fracción base", status: "pendiente", decision: "propuesta",
+          }],
+        };
+      }
+      return new Response(JSON.stringify(data), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetch);
+    try {
+      render(<Portal />);
+      await user.click(await screen.findByRole("button", { name: "Consultar producto" }));
+      await user.type(screen.getByLabelText("Fracción arancelaria / NICO"), "8501.10.01 12");
+      await user.click(screen.getByRole("button", { name: "Guardar para seguimiento" }));
+      expect(await screen.findByText("NOM para revisión")).toBeVisible();
+      const saved = fetch.mock.calls.find(
+        ([url, init]) => url.endsWith("/api/catalog") && init?.method === "POST",
+      );
+      expect(saved).toBeDefined();
+      const body = JSON.parse(String(saved?.[1]?.body));
+      expect(body.tariff_code).toBe("85011001");
+      expect(body.nico).toBe("12");
+      expect(body.active).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
