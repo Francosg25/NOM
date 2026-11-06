@@ -1,6 +1,6 @@
 # Fuentes sin conexión / Source connection failures
 
-Desde 0.5.0, el diagnóstico comprueba únicamente SIDOF. Los errores de otras fuentes descritos más abajo corresponden al historial de diagnóstico anterior. El boletín ya no consulta esas fuentes.
+El diagnóstico de red comprueba únicamente la API SIDOF; no prueba acceso ni cobertura de PLATIICA. El monitor de producción usa SIDOF y el Catálogo Mexicano de Normas de PLATIICA. Los errores de otras fuentes descritos más abajo corresponden al historial de diagnóstico anterior.
 
 La versión 0.4.1 usa **CryptoAPI de Windows mediante truststore** para construir y validar la cadena de certificados, incluidos los intermedios que Windows pueda recuperar. Linux/App Service conserva OpenSSL con autoridades del sistema y certifi. Se mantiene la validación de certificado y nombre de servidor. No se instalan certificados ni se modifica la configuración de red. Desde 0.4.0, la prueba SIDOF consulta la API de notas del día, el mismo canal usado por el descubrimiento diario.
 

@@ -65,7 +65,7 @@ describe("public portal", () => {
       await user.click(screen.getByRole("button", { name: "English" }));
       expect(screen.getByText("Some dates still need checking.")).toBeVisible();
       expect(localStorage.getItem("nom-language")).toBe("en");
-      await user.click(screen.getByRole("button", { name: "SIDOF status" }));
+      await user.click(screen.getByRole("button", { name: "Source status" }));
       expect(screen.getByText("Saved publications")).toBeVisible();
       expect(screen.getByText("Last complete period check")).toBeVisible();
       expect(screen.getByText("Next automatic check")).toBeVisible();
@@ -91,6 +91,17 @@ describe("public portal", () => {
           mode: body.mode,
           value: body.value,
           total: 1,
+          searched_publications: 12,
+          catalog: {
+            records: 5,
+            current_norms: 4,
+            unresolved_status: 0,
+            missing_product_scope: 0,
+            synchronized: true,
+            last_job_status: "succeeded",
+            last_checked_at: "2026-01-03T00:00:00Z",
+            pending_pages: 0,
+          },
           truncated: false,
           disclaimer: "Coincidencias textuales en publicaciones SIDOF guardadas. No determinan si una NOM aplica al producto ni sustituyen la clasificación arancelaria o revisión de la disposición oficial.",
           results: [{
@@ -115,6 +126,8 @@ describe("public portal", () => {
       await user.click(screen.getByRole("button", { name: "Buscar posibles coincidencias" }));
       expect(await screen.findByRole("button", { name: "Publicación controlada NOM" })).toBeVisible();
       expect(screen.getByText("Evidencia textual controlada.")).toBeVisible();
+      expect(screen.getByText("Se revisaron 12 documentos de NOM vigentes y publicaciones SIDOF.")).toBeVisible();
+      expect(screen.getByText("Catálogo PLATIICA: 4 NOM vigentes entre 5 fichas guardadas.")).toBeVisible();
       expect(fetch.mock.calls.some(([url]) => url.endsWith("/api/product-search"))).toBe(true);
     } finally {
       vi.unstubAllGlobals();

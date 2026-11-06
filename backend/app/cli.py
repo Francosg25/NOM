@@ -17,10 +17,17 @@ from .db import SessionLocal
 from .jobs import ingest_document, request_job, run_once, reevaluate_all
 from .models import Audit, CatalogItem, Job, Publication, Source, utcnow
 from .collectors.sidof import API_BASE
+from .collectors.platiica_catalog import SITEMAP_URL
 from .storage import get_storage
 
 
 INITIAL_SOURCES = (
+    (
+        "Catálogo Mexicano de Normas · PLATIICA",
+        "platiica_catalog",
+        [SITEMAP_URL],
+        "Catálogo oficial PLATIICA: fichas NOM, estado y ámbito de producto/servicio. Carga inicial y cambios según sus sitemaps; el estado de sincronización indica si la cola terminó. No determina aplicabilidad legal.",
+    ),
     (
         "SIDOF · publicaciones diarias",
         "sidof",
@@ -53,8 +60,12 @@ def init_sources(db):
 
 
 def retire_legacy_sources(db):
-    """SIDOF-only portal; keep historical documents and jobs for traceability."""
-    for source in db.scalars(select(Source).where(Source.kind != "sidof", Source.kind != "demo")):
+    """Keep official NOM-catalogue and SIDOF sources; preserve retired history."""
+    for source in db.scalars(
+        select(Source).where(
+            Source.kind.not_in(("sidof", "platiica_catalog", "demo"))
+        )
+    ):
         if source.active or source.schedule_enabled:
             source.active = False
             source.schedule_enabled = False
@@ -72,7 +83,7 @@ def retire_legacy_sources(db):
             job.status = "cancelled"
             job.active_key = None
             job.finished_at = utcnow()
-            job.error = "Fuente retirada: el portal utiliza únicamente SIDOF."
+            job.error = "Fuente retirada del seguimiento automático; se conservan los registros históricos."
     db.commit()
 
 
@@ -94,7 +105,7 @@ def upgrade_sidof_source(db):
     }
     source.urls, source.expected_terms = [API_BASE], []
     source.name = "SIDOF · publicaciones diarias"
-    source.coverage = INITIAL_SOURCES[-1][3]
+    source.coverage = next(item[3] for item in INITIAL_SOURCES if item[1] == "sidof")
     lookback = utcnow().astimezone(ZoneInfo("America/Mexico_City")).date() - timedelta(days=6)
     source.schedule_start = min(source.schedule_start, lookback) if source.schedule_start else None
     if source.frequency_hours == 24:
@@ -258,7 +269,9 @@ def main():
     verify.add_argument("--start", type=date.fromisoformat, required=True)
     verify.add_argument("--end", type=date.fromisoformat, required=True)
     verify.add_argument(
-        "--expected", type=Path, help='JSON: {"dof": ["DOF:..."]}; inventario manual del periodo'
+        "--expected",
+        type=Path,
+        help='JSON: {"sidof": ["DOF:..."], "platiica_catalog": ["PLATIICA:NOM-..."]}; inventarios manuales',
     )
     verify.add_argument("--output", type=Path, default=Path("data/validation.json"))
     verify.add_argument("--max-batches", type=int, default=10)

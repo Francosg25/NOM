@@ -1,6 +1,6 @@
 # Fuentes y cobertura de recopilación
 
-Desde la versión 0.5.0, SIDOF es la única fuente activa. DOF HTML, PLATIICA y SNICE se retiran del seguimiento, sin borrar sus registros históricos. Las descripciones de esos conectores que siguen documentan el alcance anterior. El diagnóstico ahora consulta únicamente SIDOF.
+El seguimiento combina el Catálogo Mexicano de Normas de PLATIICA con publicaciones diarias de SIDOF. PLATIICA proporciona el inventario de fichas; SIDOF detecta publicaciones y cambios del DOF. Las fuentes antiguas DOF HTML, PLATIICA de fichas individuales y SNICE se desactivan sin borrar sus registros históricos. El diagnóstico de red consulta SIDOF; no valida la cobertura del catálogo PLATIICA.
 
 Esta versión propone relaciones para revisión humana; no determina aplicabilidad
 legal ni autorización de importación. «Completa» en una ejecución significa que
@@ -55,13 +55,37 @@ que su estructura sea compatible: un índice SIDOF no se acepta como índice DOF
 Un índice sin notas y sin texto explícito de ausencia se considera estructura
 desconocida y deja el periodo pendiente, nunca «sin cambios».
 
-## PLATIICA
+## Catálogo NOM de PLATIICA
+
+El conector `platiica_catalog` consulta el índice oficial
+`/normalizacion/wp-sitemap.xml`, sus sitemaps de entradas y las fichas cuya ruta
+es `/normalizacion/nom-.../`. Conserva también fichas no vigentes para mantener
+el historial; la búsqueda de producto solo incluye fichas cuyo estado explícito
+es `Vigente`. Cada versión guarda la clave, título, estado, fechas y el campo
+oficial de producto/servicio, además del texto, enlaces y copia HTML de evidencia.
+
+La primera carga es una cola durable por lotes. Se reanuda tras interrupciones y
+los errores quedan pendientes, no se confunden con una ficha ausente. En las
+revisiones posteriores se vuelven a descargar las fichas cuyo `lastmod` del
+sitemap cambió; si falta esa fecha, la ficha se vuelve a revisar. Una pasada
+completa significa solamente que se agotó la cola de las fichas detectadas en
+los sitemaps consultados. No demuestra que PLATIICA incluya todas las NOM ni que
+cada estado esté correctamente informado. Antes de declarar completa la carga,
+contrastar independientemente el conjunto y el conteo con el catálogo oficial y
+resolver las fichas con estado o ámbito de producto incompleto.
+
+La fracción arancelaria no se trata como una relación oficial con una NOM:
+PLATIICA no proporciona esa tabla en la ficha. La búsqueda ofrece coincidencias
+textuales explicables y no determina aplicabilidad ni clasificación legal.
+
+## PLATIICA de fichas concretas (conector anterior)
 
 Seguimiento de **fichas/documentos concretos** configurados por el administrador
 en `platiica.economia.gob.mx`. No hay descubrimiento global de nuevas fichas.
 La URL normalizada es la identidad provisional cuando no existe un identificador
 oficial extraíble; no se presenta ese identificador técnico como número de NOM.
-Una portada sin ruta no se admite como sustituto de una ficha. Se configura la ficha real del piloto NOM-014-ENER-2025. Se pueden agregar otras fichas verificadas, sin asumir cobertura global.
+Una portada sin ruta no se admite como sustituto de una ficha. Este conector anterior se conserva solo para historial; el inventario actual se
+obtiene desde `platiica_catalog`.
 
 ## SNICE
 

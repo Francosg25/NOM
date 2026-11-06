@@ -112,7 +112,7 @@ class CatalogInput(Input):
 
 class SourceInput(Input):
     name: str | None = Field(None, min_length=1, max_length=200)
-    kind: Literal["dof", "sidof", "platiica", "snice"] | None = None
+    kind: Literal["dof", "sidof", "platiica", "platiica_catalog", "snice"] | None = None
     urls: list[str] | None = Field(None, max_length=100)
     expected_terms: list[str] | None = Field(None, max_length=50)
     frequency_hours: int | None = Field(None, ge=1, le=8760)
@@ -205,6 +205,7 @@ def source_progress(db, sources):
         count, downloaded = totals.get(source.id, (0, None))
         job = latest.get(source.id)
         queue = (job.continuation or {}).get("queue", []) if job else []
+        cursor = (job.continuation or {}).get("cursor", 0) if job else 0
         pending = sorted({item["day"] for item in queue if isinstance(item, dict) and item.get("day")})
         result.append(
             {
@@ -213,6 +214,8 @@ def source_progress(db, sources):
                 "last_download_at": downloaded,
                 "last_full_review_at": source.last_success_at,
                 "pending_dates": pending,
+                "pending_items": max(0, len(queue) - cursor)
+                + len((job.continuation or {}).get("failed", []) if job else []),
                 "latest_check_status": job.status if job else None,
             }
         )
@@ -508,6 +511,13 @@ def validate_source_urls(kind, urls):
     from urllib.parse import urlsplit
     from .collectors import validate_url, CollectionError
 
+    host_kind = kind
+    if kind == "platiica_catalog":
+        from .collectors.platiica_catalog import SITEMAP_URL
+
+        if urls != [SITEMAP_URL]:
+            raise HTTPException(422, "El catálogo NOM requiere el sitemap oficial de PLATIICA")
+        host_kind = "platiica"
     if kind == "sidof" and any("/dof/sidof" in urlsplit(u).path for u in urls):
         from .collectors.sidof import validate_api_urls
 
@@ -527,7 +537,7 @@ def validate_source_urls(kind, urls):
     from .collectors.core import HOSTS
 
     hosts = HOSTS
-    if any(urlsplit(u).hostname not in hosts[kind] for u in urls):
+    if any(urlsplit(u).hostname not in hosts[host_kind] for u in urls):
         raise HTTPException(422, "El dominio no coincide con el conector de la fuente")
     if kind == "dof" and any(
         urlsplit(u).hostname not in {"www.dof.gob.mx", "dof.gob.mx"} or urlsplit(u).path != "/index.php"
@@ -559,6 +569,10 @@ def create_source(
     data = body.model_dump(exclude_unset=True)
     if not data.get("name") or not data.get("kind"):
         raise HTTPException(422, "Nombre y conector son obligatorios")
+    if data["kind"] == "platiica_catalog" and db.scalar(
+        select(Source.id).where(Source.kind == "platiica_catalog").limit(1)
+    ):
+        raise HTTPException(409, "El catálogo PLATIICA ya está registrado")
     if any(v is None for k, v in data.items() if k != "schedule_start"):
         raise HTTPException(422, "Los campos de fuente no admiten null")
     validate_source_urls(data["kind"], data.get("urls") or [])
@@ -583,6 +597,10 @@ def update_source(
     data = body.model_dump(exclude_unset=True)
     if any(v is None for k, v in data.items() if k != "schedule_start"):
         raise HTTPException(422, "Los campos de fuente no admiten null")
+    if data.get("kind") == "platiica_catalog" and obj.kind != "platiica_catalog" and db.scalar(
+        select(Source.id).where(Source.kind == "platiica_catalog", Source.id != id).limit(1)
+    ):
+        raise HTTPException(409, "El catálogo PLATIICA ya está registrado")
     if any(
         key in data and data[key] != getattr(obj, key) for key in ("kind", "urls", "expected_terms", "active")
     ) and db.scalar(select(Job).where(Job.source_id == id, Job.active_key.is_not(None))):

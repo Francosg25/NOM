@@ -1,6 +1,6 @@
 # norma. · NOM Monitor
 
-Versión **0.6.0**. Boletín de publicaciones relacionadas con NOM, con **SIDOF como única fuente activa**, interfaz Español/English y una lectura sencilla: una tipografía, fondo claro, búsqueda y publicaciones en una sola columna.
+Versión **0.6.0**. Monitor de NOM con el catálogo oficial PLATIICA como inventario y SIDOF para revisar publicaciones diarias del DOF; interfaz Español/English y una lectura sencilla: una tipografía, fondo claro, búsqueda y publicaciones en una sola columna.
 
 Esta versión añade respaldos/restauración verificables, supervisión del monitor, sonda de despliegue, pruebas de navegador/accesibilidad y dependencias transitivas fijadas con hashes. Mantiene la instalación sencilla. [Operación y aceptación Azure](docs/OPERATIONS.md) · [Calidad y dependencias](docs/QUALITY.md) · [Revisión experta de cobertura](docs/COVERAGE_REVIEW.md). El despliegue y la aceptación reales siguen pendientes.
 
@@ -14,20 +14,20 @@ El ZIP incluye la interfaz compilada. No requiere Node para abrirlo. Usa Python 
 
 ## Actualización automática
 
-El servidor consulta SIDOF cada hora por defecto, también cuando nadie visita el portal. Cerrar el navegador no detiene las consultas. En local, la computadora y el servidor deben permanecer encendidos y sin suspenderse. En App Service, habilita Always On y conserva MONITOR_ENABLED=true y SCHEDULER_ENABLED=true. El portal muestra próxima consulta automática, última descarga, última revisión completa y fechas pendientes. Las nuevas publicaciones aparecen al volver a abrir el portal. Consultar SIDOF es una actualización manual adicional.
+El servidor consulta SIDOF cada hora y sincroniza el sitemap del catálogo PLATIICA diariamente, también cuando nadie visita el portal. La carga inicial del catálogo se procesa por lotes y puede tardar; si se interrumpe, el trabajo conserva su continuación. Cerrar el navegador no detiene las consultas. En local, la computadora y el servidor deben permanecer encendidos y sin suspenderse. En App Service, habilita Always On y conserva MONITOR_ENABLED=true y SCHEDULER_ENABLED=true. El portal muestra el estado, las fichas pendientes y la última ejecución. Una cola completa solo cubre las fichas incluidas en los sitemaps consultados; contrasta la carga con el catálogo oficial antes de afirmar cobertura completa.
 
 ## Uso
 
-- **Consultar SIDOF** solicita una consulta de los últimos siete días. El servidor también consulta automáticamente con la frecuencia configurada, mientras permanezca encendido.
+- **Consultar SIDOF** solicita una consulta de los últimos siete días. El servidor también revisa automáticamente las publicaciones SIDOF y sincroniza las fichas modificadas en los sitemaps de PLATIICA.
 - **Novedades** muestra las publicaciones recuperadas ordenadas por fecha oficial. La fecha de detección se conserva por separado.
 - **Buscar publicaciones** permite buscar por NOM o palabra, fecha, tipo y cambios guardados.
-- **Consultar producto** busca coincidencias textuales en las publicaciones SIDOF guardadas usando una fracción mexicana de 8 dígitos (o 10 con NICO) o una descripción. Muestra los términos y el fragmento encontrado para revisión. Una persona con rol administrador puede guardar la entrada en el catálogo para reevaluar publicaciones actuales y proponer coincidencias en las nuevas; se muestran en esa vista y requieren revisión humana.
+- **Consultar producto** busca coincidencias textuales en NOM vigentes guardadas desde PLATIICA y en publicaciones SIDOF usando una fracción mexicana de 8 dígitos (o 10 con NICO) o una descripción. Muestra estado, ámbito de producto/servicio y evidencia para revisión. Una persona con rol administrador puede guardar la entrada en el catálogo para reevaluar publicaciones y proponer coincidencias; requieren revisión humana.
 - Abre un título para leer su contenido, consultar versiones, descargar la copia original y visitar SIDOF.
-- **Estado de SIDOF** muestra la programación y el historial. Ver revisión diaria permite inspeccionar fechas, notas y referencias pendientes.
+- **Estado de fuentes** muestra la carga inicial, la programación y el historial de PLATIICA y SIDOF.
 
-La consulta por producto solo busca texto en el archivo SIDOF guardado; no consulta una base oficial de fracciones ni garantiza que el archivo esté completo. Guardar un producto requiere permisos de administrador y registra sus datos en el catálogo local para el seguimiento futuro. Una coincidencia es una pista para revisión humana, no una determinación de aplicabilidad. La fracción arancelaria por sí sola puede no describir todos los aspectos relevantes del producto. Las revisiones parciales pueden haber guardado publicaciones válidas; las notas sin información suficiente y las fechas no verificadas quedan pendientes.
+La consulta por producto no relaciona automáticamente una fracción con una NOM: PLATIICA no proporciona esa tabla en las fichas consultadas. Una coincidencia textual es una pista, no una determinación de aplicabilidad. Guardar un producto requiere permisos de administrador y registra sus datos en el catálogo local para el seguimiento futuro. Las revisiones parciales pueden haber guardado documentos válidos; las fichas sin estado o sin ámbito de producto quedan señaladas y no se presentan como NOM vigentes.
 
-La actualización desactiva DOF HTML, PLATIICA y SNICE y cancela sus consultas en cola. Conserva las publicaciones, evidencia y trabajos históricos. El boletín filtra por SIDOF; los registros anteriores siguen disponibles en la API para trazabilidad. No se borran documentos para cambiar de fuente.
+La actualización conserva las publicaciones y trabajos históricos de fuentes anteriores, pero la búsqueda actual usa el conector del catálogo PLATIICA y SIDOF. No se borran documentos para cambiar de fuente.
 
 ## Local y Azure
 

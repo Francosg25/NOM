@@ -6,7 +6,7 @@ import re
 import socket
 import time
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Callable
 from urllib.parse import parse_qs, parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 from urllib.robotparser import RobotFileParser
@@ -43,6 +43,9 @@ class Document:
     media_type: str = "text/html"
     processing_note: str | None = None
     links: list[str] = field(default_factory=list)
+    norm_status: str | None = None
+    product_scope: str | None = None
+    source_updated_at: datetime | None = None
 
 
 @dataclass

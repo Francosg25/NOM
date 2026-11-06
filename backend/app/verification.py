@@ -10,9 +10,11 @@ from .collectors.sidof import is_daily
 
 def validate_expected(expected):
     if not isinstance(expected, dict) or any(
-        k not in {"dof", "sidof", "platiica", "snice"} for k in expected
+        k not in {"dof", "sidof", "platiica", "platiica_catalog", "snice"} for k in expected
     ):
-        raise ValueError("Inventario esperado: objeto JSON con claves dof, sidof, platiica o snice")
+        raise ValueError(
+            "Inventario esperado: objeto JSON con claves dof, sidof, platiica, platiica_catalog o snice"
+        )
     if any(
         not isinstance(ids, list) or any(not isinstance(id, str) or not id.strip() for id in ids)
         for ids in expected.values()
@@ -46,6 +48,7 @@ def verify_sources(db, storage, start, end, expected=None, max_batches=10):
             "errors": [],
             "expected_ids": expected.get(source.kind),
             "daily_discovery": source.kind == "dof" or source.kind == "sidof" and is_daily(source.urls),
+            "catalog_discovery": source.kind == "platiica_catalog",
         }
         before = db.scalar(
             select(func.count(Version.id)).join(Publication).where(Publication.source_id == source.id)
@@ -98,12 +101,23 @@ def verify_sources(db, storage, start, end, expected=None, max_batches=10):
                 id for id, o in observed.items() if not o["published_on"]
             )
             # Inventories refer to explicit publication dates, never detection dates.
-            ids = sorted(
-                id
-                for id, o in observed.items()
-                if o["published_on"] and start <= date.fromisoformat(o["published_on"]) <= end
-            )
-            entry["observed_ids_in_period"] = ids
+            if entry["catalog_discovery"]:
+                ids = sorted(
+                    db.scalars(
+                        select(Publication.official_id).where(
+                            Publication.source_id == source.id,
+                            func.lower(Publication.norm_status) == "vigente",
+                        )
+                    )
+                )
+                entry["catalog_current_ids"] = ids
+            else:
+                ids = sorted(
+                    id
+                    for id, o in observed.items()
+                    if o["published_on"] and start <= date.fromisoformat(o["published_on"]) <= end
+                )
+                entry["observed_ids_in_period"] = ids
             checks = db.scalars(
                 select(Audit)
                 .where(
@@ -127,7 +141,7 @@ def verify_sources(db, storage, start, end, expected=None, max_batches=10):
                 if entry["missing_index_dates"]:
                     entry["passed"] = False
                     entry["errors"].append("Hay fechas SIDOF sin índice diario verificado en esta consulta")
-            if not entry["daily_discovery"] and not observed:
+            if not entry["daily_discovery"] and not entry["catalog_discovery"] and not observed:
                 entry["passed"] = False
                 entry["errors"].append("La consulta no observó ningún documento configurado")
             if entry["daily_discovery"] and entry["unknown_publication_dates"]:
@@ -173,9 +187,15 @@ def verify_sources(db, storage, start, end, expected=None, max_batches=10):
         report["passed"] &= bool(entry["passed"])
     report["passed"] &= bool(report["sources"])
     dof = [s for s in report["sources"] if s["daily_discovery"]]
-    report["coverage_verified"] = bool(dof) and all(
+    catalog = [s for s in report["sources"] if s["catalog_discovery"]]
+    dof_verified = not dof or all(
         s["passed"] and s.get("inventory_matches", False) and not s.get("unresolved_ids") for s in dof
     )
+    catalog_verified = not catalog or all(
+        s["passed"] and s.get("expected_ids") is not None and s.get("inventory_matches", False)
+        for s in catalog
+    )
+    report["coverage_verified"] = bool(dof or catalog) and dof_verified and catalog_verified
     report["technical_passed"] = bool(report["passed"])
     report["passed"] = report["technical_passed"] and report["coverage_verified"]
     report["note"] = (

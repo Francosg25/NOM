@@ -528,6 +528,7 @@ def test_product_search_supports_mexican_tariff_codes_and_descriptions(api):
     })
     assert tariff.status_code == 200
     assert tariff.json()['total'] == 1
+    assert tariff.json()['searched_publications'] == 2
     assert tariff.json()['results'][0]['match']['type'] == 'fraccion_exacta'
     assert '8501.10.01' in tariff.json()['results'][0]['match']['evidence']
 
@@ -545,6 +546,90 @@ def test_product_search_supports_mexican_tariff_codes_and_descriptions(api):
         'mode': 'fraccion', 'value': '8501.10',
     })
     assert invalid.status_code == 422
+
+
+def test_product_search_includes_only_current_platiica_norms_and_reports_sync(api):
+    client, sessions, _, _ = api
+    with sessions() as db:
+        source = Source(
+            name='Catálogo PLATIICA',
+            kind='platiica_catalog',
+            urls=['https://platiica.economia.gob.mx/normalizacion/wp-sitemap.xml'],
+            schedule_enabled=True,
+        )
+        db.add(source)
+        db.flush()
+        publications = [
+            Publication(
+                source_id=source.id,
+                official_id='PLATIICA:NOM-037-SCT2-2020',
+                url='https://platiica.economia.gob.mx/normalizacion/nom-037-sct2-2020/',
+                title='NOM-037-SCT2-2020 - Barreras de protección',
+                kind='norma_vigente',
+                norm_status='Vigente',
+                product_scope='Carreteras y vías urbanas',
+            ),
+            Publication(
+                source_id=source.id,
+                official_id='PLATIICA:NOM-010-STPS-1999',
+                url='https://platiica.economia.gob.mx/normalizacion/nom-010-stps-1999/',
+                title='NOM-010-STPS-1999 - Agentes químicos',
+                kind='norma_no_vigente',
+                norm_status='Cancelada',
+                product_scope='Centros de trabajo',
+            ),
+            Publication(
+                source_id=source.id,
+                official_id='PLATIICA:NOM-UNKNOWN',
+                url='https://platiica.economia.gob.mx/normalizacion/nom-unknown/',
+                title='NOM pendiente',
+                kind='norma_no_vigente',
+                norm_status='Estado no informado',
+            ),
+        ]
+        db.add_all(publications)
+        db.flush()
+        for index, publication in enumerate(publications):
+            version = Version(
+                publication_id=publication.id,
+                content='Barreras de protección para carreteras y vías urbanas.',
+                content_hash=f'platiica-fixture-{index}',
+            )
+            db.add(version)
+            db.flush()
+            publication.current_version_id = version.id
+        db.add(
+            Job(
+                id='platiica-succeeded',
+                source_id=source.id,
+                requested_by='scheduler',
+                period_start=date(2026, 1, 3),
+                period_end=date(2026, 1, 3),
+                status='succeeded',
+            )
+        )
+        db.commit()
+
+    response = client.post('/api/product-search', json={
+        'mode': 'descripcion', 'value': 'barreras carreteras',
+    })
+    assert response.status_code == 200
+    result = response.json()
+    assert result['total'] == 1
+    assert result['searched_publications'] == 1
+    assert result['results'][0]['publication']['official_id'] == 'PLATIICA:NOM-037-SCT2-2020'
+    assert result['results'][0]['publication']['norm_status'] == 'Vigente'
+    assert result['results'][0]['publication']['product_scope'] == 'Carreteras y vías urbanas'
+    assert result['catalog'] == {
+        'records': 3,
+        'current_norms': 1,
+        'unresolved_status': 1,
+        'missing_product_scope': 1,
+        'synchronized': True,
+        'last_job_status': 'succeeded',
+        'last_checked_at': None,
+        'pending_pages': 0,
+    }
 
 
 def test_alerts_can_be_filtered_for_a_tracked_product(api):

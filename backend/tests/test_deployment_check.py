@@ -21,7 +21,12 @@ def test_deployment_probe_rejects_regressions_after_restart(fault):
             "/api/health": {"frontend": {"version": "wrong" if fault == "version" else "0.6.0"}},
             "/api/ready": {"status": "ready"},
             "/api/operations": {"codes": []},
-            "/api/dashboard": {"sources": [{"active": True, "kind": "sidof", "publication_count": 1}]},
+            "/api/dashboard": {
+                "sources": [
+                    {"active": True, "kind": "sidof", "publication_count": 1},
+                    {"active": True, "kind": "platiica_catalog", "publication_count": 0},
+                ]
+            },
             "/api/jobs": {
                 "items": [
                     {

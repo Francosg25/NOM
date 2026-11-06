@@ -94,3 +94,48 @@ def test_tampered_evidence_fails_acceptance(state, monkeypatch):
 def test_malformed_inventory_is_rejected(expected):
     with pytest.raises(ValueError):
         verification.validate_expected(expected)
+
+
+def test_official_platiica_inventory_key_is_supported():
+    expected = {'platiica_catalog': ['PLATIICA:NOM-037-SCT2-2020']}
+    assert verification.validate_expected(expected) == expected
+
+
+def test_catalog_coverage_requires_and_matches_an_independent_current_nom_inventory(tmp_path, monkeypatch):
+    from app.collectors import Batch, Document, platiica_catalog
+
+    engine = create_engine(f'sqlite:///{tmp_path / "catalog-acceptance.db"}')
+    Base.metadata.create_all(engine)
+    with sessionmaker(bind=engine, expire_on_commit=False)() as db:
+        source = Source(
+            name='PLATIICA',
+            kind='platiica_catalog',
+            urls=['https://platiica.economia.gob.mx/normalizacion/wp-sitemap.xml'],
+        )
+        db.add(source)
+        db.commit()
+        doc = Document(
+            'PLATIICA:NOM-037-SCT2-2020',
+            'https://platiica.economia.gob.mx/normalizacion/nom-037-sct2-2020/',
+            'NOM-037-SCT2-2020 - Barreras',
+            'Estado de la Norma: Vigente\nProducto, servicio, proceso o sistema: Carreteras',
+            raw=b'<html>official-fixture</html>',
+            norm_status='Vigente',
+            product_scope='Carreteras',
+        )
+        monkeypatch.setattr(
+            platiica_catalog,
+            'collect_catalog',
+            lambda *args, **kwargs: Batch([doc], True, None, 'Sitemap controlado'),
+        )
+        report = verification.verify_sources(
+            db,
+            LocalEvidenceStore(tmp_path / 'catalog-evidence'),
+            DAY,
+            DAY,
+            {'platiica_catalog': [doc.official_id]},
+        )
+        assert report['passed'] and report['coverage_verified']
+        assert report['sources'][0]['catalog_current_ids'] == [doc.official_id]
+        assert report['sources'][0]['inventory_matches']
+    engine.dispose()

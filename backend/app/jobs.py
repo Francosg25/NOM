@@ -248,6 +248,8 @@ def _digest(document) -> str:
         "published_on": str(document.published_on) if document.published_on else None,
         "processing_note": document.processing_note,
         "links": sorted(document.links),
+        "norm_status": document.norm_status,
+        "product_scope": document.product_scope,
     }
     if not document.content.strip():
         content["binary_sha256"] = hashlib.sha256(document.raw).hexdigest()
@@ -299,12 +301,18 @@ def ingest_document(
             detected_at=now,
             last_seen_at=now,
             processing_note=document.processing_note,
+            norm_status=document.norm_status,
+            product_scope=document.product_scope,
+            source_updated_at=document.source_updated_at,
             is_demo=is_demo,
         )
         db.add(pub)
         db.flush()
     elif pub.is_demo != is_demo:
         raise ValueError("No mezcle demostración y publicaciones oficiales")
+    pub.norm_status = document.norm_status
+    pub.product_scope = document.product_scope
+    pub.source_updated_at = document.source_updated_at
     previous = db.get(Version, pub.current_version_id) if pub.current_version_id else None
     pub.last_seen_at = now
     content_hash = _digest(document)
@@ -389,17 +397,21 @@ def _refresh_proposals(
     catalog=None,
 ) -> int:
     created = 0
-    general = db.scalar(select(Alert).where(Alert.publication_id == pub.id, Alert.catalog_id.is_(None)))
-    if general is None:
-        db.add(
-            Alert(
-                publication_id=pub.id,
-                catalog_id=None,
-                reason="Relevancia por evaluar: revisión general obligatoria",
-                evidence=f"Publicación detectada; versión {version.sequence}. No se infiere aplicabilidad legal.",
+    if pub.norm_status is not None and pub.norm_status.casefold() != "vigente":
+        return 0
+    catalog_entry = pub.norm_status is not None
+    if not catalog_entry:
+        general = db.scalar(select(Alert).where(Alert.publication_id == pub.id, Alert.catalog_id.is_(None)))
+        if general is None:
+            db.add(
+                Alert(
+                    publication_id=pub.id,
+                    catalog_id=None,
+                    reason="Relevancia por evaluar: revisión general obligatoria",
+                    evidence=f"Publicación detectada; versión {version.sequence}. No se infiere aplicabilidad legal.",
+                )
             )
-        )
-        created += 1
+            created += 1
     catalog = (
         catalog
         if catalog is not None
@@ -498,7 +510,25 @@ def run_once(
     try:
         storage = storage or get_storage()
         with heartbeat(db, job_id, token):
-            batch = collector(source_kind, urls, start, end, continuation, limit=limit)
+            if source_kind == "platiica_catalog":
+                from .collectors.platiica_catalog import collect_catalog
+
+                known_updated = dict(
+                    db.execute(
+                        select(Publication.url, Publication.source_updated_at).where(
+                            Publication.source_id == source.id,
+                            Publication.is_demo.is_(False),
+                        )
+                    ).all()
+                )
+                batch = collect_catalog(
+                    urls,
+                    continuation,
+                    limit,
+                    known_updated,
+                )
+            else:
+                batch = collector(source_kind, urls, start, end, continuation, limit=limit)
             for document in batch.documents:
                 expected_terms = snapshot.get("expected_terms", [])
 

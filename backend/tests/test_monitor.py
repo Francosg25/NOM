@@ -19,9 +19,13 @@ def test_portal_initializes_and_monitors_without_external_services(tmp_path, mon
     monitor.initialize_portal()
     with sessions() as db:
         sources = db.scalars(select(Source).order_by(Source.id)).all()
-        assert len(sources) == 1 and sources[0].kind == 'sidof' and all(s.schedule_enabled and s.schedule_start for s in sources)
-        first_id = sources[0].id
-        for source in sources[1:]:
+        assert {source.kind for source in sources} == {'sidof', 'platiica_catalog'}
+        assert all(source.schedule_enabled and source.schedule_start for source in sources)
+        sidof_source = next(source for source in sources if source.kind == 'sidof')
+        first_id = sidof_source.id
+        for source in sources:
+            if source.kind == 'sidof':
+                continue
             source.schedule_enabled = False
         db.commit()
     # Restart preparation must respect an explicitly disabled source.
@@ -45,7 +49,7 @@ def test_portal_initializes_and_monitors_without_external_services(tmp_path, mon
     engine.dispose()
 
 
-def test_sidof_only_upgrade_preserves_documents_and_cancels_legacy_queue(tmp_path):
+def test_official_source_upgrade_preserves_documents_and_cancels_legacy_queue(tmp_path):
     engine = create_engine(f'sqlite:///{tmp_path / "upgrade.db"}')
     Base.metadata.create_all(engine)
     store = LocalEvidenceStore(tmp_path / 'evidence')
@@ -59,7 +63,10 @@ def test_sidof_only_upgrade_preserves_documents_and_cancels_legacy_queue(tmp_pat
         cli.init_sources(db)
         assert not old.active and not old.schedule_enabled
         assert queued.status == 'cancelled' and queued.active_key is None
-        assert [s.kind for s in db.scalars(select(Source).where(Source.active.is_(True)))] == ['sidof']
+        assert {s.kind for s in db.scalars(select(Source).where(Source.active.is_(True)))} == {
+            'sidof',
+            'platiica_catalog',
+        }
         assert db.scalar(select(func.count(Publication.id))) == 1
         version = db.scalar(select(Version))
         assert store.read(version.evidence_key) == b'historical-evidence'

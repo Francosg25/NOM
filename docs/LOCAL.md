@@ -1,6 +1,6 @@
 # Probar NOM Monitor / Run NOM Monitor locally
 
-La versión actual es 0.5.0: SIDOF es la única fuente activa y la interfaz utiliza una tipografía, una columna y menos elementos decorativos. Se retiraron el radar y la columna lateral. Las instrucciones de arranque se mantienen; las referencias a fuentes múltiples de versiones previas ya no corresponden al seguimiento actual.
+El portal utiliza PLATIICA para sincronizar las fichas del catálogo NOM y SIDOF para revisar publicaciones diarias del DOF. La carga inicial del catálogo se procesa por lotes y puede tardar; consulta la página de estado y no interpretes una carga parcial como catálogo completo. Las instrucciones de arranque se mantienen.
 
 ## Español
 

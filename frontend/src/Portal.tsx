@@ -17,11 +17,13 @@ const views: { id: View; name: string }[] = [
   { id: "actualidad", name: "Novedades" },
   { id: "archivo", name: "Buscar publicaciones" },
   { id: "producto", name: "Consultar producto" },
-  { id: "fuentes", name: "Estado de SIDOF" },
+  { id: "fuentes", name: "Estado de fuentes" },
   { id: "guia", name: "Cómo funciona" },
 ];
 const types: Record<string, string> = {
   proyecto: "Proyecto de norma",
+  norma_vigente: "Norma vigente",
+  norma_no_vigente: "NOM no vigente",
   norma_definitiva: "Norma definitiva",
   modificacion: "Modificación",
   cancelacion: "Cancelación",
@@ -110,15 +112,15 @@ function Guide({ go }: { go: (view: View) => void }) {
         <h1>{t("Cómo funciona")}</h1>
         <p>
           {t(
-            "SIDOF es la única fuente de este boletín. Los documentos oficiales se conservan en español.",
+            "PLATIICA aporta el catálogo base de NOM vigentes y SIDOF vigila publicaciones del DOF. Ninguna coincidencia determina aplicabilidad legal.",
           )}
         </p>
       </div>
       <ol className="guide-steps">
         {[
-          "Consulta SIDOF. La primera revisión cubre siete días y después se repite según su frecuencia.",
-          "Busca por NOM o palabra y abre una publicación para leer su texto y el original.",
-          "Una revisión parcial puede guardar publicaciones. Consulta el estado para ver qué falta revisar.",
+          "PLATIICA aporta el catálogo de NOM y SIDOF revisa publicaciones del DOF.",
+          "Busca una NOM por producto o revisa publicaciones y evidencia oficial.",
+          "Una carga parcial no representa todo el catálogo. Consulta el estado para ver qué falta revisar.",
         ].map((text) => (
           <li key={text}>
             <p>{t(text)}</p>
@@ -126,7 +128,7 @@ function Guide({ go }: { go: (view: View) => void }) {
         ))}
       </ol>
       <button className="button paper" onClick={() => go("fuentes")}>
-        {t("Estado de SIDOF")}
+        {t("Estado de fuentes")}
       </button>
     </section>
   );
@@ -354,7 +356,7 @@ function Bulletin() {
   const [versionId, setVersionId] = useState<number | null>(null);
   const generation = useRef(0);
   const sources: Row[] = (dashboard.sources || []).filter(
-    (s: Row) => s.kind === "sidof" && s.active,
+    (s: Row) => ["sidof", "platiica_catalog"].includes(s.kind) && s.active,
   );
   const activeJobs = jobs.some((j) => ["queued", "running"].includes(j.status));
   const admin = me?.role === "administrador";
@@ -436,7 +438,9 @@ function Bulletin() {
         setJobs(
           runs.items.filter((job: Row) =>
             overview.sources.some(
-              (s: Row) => s.id === job.source_id && s.kind === "sidof",
+              (s: Row) =>
+                s.id === job.source_id &&
+                ["sidof", "platiica_catalog"].includes(s.kind),
             ),
           ),
         );
@@ -699,7 +703,9 @@ function Bulletin() {
             ? "SIDOF · publicaciones diarias"
             : "SIDOF · documento de referencia",
         )
-      : s?.name || t("Fuente");
+      : s?.kind === "platiica_catalog"
+        ? t("Catálogo Mexicano de Normas · PLATIICA")
+        : s?.name || t("Fuente");
   const lead = publications[0];
   const selected = detail?.versions.find((v: Row) => v.id === versionId);
   const filtered = Boolean(
@@ -907,7 +913,7 @@ function Bulletin() {
               </h1>
               <p>
                 {t(
-                  "Ingresa una fracción arancelaria mexicana o describe el producto. Buscaremos coincidencias en las publicaciones SIDOF guardadas.",
+                  "Ingresa una fracción arancelaria mexicana o describe el producto. Buscaremos coincidencias textuales en NOM vigentes del catálogo PLATIICA y publicaciones SIDOF guardadas.",
                 )}
               </p>
             </div>
@@ -1037,6 +1043,35 @@ function Bulletin() {
                   <h2>{t("Coincidencias para revisar")}</h2>
                   <span>{t("{count} resultados", { count: productSearch.total })}</span>
                 </div>
+                <p className="product-search-hint">
+                  {t("Se revisaron {count} documentos de NOM vigentes y publicaciones SIDOF.", {
+                    count: productSearch.searched_publications,
+                  })}
+                </p>
+                <p className="product-search-hint">
+                  {t("Catálogo PLATIICA: {current} NOM vigentes entre {records} fichas guardadas.", {
+                    current: productSearch.catalog.current_norms,
+                    records: productSearch.catalog.records,
+                  })}
+                </p>
+                <p className="product-search-hint">
+                  {t("Completar la cola del sitemap no demuestra que PLATIICA publique todas las fichas en esos sitemaps.")}
+                </p>
+                {!productSearch.catalog.synchronized && (
+                  <p className="product-search-hint">
+                    {t("La última revisión del sitemap no terminó correctamente o la actualización automática está desactivada.")}
+                    {productSearch.catalog.pending_pages > 0 &&
+                      ` ${t("{count} fichas pendientes de revisar.", {
+                        count: productSearch.catalog.pending_pages,
+                      })}`}
+                  </p>
+                )}
+                {(productSearch.catalog.unresolved_status > 0 ||
+                  productSearch.catalog.missing_product_scope > 0) && (
+                  <p className="product-search-hint">
+                    {t("Hay fichas con estado o producto/servicio incompleto; no se incluyen como NOM vigentes.")}
+                  </p>
+                )}
                 <p className="product-search-disclaimer">{t(productSearch.disclaimer)}</p>
                 {productSearch.results.length === 0 ? (
                   <div className="empty-edition">
@@ -1080,6 +1115,9 @@ function Bulletin() {
                             </p>
                           )}
                           <div className="article-meta">
+                            {publication.norm_status && (
+                              <span>{t("Estado oficial")}: {publication.norm_status}</span>
+                            )}
                             <span>
                               {publication.published_on
                                 ? format(publication.published_on)
@@ -1087,6 +1125,11 @@ function Bulletin() {
                             </span>
                             <span>{publication.official_id}</span>
                           </div>
+                          {publication.product_scope && (
+                            <p className="matched-terms">
+                              {t("Producto/servicio en PLATIICA")}: {publication.product_scope}
+                            </p>
+                          )}
                         </article>
                       );
                     })}
@@ -1154,7 +1197,7 @@ function Bulletin() {
                 {t("Todas las fuentes")}
               </button>
               {sources
-                .filter((s) => s.active)
+                .filter((s) => s.active && s.kind === "sidof")
                 .map((s) => (
                   <button
                     key={s.id}
@@ -1411,7 +1454,7 @@ function Bulletin() {
                 {t("DE DÓNDE VIENE LA INFORMACIÓN")}
               </span>
               <h1>
-                {t("Estado de SIDOF")}
+                {t("Estado de fuentes")}
                 <span className="accent">.</span>
               </h1>
               <p>
@@ -1441,7 +1484,7 @@ function Bulletin() {
                   </span>
                   <div className="directory-copy">
                     <div className="article-kicker">
-                      <span>{item.kind.toUpperCase()}</span>
+                      <span>{item.kind === "platiica_catalog" ? "PLATIICA" : item.kind.toUpperCase()}</span>
                       <span className={item.last_error ? "issue-text" : ""}>
                         {t(
                           item.last_error
@@ -1455,7 +1498,9 @@ function Bulletin() {
                     <h2>{sourceName(item)}</h2>
                     <p>
                       {t(
-                        "Publicaciones oficiales por fecha. Se guardan el texto disponible y una copia del original.",
+                        item.kind === "platiica_catalog"
+                          ? "Inventario oficial de fichas NOM. La carga inicial y las actualizaciones se procesan por lotes."
+                          : "Publicaciones oficiales SIDOF por fecha. Se guardan el texto disponible y una copia del original.",
                       )}
                     </p>
                     {
@@ -1492,9 +1537,15 @@ function Bulletin() {
                         </p>
                       </div>
                     )}
+                    {item.kind === "platiica_catalog" && item.pending_items > 0 && (
+                      <div className="pending-dates">
+                        <strong>{t("Fichas pendientes de revisar")}</strong>
+                        <p>{item.pending_items}</p>
+                      </div>
+                    )}
                     <p className="schedule-note">
                       {t(
-                        "El servidor consulta SIDOF automáticamente según la frecuencia indicada. Puedes cerrar el navegador; el servidor debe seguir encendido.",
+                        "El servidor consulta esta fuente automáticamente según la frecuencia indicada. Puedes cerrar el navegador; el servidor debe seguir encendido.",
                       )}
                     </p>
                     {item.last_error && (
@@ -1522,6 +1573,7 @@ function Bulletin() {
                               name="urls"
                               defaultValue={item.urls.join("\n")}
                               rows={3}
+                              readOnly={item.kind === "platiica_catalog"}
                               required
                             />
                           </label>
@@ -1554,6 +1606,7 @@ function Bulletin() {
                               defaultValue={(item.expected_terms || []).join(
                                 ", ",
                               )}
+                              readOnly={item.kind === "platiica_catalog"}
                             />
                           </label>
                           <label className="check-filter">

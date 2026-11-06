@@ -1,6 +1,6 @@
 # Portal en Azure App Service Linux
 
-La versión actual es 0.6.0 y el seguimiento activo utiliza únicamente SIDOF. DOF HTML, PLATIICA y SNICE no se consultan; sus registros históricos se conservan desactivados.
+La versión actual es 0.6.0 y el seguimiento activo utiliza el catálogo de NOM de PLATIICA y las publicaciones diarias de SIDOF. Los conectores antiguos DOF HTML, PLATIICA de fichas individuales y SNICE no se consultan; sus registros históricos se conservan desactivados.
 
 La instalación sencilla utiliza el App Service existente: **Linux, Python 3.13, Basic B1, una instancia**. Sirve la web y ejecuta el monitor desde un solo proceso. No necesita crear PostgreSQL, Blob, Entra ni un WebJob.
 
@@ -62,9 +62,9 @@ Documentación: [Python y archivos persistentes bajo /home](https://learn.micros
 
 ## Operación diaria sin visitas
 
-Mantener MONITOR_ENABLED=true y SCHEDULER_ENABLED=true, la fuente SIDOF activa y su programación habilitada (frecuencia predeterminada: una hora). Habilitar Always On en la configuración del App Service para mantener cargada la aplicación sin tráfico. La publicación del ZIP no activa por sí sola Always On.
+Mantener MONITOR_ENABLED=true y SCHEDULER_ENABLED=true, y ambas fuentes activas con su programación habilitada (SIDOF cada hora y PLATIICA diariamente). Habilitar Always On en la configuración del App Service para mantener cargada la aplicación sin tráfico. La publicación del ZIP no activa por sí sola Always On.
 
-En Estado de SIDOF se distinguen la última descarga, el último periodo completado y las fechas pendientes, además de la próxima consulta programada. Para aceptar el despliegue, cerrar el navegador y comprobar después que aparezca una ejecución nueva solicitada por scheduler y que el historial/evidencia sobreviva a un reinicio. No se ha ejecutado este despliegue desde este entorno: no hay una identidad Azure configurada.
+En Estado de fuentes se muestran SIDOF y el Catálogo PLATIICA, incluida la cantidad de fichas pendientes de la carga por lotes. Para aceptar el despliegue, cerrar el navegador y comprobar después que aparezcan ejecuciones nuevas solicitadas por scheduler y que el historial/evidencia sobreviva a un reinicio. Contrastar el inventario recuperado con el catálogo oficial antes de afirmar cobertura completa. No se ha ejecutado este despliegue desde este entorno: no hay una identidad Azure configurada.
 
 Referencia: https://learn.microsoft.com/es-es/azure/app-service/configure-common
 

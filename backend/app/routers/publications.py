@@ -21,7 +21,7 @@ def publications(
     kind: str | None = None,
     status: str | None = None,
     source_id: int | None = None,
-    source_kind: Literal["sidof"] | None = None,
+    source_kind: Literal["sidof", "platiica_catalog"] | None = None,
     is_demo: bool = False,
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=200),

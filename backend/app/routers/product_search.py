@@ -1,13 +1,13 @@
-"""Explainable search for saved SIDOF publications using product information."""
+"""Explainable product search across active NOM fiches and saved SIDOF publications."""
 
 import re
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from ..auth import Identity, identity
 from ..db import get_db
-from ..models import Publication, Source, Version
+from ..models import Job, Publication, Source, Version
 from ..schemas import ProductSearchInput
 from ..matching import normalized
 
@@ -69,15 +69,99 @@ def product_search(
     user: Identity = Depends(identity),
 ):
     value = body.value.strip()
-    stmt = (
+    scope = (
         select(Publication, Version, Source)
         .join(Version, Version.id == Publication.current_version_id)
         .join(Source, Source.id == Publication.source_id)
         .where(
             Publication.is_demo.is_(False),
-            Source.kind == "sidof",
+            or_(
+                Source.kind == "sidof",
+                and_(
+                    Source.kind == "platiica_catalog",
+                    func.lower(Publication.norm_status) == "vigente",
+                ),
+            ),
         )
     )
+    searched_publications = db.scalar(select(func.count()).select_from(scope.subquery())) or 0
+    catalog_source = db.scalar(select(Source).where(Source.kind == "platiica_catalog"))
+    current_norms = (
+        db.scalar(
+            select(func.count(Publication.id)).where(
+                Publication.source_id == catalog_source.id,
+                Publication.is_demo.is_(False),
+                func.lower(Publication.norm_status) == "vigente",
+            )
+        )
+        if catalog_source
+        else 0
+    )
+    catalog_records = (
+        db.scalar(
+            select(func.count(Publication.id)).where(
+                Publication.source_id == catalog_source.id,
+                Publication.is_demo.is_(False),
+            )
+        )
+        if catalog_source
+        else 0
+    )
+    unresolved_status = (
+        db.scalar(
+            select(func.count(Publication.id)).where(
+                Publication.source_id == catalog_source.id,
+                func.lower(Publication.norm_status) == "estado no informado",
+            )
+        )
+        if catalog_source
+        else 0
+    )
+    missing_product_scope = (
+        db.scalar(
+            select(func.count(Publication.id)).where(
+                Publication.source_id == catalog_source.id,
+                or_(Publication.product_scope.is_(None), Publication.product_scope == ""),
+            )
+        )
+        if catalog_source
+        else 0
+    )
+    latest_catalog_job = (
+        db.scalar(
+            select(Job)
+            .where(Job.source_id == catalog_source.id)
+            .order_by(Job.requested_at.desc(), Job.id.desc())
+            .limit(1)
+        )
+        if catalog_source
+        else None
+    )
+    catalog_continuation = latest_catalog_job.continuation if latest_catalog_job else None
+    catalog_queue = (catalog_continuation or {}).get("queue", [])
+    catalog_pending = (
+        max(0, len(catalog_queue) - (catalog_continuation or {}).get("cursor", 0))
+        + len((catalog_continuation or {}).get("failed", []))
+        if latest_catalog_job
+        else 0
+    )
+    catalog_sync = {
+        "records": catalog_records,
+        "current_norms": current_norms,
+        "unresolved_status": unresolved_status,
+        "missing_product_scope": missing_product_scope,
+        "synchronized": bool(
+            catalog_source
+            and catalog_source.active
+            and catalog_source.schedule_enabled
+            and latest_catalog_job
+            and latest_catalog_job.status == "succeeded"
+        ),
+        "last_job_status": latest_catalog_job.status if latest_catalog_job else None,
+        "last_checked_at": catalog_source.last_success_at if catalog_source else None,
+        "pending_pages": catalog_pending,
+    }
+    stmt = scope
 
     tariff = ""
     base_tariff = ""
@@ -160,6 +244,8 @@ def product_search(
                     if publication.published_on
                     else None,
                     "source_name": source.name,
+                    "norm_status": publication.norm_status,
+                    "product_scope": publication.product_scope,
                 },
                 "match": {
                     "type": match_type,
@@ -182,10 +268,12 @@ def product_search(
         "mode": body.mode,
         "value": re.sub(r"\D", "", value) if body.mode == "fraccion" else value,
         "total": len(results),
+        "searched_publications": searched_publications,
+        "catalog": catalog_sync,
         "results": results[:30],
         "truncated": len(results) > 30,
         "disclaimer": (
-            "Coincidencias textuales en publicaciones SIDOF guardadas. No determinan "
+            "Coincidencias textuales en NOM vigentes guardadas desde PLATIICA y publicaciones SIDOF. No determinan "
             "si una NOM aplica al producto ni sustituyen la clasificación arancelaria "
             "o revisión de la disposición oficial."
         ),

@@ -12,8 +12,8 @@ const english: Record<string, string> = {
   "Consultar producto": "Product lookup",
   "REVISIÓN PRELIMINAR": "PRELIMINARY REVIEW",
   "Consultar por producto": "Search by product",
-  "Ingresa una fracción arancelaria mexicana o describe el producto. Buscaremos coincidencias en las publicaciones SIDOF guardadas.":
-    "Enter a Mexican tariff code or describe the product. We will search saved SIDOF publications for matches.",
+  "Ingresa una fracción arancelaria mexicana o describe el producto. Buscaremos coincidencias textuales en NOM vigentes del catálogo PLATIICA y publicaciones SIDOF guardadas.":
+    "Enter a Mexican tariff code or describe the product. We will search current NOM records in the PLATIICA catalogue and saved SIDOF publications for text matches.",
   "Buscar por": "Search by",
   "Fracción arancelaria mexicana": "Mexican tariff code",
   "Descripción del producto": "Product description",
@@ -28,8 +28,21 @@ const english: Record<string, string> = {
     "The tariff code accepts 8 digits, or 10 with NICO. For descriptions, include product type, material and use when known.",
   "Coincidencias para revisar": "Matches to review",
   "{count} resultados": "{count} results",
-  "Coincidencias textuales en publicaciones SIDOF guardadas. No determinan si una NOM aplica al producto ni sustituyen la clasificación arancelaria o revisión de la disposición oficial.":
-    "Text matches in saved SIDOF publications. They do not determine whether a NOM applies to the product and do not replace tariff classification or review of the official instrument.",
+  "Se revisaron {count} documentos de NOM vigentes y publicaciones SIDOF.":
+    "{count} current NOM records and SIDOF publications were searched.",
+  "Catálogo PLATIICA: {current} NOM vigentes entre {records} fichas guardadas.":
+    "PLATIICA catalogue: {current} current NOMs among {records} saved records.",
+  "Completar la cola del sitemap no demuestra que PLATIICA publique todas las fichas en esos sitemaps.":
+    "Completing the sitemap queue does not prove that PLATIICA publishes every catalogue record in those sitemaps.",
+  "La última revisión del sitemap no terminó correctamente o la actualización automática está desactivada.":
+    "The latest sitemap review did not finish successfully, or automatic updates are disabled.",
+  "{count} fichas pendientes de revisar.": "{count} records remain to be checked.",
+  "Hay fichas con estado o producto/servicio incompleto; no se incluyen como NOM vigentes.":
+    "Some records have incomplete status or product/service fields; they are not included as current NOMs.",
+  "Estado oficial": "Official status",
+  "Producto/servicio en PLATIICA": "Product/service in PLATIICA",
+  "Coincidencias textuales en NOM vigentes guardadas desde PLATIICA y publicaciones SIDOF. No determinan aplicabilidad legal ni sustituyen la clasificación arancelaria o revisión de la disposición oficial.":
+    "Text matches in current NOMs saved from PLATIICA and SIDOF publications. They do not determine legal applicability or replace tariff classification or review of the official instrument.",
   "No encontramos coincidencias en las publicaciones guardadas.":
     "No matches were found in saved publications.",
   "Esto no confirma que no existan NOM aplicables: el archivo puede estar incompleto o la publicación puede no mencionar esos términos.":
@@ -75,25 +88,25 @@ const english: Record<string, string> = {
   "{count} publicaciones guardadas. Abre el detalle para ver qué falta revisar.":
     "{count} publications saved. Open the details to see what still needs checking.",
   "Revisión parcial del periodo": "Partial period check",
-  "El servidor consulta SIDOF automáticamente según la frecuencia indicada. Puedes cerrar el navegador; el servidor debe seguir encendido.":
-    "The server checks SIDOF automatically at the listed interval. You can close the browser; the server must keep running.",
+  "El servidor consulta esta fuente automáticamente según la frecuencia indicada. Puedes cerrar el navegador; el servidor debe seguir encendido.":
+    "The server checks this source automatically at the listed interval. You can close the browser; the server must keep running.",
 
   "Publicaciones oficiales por fecha. Se guardan el texto disponible y una copia del original.":
     "Official publications by date. Available text and an original copy are saved.",
   "Hay publicaciones guardadas. La última revisión quedó incompleta.":
     "Publications have been saved. The latest check is incomplete.",
-  "Estado de SIDOF": "SIDOF status",
+  "Estado de fuentes": "Source status",
   "Consultar SIDOF": "Check SIDOF",
   "Publicaciones NOM": "NOM publications",
   "Publicaciones oficiales de SIDOF.": "Official publications from SIDOF.",
-  "SIDOF es la única fuente de este boletín. Los documentos oficiales se conservan en español.":
-    "SIDOF is the only source for this bulletin. Official documents remain in Spanish.",
-  "Consulta SIDOF. La primera revisión cubre siete días y después se repite según su frecuencia.":
-    "Check SIDOF. The first check covers seven days and then repeats at the configured interval.",
-  "Busca por NOM o palabra y abre una publicación para leer su texto y el original.":
-    "Search for a NOM or keyword and open a publication to read its text and the original.",
-  "Una revisión parcial puede guardar publicaciones. Consulta el estado para ver qué falta revisar.":
-    "A partial check can save publications. Open the status page to see what still needs checking.",
+  "PLATIICA aporta el catálogo base de NOM vigentes y SIDOF vigila publicaciones del DOF. Ninguna coincidencia determina aplicabilidad legal.":
+    "PLATIICA provides the baseline catalogue of current NOMs, and SIDOF monitors DOF publications. A match does not determine legal applicability.",
+  "PLATIICA aporta el catálogo de NOM y SIDOF revisa publicaciones del DOF.":
+    "PLATIICA provides the NOM catalogue and SIDOF checks DOF publications.",
+  "Busca una NOM por producto o revisa publicaciones y evidencia oficial.":
+    "Search NOMs by product or review publications and official evidence.",
+  "Una carga parcial no representa todo el catálogo. Consulta el estado para ver qué falta revisar.":
+    "A partial import does not represent the full catalogue. Check the source status to see what remains.",
   "La revisión de SIDOF quedó pendiente.": "The SIDOF check is incomplete.",
   "Las publicaciones recuperadas siguen disponibles. Abre el detalle para ver qué falta revisar.":
     "Saved publications remain available. Open the details to see what still needs checking.",
@@ -354,6 +367,14 @@ const english: Record<string, string> = {
   "La frecuencia se indica por fuente.":
     "The frequency is listed for each source.",
   "Consulta incompleta": "Incomplete check",
+  "Inventario oficial de fichas NOM. La carga inicial y las actualizaciones se procesan por lotes.":
+    "Official inventory of NOM records. The initial import and updates are processed in batches.",
+  "Publicaciones oficiales SIDOF por fecha. Se guardan el texto disponible y una copia del original.":
+    "Official SIDOF publications by date. Available text and a copy of the original are saved.",
+  "Fichas pendientes de revisar": "Records still to check",
+  "Catálogo Mexicano de Normas · PLATIICA": "Mexican Standards Catalogue · PLATIICA",
+  "Norma vigente": "Current standard",
+  "NOM no vigente": "Non-current NOM",
   "Última consulta correcta": "Last successful check",
   "Pendiente de consultar": "Check pending",
   "Ver motivo de la consulta incompleta": "See why the check was incomplete",
@@ -403,6 +424,8 @@ const english: Record<string, string> = {
     "Daily DOF index: discovers linked notes and editions. Live daily coverage still needs verification.",
   "coverage.platiica":
     "Tracks the configured PLATIICA standard pages and their document links. Does not discover the complete catalogue.",
+  "coverage.platiica_catalog":
+    "Discovers NOM records through the official PLATIICA sitemaps and incrementally refreshes pages whose lastmod changed. Completion applies to the discovered sitemap queue; it does not certify legal applicability.",
   "coverage.snice":
     "Tracks the configured SNICE regulatory pages and their links. Does not automatically consolidate Annex 2.4.1.",
   "coverage.sidof":

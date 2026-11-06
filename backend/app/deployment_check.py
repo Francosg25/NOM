@@ -30,7 +30,11 @@ def check_deployment(client, expected_version, baseline=None, require_automatic=
         warnings.extend(state.get("codes", []))
         overview = get("/api/dashboard")
         active = [s for s in overview["sources"] if s["active"]]
-        checks["sidof_only"] = bool(active) and all(s["kind"] == "sidof" for s in active)
+        expected_sources = {"sidof", "platiica_catalog"}
+        active_kinds = {s["kind"] for s in active}
+        checks["required_sources_active"] = (
+            expected_sources.issubset(active_kinds) and active_kinds.issubset(expected_sources)
+        )
         report["publication_count"] = sum(s.get("publication_count", 0) for s in active)
         runs = get("/api/jobs?page_size=200")["items"]
         report["scheduler_job_ids"] = [j["id"] for j in runs if j["requested_by"] == "scheduler"]
@@ -50,6 +54,8 @@ def check_deployment(client, expected_version, baseline=None, require_automatic=
             sample = baseline.get("sample")
         else:
             items = get("/api/publications?source_kind=sidof&page_size=1")["items"]
+            if not items:
+                items = get("/api/publications?source_kind=platiica_catalog&page_size=1")["items"]
             sample = None
             if items:
                 doc = get("/api/publications/" + str(items[0]["id"]))
