@@ -96,7 +96,6 @@ const english: Record<string, string> = {
   "Hay publicaciones guardadas. La última revisión quedó incompleta.":
     "Publications have been saved. The latest check is incomplete.",
   "Estado de fuentes": "Source status",
-  "Consultar SIDOF": "Check SIDOF",
   "Publicaciones NOM": "NOM publications",
   "Publicaciones oficiales de SIDOF.": "Official publications from SIDOF.",
   "PLATIICA aporta el catálogo base de NOM vigentes y SIDOF vigila publicaciones del DOF. Ninguna coincidencia determina aplicabilidad legal.":
@@ -230,6 +229,16 @@ const english: Record<string, string> = {
     "The check could not be completed. Open the official source to check it directly and see the error details.",
   "El boletín": "The bulletin",
   "Explorar publicaciones": "Explore publications",
+  "Catálogo NOM": "NOM catalogue",
+  "INVENTARIO PLATIICA": "PLATIICA CATALOGUE",
+  "Catálogo histórico de NOM": "Historical NOM catalogue",
+  "Consulta las fichas NOM guardadas desde PLATIICA, vigentes y no vigentes. La lista incluye solo registros ya importados; revisa el estado de sincronización antes de considerarla completa.":
+    "Browse NOM records saved from PLATIICA, both current and no longer current. The list includes only imported records; check synchronization status before treating it as complete.",
+  "Fichas del catálogo": "Catalogue records",
+  "Aún no hay fichas NOM guardadas.": "No NOM records have been saved yet.",
+  "La carga inicial se procesa por lotes. Abre Estado de fuentes para revisar el avance o los errores de PLATIICA.":
+    "The initial import runs in batches. Open Source status to check PLATIICA progress or errors.",
+  "Ver estado de PLATIICA": "View PLATIICA status",
   "Las fuentes": "The sources",
   "Proyecto de norma": "Draft standard",
   "Norma definitiva": "Final standard",
@@ -377,6 +386,17 @@ const english: Record<string, string> = {
   "NOM no vigente": "Non-current NOM",
   "Última consulta correcta": "Last successful check",
   "Pendiente de consultar": "Check pending",
+  "Consulta en cola": "Check queued",
+  "Consulta en curso": "Check in progress",
+  "Progreso de la carga": "Import progress",
+  "Descubriendo fichas en los sitemaps oficiales.": "Discovering records in the official sitemaps.",
+  "{reviewed} revisadas de {discovered} fichas detectadas; {pending} pendientes y {unchanged} sin cambios.":
+    "{reviewed} of {discovered} records reviewed; {pending} pending and {unchanged} unchanged.",
+  "Proceso sin señal reciente": "No recent process heartbeat",
+  "El proceso no ha enviado una señal reciente. Reinicia el portal para recuperar la consulta interrumpida; el trabajo pendiente se conserva.":
+    "The process has not sent a recent heartbeat. Restart the portal to recover the interrupted check; pending work is preserved.",
+  "No se pudo conectar con el portal. Comprueba que INICIAR_LOCAL esté abierto y vuelve a cargar.":
+    "Could not connect to the portal. Make sure INICIAR_LOCAL is running, then reload.",
   "Ver motivo de la consulta incompleta": "See why the check was incomplete",
   "Editar seguimiento": "Edit monitoring settings",
   "Páginas a consultar, una por línea": "Pages to check, one per line",

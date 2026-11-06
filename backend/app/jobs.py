@@ -41,6 +41,7 @@ def recover_interrupted(db: Session) -> int:
                 error="Proceso interrumpido; reanudar explícitamente para cubrir el periodo pendiente.",
                 error_count=1,
             )
+            .execution_options(synchronize_session=False)
         ).rowcount
         if changed:
             db.execute(
@@ -56,6 +57,8 @@ def recover_interrupted(db: Session) -> int:
             source = db.get(Source, job.source_id)
             if source:
                 source.last_error = "Proceso interrumpido; periodo pendiente de reanudación."
+                if source.schedule_enabled:
+                    source.next_due_at = utcnow()
     db.commit()
     return len(stale)
 

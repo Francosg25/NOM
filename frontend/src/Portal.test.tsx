@@ -76,6 +76,110 @@ describe("public portal", () => {
     }
   });
 
+  it("shows imported current and historical PLATIICA NOM records in a dedicated catalogue", async () => {
+    const user = userEvent.setup();
+    const fetch = vi.fn(async (input: string) => {
+      const url = new URL(input, "http://localhost");
+      let data: unknown = {};
+      if (url.pathname === "/api/me") data = { role: "consulta" };
+      if (url.pathname === "/api/dashboard") data = {
+        monitor_enabled: true,
+        scheduler_enabled: true,
+        sources: [
+          { id: 1, kind: "sidof", name: "SIDOF", active: true, urls: [] },
+          { id: 2, kind: "platiica_catalog", name: "PLATIICA", active: true,
+            urls: [], pending_items: 0 },
+        ],
+      };
+      if (url.pathname === "/api/publications") {
+        data = url.searchParams.get("source_kind") === "platiica_catalog"
+          ? {
+              total: 1,
+              items: [{
+                id: 22,
+                title: "NOM-TEST-001-2020 - Norma de prueba histórica",
+                official_id: "PLATIICA:NOM-TEST-001-2020",
+                source_name: "PLATIICA",
+                published_on: "2020-01-01",
+                detected_at: "2026-11-06T12:00:00Z",
+                kind: "norma_no_vigente",
+                norm_status: "Cancelada",
+                product_scope: "Productos de prueba",
+                excerpt: "Ficha oficial de prueba",
+              }],
+            }
+          : { total: 0, items: [] };
+      }
+      if (url.pathname === "/api/jobs") data = { items: [] };
+      return new Response(JSON.stringify(data), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetch);
+    try {
+      render(<Portal />);
+      await user.click(await screen.findByRole("button", { name: "Catálogo NOM" }));
+      expect(await screen.findByRole("button", {
+        name: "NOM-TEST-001-2020 - Norma de prueba histórica",
+      })).toBeVisible();
+      expect(screen.getByText("Estado oficial: Cancelada")).toBeVisible();
+      expect(screen.getByText("Producto/servicio en PLATIICA: Productos de prueba")).toBeVisible();
+      expect(fetch.mock.calls.some(([input]) => {
+        const url = new URL(input, "http://localhost");
+        return url.pathname === "/api/publications" &&
+          url.searchParams.get("source_kind") === "platiica_catalog";
+      })).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("keeps the empty catalogue status link available while another source is running", async () => {
+    const user = userEvent.setup();
+    const fetch = vi.fn(async (input: string) => {
+      const url = new URL(input, "http://localhost");
+      let data: unknown = {};
+      if (url.pathname === "/api/me") data = { role: "consulta" };
+      if (url.pathname === "/api/dashboard") data = {
+        monitor_enabled: true,
+        scheduler_enabled: true,
+        sources: [
+          { id: 1, kind: "sidof", name: "SIDOF", active: true,
+            urls: ["https://sidof.segob.gob.mx/dof/sidof"] },
+          { id: 2, kind: "platiica_catalog", name: "PLATIICA", active: true,
+            urls: ["https://platiica.economia.gob.mx/normalizacion/wp-sitemap.xml"],
+            latest_check_status: "running",
+            latest_check_heartbeat_at: "2026-01-01T00:00:00Z",
+            latest_check_reviewed_count: 40,
+            catalog_discovered_count: 823,
+            catalog_unchanged_count: 12,
+            pending_items: 771 },
+        ],
+      };
+      if (url.pathname === "/api/publications") data = { total: 0, items: [] };
+      if (url.pathname === "/api/jobs") {
+        data = { items: [{ id: "running-job", source_id: 1, status: "running" }] };
+      }
+      return new Response(JSON.stringify(data), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetch);
+    try {
+      render(<Portal />);
+      await user.click(await screen.findByRole("button", { name: "Catálogo NOM" }));
+      const statusLink = await screen.findByRole("button", { name: "Ver estado de PLATIICA" });
+      expect(statusLink).toBeEnabled();
+      await user.click(statusLink);
+      expect(await screen.findByRole("heading", { name: /Estado de fuentes/ })).toBeVisible();
+      expect(screen.getByText("Proceso sin señal reciente")).toBeVisible();
+      expect(screen.getByText(
+        "40 revisadas de 823 fichas detectadas; 771 pendientes y 12 sin cambios.",
+      )).toBeVisible();
+      expect(screen.getByText(
+        "El proceso no ha enviado una señal reciente. Reinicia el portal para recuperar la consulta interrumpida; el trabajo pendiente se conserva.",
+      )).toBeVisible();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("searches saved NOM publications by Mexican tariff code or product description", async () => {
     const user = userEvent.setup();
     const fetch = vi.fn(async (input: string, init?: RequestInit) => {

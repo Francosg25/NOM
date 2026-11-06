@@ -23,7 +23,7 @@ from .core import (
 SITEMAP_URL = "https://platiica.economia.gob.mx/normalizacion/wp-sitemap.xml"
 _POST_SITEMAP = re.compile(r"/normalizacion/wp-sitemap-posts-post-\d+\.xml")
 _NOM_PAGE = re.compile(r"/normalizacion/(nom-[a-z0-9]+(?:-[a-z0-9]+)*)/?", re.I)
-_NOM_CODE = re.compile(r"\bNOM-[A-Z0-9]+(?:-[A-Z0-9]+)+\b", re.I)
+_NOM_CODE = re.compile(r"\bNOM-[A-Z0-9]+(?:[-/][A-Z0-9]+)+\b", re.I)
 _MAX_NOM_PAGES = 10_000
 
 
@@ -102,7 +102,7 @@ def _document(url: str, fetched: FetchResult, sitemap_lastmod: str | None) -> Do
     page_title = title.get_text(" ", strip=True) if title else ""
     content, node = _page_text(soup)
     lines = content.splitlines()
-    code = _field(lines, "Clave de la Norma")
+    code = _field(lines, "Clave de la Norma").replace("\u00ad", "")
     code_match = _NOM_CODE.search(code.upper())
     status = _field(lines, "Estado de la Norma")
     product_scope = _field(lines, "Producto, servicio, proceso o sistema")
@@ -198,6 +198,7 @@ def collect_catalog(
                 queue.append({"url": page_url, "lastmod": lastmod})
             state = {
                 "version": 1,
+                "phase": "fetching",
                 "queue": queue,
                 "cursor": 0,
                 "failed": [],
@@ -214,6 +215,13 @@ def collect_catalog(
             state["cursor"] = int(state.get("cursor", 0))
             if not 0 <= state["cursor"] <= len(state["queue"]):
                 raise CollectionError("El cursor del catálogo está fuera de rango")
+            if "phase" not in state:
+                expected_pages = state.get("discovered", 0) - state.get("skipped", 0)
+                state["phase"] = (
+                    "fetching" if len(state["queue"]) == expected_pages else "retrying_failed"
+                )
+            if state["phase"] not in {"fetching", "retrying_failed"}:
+                raise CollectionError("La fase del punto de continuación del catálogo no es válida")
 
         documents = []
         errors = []
@@ -235,6 +243,7 @@ def collect_catalog(
         elif state["failed"]:
             next_state = {
                 **state,
+                "phase": "retrying_failed",
                 "queue": state["failed"],
                 "cursor": 0,
                 "failed": [],
@@ -245,8 +254,8 @@ def collect_catalog(
             complete = True
         coverage = (
             f"PLATIICA: {state['sitemaps']} sitemaps oficiales consultados; "
-            f"{state['discovered']} descubiertas, {state['skipped']} sin cambios y "
-            f"{state['discovered'] - state['skipped']} pendientes de actualización en esta pasada. "
+            f"{state['discovered']} fichas descubiertas, {state['skipped']} sin cambios y "
+            f"{state['discovered'] - state['skipped']} fichas a consultar en esta sincronización. "
             "El catálogo solo se considera sincronizado al completar la cola; no certifica aplicabilidad legal."
         )
         checks = [

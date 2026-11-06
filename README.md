@@ -14,13 +14,14 @@ El ZIP incluye la interfaz compilada. No requiere Node para abrirlo. Usa Python 
 
 ## Actualización automática
 
-El servidor consulta SIDOF cada hora y sincroniza el sitemap del catálogo PLATIICA diariamente, también cuando nadie visita el portal. La carga inicial del catálogo se procesa por lotes y puede tardar; si se interrumpe, el trabajo conserva su continuación. Cerrar el navegador no detiene las consultas. En local, la computadora y el servidor deben permanecer encendidos y sin suspenderse. En App Service, habilita Always On y conserva MONITOR_ENABLED=true y SCHEDULER_ENABLED=true. El portal muestra el estado, las fichas pendientes y la última ejecución. Una cola completa solo cubre las fichas incluidas en los sitemaps consultados; contrasta la carga con el catálogo oficial antes de afirmar cobertura completa.
+El servidor consulta SIDOF cada hora y sincroniza el sitemap del catálogo PLATIICA diariamente, también cuando nadie visita el portal. La carga inicial del catálogo se procesa por lotes y puede tardar; si se interrumpe, el trabajo conserva su continuación. Una ficha que requiere revisión no detiene la descarga de las demás: se reintenta por separado y la carga permanece parcial hasta resolverla. Cerrar el navegador no detiene las consultas. En local, la computadora y el servidor deben permanecer encendidos y sin suspenderse. En App Service, habilita Always On y conserva MONITOR_ENABLED=true y SCHEDULER_ENABLED=true. El portal muestra el estado, las fichas pendientes y la última ejecución. Una cola completa solo cubre las fichas incluidas en los sitemaps consultados; contrasta la carga con el catálogo oficial antes de afirmar cobertura completa.
 
 ## Uso
 
-- **Consultar SIDOF** solicita una consulta de los últimos siete días. El servidor también revisa automáticamente las publicaciones SIDOF y sincroniza las fichas modificadas en los sitemaps de PLATIICA.
+- **Consultar fuentes** solicita una revisión de las fuentes activas: SIDOF revisa los últimos siete días y PLATIICA sincroniza el catálogo por lotes. La programación automática continúa según la frecuencia de cada fuente.
 - **Novedades** muestra las publicaciones recuperadas ordenadas por fecha oficial. La fecha de detección se conserva por separado.
 - **Buscar publicaciones** permite buscar por NOM o palabra, fecha, tipo y cambios guardados.
+- **Catálogo NOM** lista las fichas importadas desde PLATIICA, vigentes y no vigentes, con estado y ámbito de producto. Esta vista no incluye las publicaciones SIDOF y solo refleja lo que ya se importó; revisa **Estado de fuentes** y la cobertura antes de considerarla un inventario completo.
 - **Consultar producto** busca coincidencias textuales en NOM vigentes guardadas desde PLATIICA y en publicaciones SIDOF usando una fracción mexicana de 8 dígitos (o 10 con NICO) o una descripción. Muestra estado, ámbito de producto/servicio y evidencia para revisión. Una persona con rol administrador puede guardar la entrada en el catálogo para reevaluar publicaciones y proponer coincidencias; requieren revisión humana.
 - Abre un título para leer su contenido, consultar versiones, descargar la copia original y visitar SIDOF.
 - **Estado de fuentes** muestra la carga inicial, la programación y el historial de PLATIICA y SIDOF.

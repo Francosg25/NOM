@@ -217,6 +217,10 @@ def source_progress(db, sources):
                 "pending_items": max(0, len(queue) - cursor)
                 + len((job.continuation or {}).get("failed", []) if job else []),
                 "latest_check_status": job.status if job else None,
+                "latest_check_heartbeat_at": job.heartbeat_at if job else None,
+                "latest_check_reviewed_count": job.reviewed_count if job else 0,
+                "catalog_discovered_count": (job.continuation or {}).get("discovered") if job else None,
+                "catalog_unchanged_count": (job.continuation or {}).get("skipped") if job else None,
             }
         )
     return result

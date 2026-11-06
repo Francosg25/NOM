@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import sessionmaker
 
 from app.collectors import Batch, CollectionError, Document, FetchResult
-from app.collectors.platiica_catalog import SITEMAP_URL, collect_catalog
+from app.collectors.platiica_catalog import SITEMAP_URL, _document, collect_catalog
 from app.jobs import request_job, run_once
 from app.models import Alert, Base, Publication, Source, Version, utcnow
 from app.storage import LocalEvidenceStore
@@ -28,7 +28,7 @@ def _xml(entries):
 
 def _page(code, title, status, scope):
     return FetchResult(
-        f"""<html><body><article class="entry-content">
+        f"""<html><head><meta charset="utf-8"></head><body><article class="entry-content">
         <h1>{code}</h1>
         <p><strong>Clave de la Norma:</strong> {code}</p>
         <p><strong>Título de la Norma:</strong> {title}</p>
@@ -89,6 +89,24 @@ def test_catalog_discovers_noms_skips_nmx_and_extracts_official_fields():
     assert "https://www.dof.gob.mx/nota_detalle.php?codigo=123" in current.links
 
 
+def test_catalog_accepts_soft_hyphen_and_slash_in_official_nom_codes():
+    cases = [
+        ("\u00ad", "NOM-001-SAG-GAN-2015"),
+        ("", "NOM-002/1-SCT/2009"),
+    ]
+    for soft_hyphen, expected_code in cases:
+        code = f"NOM-{soft_hyphen}002/1-SCT/2009" if "/" in expected_code else (
+            f"NOM-{soft_hyphen}001-{soft_hyphen}SAG-GAN-{soft_hyphen}2015"
+        )
+        document = _document(
+            CURRENT_NOM,
+            _page(code, "Official title", "Vigente", "Product scope"),
+            None,
+        )
+        assert document.official_id == f"PLATIICA:{expected_code}"
+        assert document.title == f"{expected_code} - Official title"
+
+
 def test_catalog_delta_uses_sitemap_lastmod_and_does_not_refetch_unchanged_pages():
     known = {
         OLD_NOM: datetime(2025, 12, 1, 16, tzinfo=timezone.utc),
@@ -102,10 +120,12 @@ def test_catalog_delta_uses_sitemap_lastmod_and_does_not_refetch_unchanged_pages
 def test_catalog_failed_ficha_stays_in_durable_continuation():
     first = collect_catalog([SITEMAP_URL], None, 1, {}, fetcher=_fetcher(fail={OLD_NOM}))
     assert first.errors and first.continuation["cursor"] == 1
+    assert first.continuation["phase"] == "fetching"
     second = collect_catalog(
         [SITEMAP_URL], first.continuation, 1, {}, fetcher=_fetcher()
     )
     assert not second.complete and len(second.documents) == 1
+    assert second.continuation["phase"] == "retrying_failed"
     assert second.continuation["queue"] == [{"url": OLD_NOM, "lastmod": "2025-12-01T10:00:00-06:00"}]
     retry = collect_catalog([SITEMAP_URL], second.continuation, 1, {}, fetcher=_fetcher())
     assert retry.complete and retry.documents[0].official_id == "PLATIICA:NOM-010-STPS-1999"

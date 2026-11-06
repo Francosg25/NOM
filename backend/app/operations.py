@@ -205,11 +205,17 @@ def advance_schedule(db, job):
     if job is None or job.requested_by != "scheduler":
         return
     source = db.get(Source, job.source_id)
+    continuation = job.continuation or {}
+    catalogue_has_more = (
+        source.kind == "platiica_catalog"
+        and continuation.get("phase") == "fetching"
+        and continuation.get("cursor", 0) < len(continuation.get("queue", []))
+    )
     pending_dates = (job.continuation or {}).get("queue", [])
     unattempted_days = source.kind == "sidof" and any(not item.get("failed") for item in pending_dates)
     if source.schedule_enabled and (
         job.status == "partial"
-        and job.error_count == 0
+        and (job.error_count == 0 or catalogue_has_more)
         or job.status == "partial"
         and unattempted_days
         or job.status == "succeeded"

@@ -10,6 +10,7 @@ from app.collectors import Batch, CollectionError, Document
 from app.jobs import claim_job, ingest_document, recover_interrupted, request_job, run_once
 from app.matching import suggest
 from app.models import Alert, Audit, Base, CatalogItem, Job, Publication, Source, SourceRun, Version, utcnow
+from app.operations import schedule_due
 from app.storage import LocalEvidenceStore
 
 DAY = date(2025, 1, 15)
@@ -147,6 +148,33 @@ def test_dead_worker_marked_interrupted_without_false_success(database):
     assert db.get(Source, source_id).last_success_at is None
     assert db.get(Source, source_id).last_error
     assert db.scalar(select(SourceRun).where(SourceRun.job_id == job.id)).status == "interrupted"
+
+
+def test_recover_interrupted_handles_sqlite_naive_heartbeat_and_retries_schedule(database):
+    db, _, _, source_id = database
+    source = db.get(Source, source_id)
+    source.schedule_enabled = True
+    source.schedule_start = DAY
+    source.next_due_at = utcnow() + timedelta(days=1)
+    job = request_job(db, source_id, "scheduler", DAY, DAY)
+    job = claim_job(db)
+    job.heartbeat_at = utcnow() - timedelta(minutes=10)
+    db.commit()
+    job_id = job.id
+    db.expire_all()
+    assert db.get(Job, job_id).heartbeat_at.tzinfo is None
+
+    assert recover_interrupted(db) == 1
+
+    db.expire_all()
+    interrupted = db.get(Job, job_id)
+    source = db.get(Source, source_id)
+    assert interrupted.status == "interrupted"
+    assert source.next_due_at.replace(tzinfo=utcnow().tzinfo) <= utcnow()
+    resumed_ids = schedule_due(db, now=utcnow())
+    assert len(resumed_ids) == 1
+    resumed = db.get(Job, resumed_ids[0])
+    assert resumed.status == "queued" and resumed.requested_by == "scheduler"
 
 
 def test_unmatched_documents_are_not_discarded(database):

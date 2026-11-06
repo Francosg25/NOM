@@ -103,6 +103,38 @@ def test_partial_download_is_reported_separately_from_full_period_success(api):
     assert result['latest_check_status'] == 'partial'
 
 
+def test_dashboard_exposes_catalog_import_progress(api):
+    from app.jobs import request_job
+
+    client, sessions, _, _ = api
+    with sessions() as db:
+        source = Source(
+            name='PLATIICA',
+            kind='platiica_catalog',
+            urls=['https://platiica.economia.gob.mx/normalizacion/wp-sitemap.xml'],
+        )
+        db.add(source)
+        db.flush()
+        job = request_job(db, source.id, 'scheduler', date(2026, 11, 6), date(2026, 11, 6))
+        job.status = 'running'
+        job.reviewed_count = 40
+        job.continuation = {
+            'discovered': 823,
+            'skipped': 12,
+            'queue': [{'url': f'https://platiica.economia.gob.mx/normalizacion/nom-{index}/'} for index in range(811)],
+            'cursor': 40,
+            'failed': [],
+        }
+        db.commit()
+
+    result = client.get('/api/dashboard', headers=READER).json()['sources'][0]
+    assert result['latest_check_status'] == 'running'
+    assert result['latest_check_reviewed_count'] == 40
+    assert result['catalog_discovered_count'] == 823
+    assert result['catalog_unchanged_count'] == 12
+    assert result['pending_items'] == 771
+
+
 def test_daily_sidof_refresh_uses_seven_days_and_exposes_check_details(api):
     from app.collectors.sidof import API_BASE
     client, sessions, _, _ = api

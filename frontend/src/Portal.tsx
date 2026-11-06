@@ -12,10 +12,11 @@ import { LanguageProvider, useLanguage } from "./i18n";
 import { version as portalVersion } from "../package.json";
 
 type Row = Record<string, any>;
-type View = "actualidad" | "archivo" | "producto" | "fuentes" | "guia";
+type View = "actualidad" | "archivo" | "historico" | "producto" | "fuentes" | "guia";
 const views: { id: View; name: string }[] = [
   { id: "actualidad", name: "Novedades" },
   { id: "archivo", name: "Buscar publicaciones" },
+  { id: "historico", name: "Catálogo NOM" },
   { id: "producto", name: "Consultar producto" },
   { id: "fuentes", name: "Estado de fuentes" },
   { id: "guia", name: "Cómo funciona" },
@@ -297,7 +298,18 @@ function PublicationRow({
           <span>
             {t("Detectado {date}", { date: format(item.detected_at) })}
           </span>
+          {item.norm_status && (
+            <span>
+              {t("Estado oficial")}: {item.norm_status}
+            </span>
+          )}
+          {item.official_id && <span>{item.official_id}</span>}
         </div>
+        {item.product_scope && (
+          <p className="article-excerpt">
+            {t("Producto/servicio en PLATIICA")}: {item.product_scope}
+          </p>
+        )}
       </div>
       <button
         className="read-arrow"
@@ -414,7 +426,7 @@ function Bulletin() {
         page: String(page),
         page_size: "15",
         sort: "published",
-        source_kind: "sidof",
+        source_kind: view === "historico" ? "platiica_catalog" : "sidof",
         is_demo: String(demo),
       });
       if (query.trim()) params.set("q", query.trim());
@@ -451,7 +463,7 @@ function Bulletin() {
         if (id === generation.current) setBusy(false);
       }
     },
-    [ready, request, page, query, source, kind, period, changes, demo],
+    [ready, request, page, query, source, kind, period, changes, demo, view],
   );
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), query ? 250 : 0);
@@ -469,7 +481,14 @@ function Bulletin() {
   useEffect(() => {
     const changed = () => {
       const next = location.hash.slice(1);
-      if (views.some((v) => v.id === next)) setView(next as View);
+      if (views.some((v) => v.id === next)) {
+        setView(next as View);
+        setSource("");
+        setKind("");
+        setPeriod("all");
+        setChanges(false);
+        setPage(1);
+      }
     };
     window.addEventListener("hashchange", changed);
     return () => window.removeEventListener("hashchange", changed);
@@ -482,6 +501,10 @@ function Bulletin() {
   const navigate = (next: View) => {
     setView(next);
     location.hash = next;
+    setSource("");
+    setKind("");
+    setPeriod("all");
+    setChanges(false);
     setPage(1);
   };
   const reset = () => {
@@ -776,7 +799,7 @@ function Bulletin() {
               ? "Consultando…"
               : updating
                 ? "Solicitando…"
-                : "Consultar SIDOF",
+                : "Consultar fuentes",
           )}
         </button>
       </header>
@@ -804,7 +827,13 @@ function Bulletin() {
       <main id="contenido">
         {error && (
           <div role="alert" className="notification error">
-            <span>{t(error)}</span>
+            <span>
+              {t(
+                error === "Failed to fetch"
+                  ? "No se pudo conectar con el portal. Comprueba que INICIAR_LOCAL esté abierto y vuelve a cargar."
+                  : error,
+              )}
+            </span>
             <button className="text-button" onClick={() => void retry()}>
               {t("Volver a intentar")}
             </button>
@@ -1158,7 +1187,21 @@ function Bulletin() {
             </p>
           </section>
         )}
-        {(view === "actualidad" || view === "archivo") && (
+        {view === "historico" && (
+          <section className="section-intro">
+            <span className="eyebrow">{t("INVENTARIO PLATIICA")}</span>
+            <h1>
+              {t("Catálogo histórico de NOM")}
+              <span className="accent">.</span>
+            </h1>
+            <p>
+              {t(
+                "Consulta las fichas NOM guardadas desde PLATIICA, vigentes y no vigentes. La lista incluye solo registros ya importados; revisa el estado de sincronización antes de considerarla completa.",
+              )}
+            </p>
+          </section>
+        )}
+        {(view === "actualidad" || view === "archivo" || view === "historico") && (
           <>
             <form className="search-bar" onSubmit={(e) => e.preventDefault()}>
               <Icon name="search" size={21} />
@@ -1186,7 +1229,10 @@ function Bulletin() {
               )}
               <span>{t("ARCHIVO OFICIAL")}</span>
             </form>
-            <div className="source-wire" aria-label={t("Filtrar por fuente")}>
+            <div
+              className={`source-wire ${view === "historico" ? "catalog-wire" : ""}`}
+              aria-label={t("Filtrar por fuente")}
+            >
               <button
                 className={!source ? "active" : ""}
                 onClick={() => {
@@ -1197,7 +1243,11 @@ function Bulletin() {
                 {t("Todas las fuentes")}
               </button>
               {sources
-                .filter((s) => s.active && s.kind === "sidof")
+                .filter(
+                  (s) =>
+                    s.active &&
+                    s.kind === (view === "historico" ? "platiica_catalog" : "sidof"),
+                )
                 .map((s) => (
                   <button
                     key={s.id}
@@ -1210,7 +1260,7 @@ function Bulletin() {
                     <i
                       className={`status-dot ${s.last_error ? "issue" : s.last_success_at ? "good" : ""}`}
                     />
-                    {s.kind.toUpperCase()}
+                    {s.kind === "platiica_catalog" ? "PLATIICA" : s.kind.toUpperCase()}
                     {s.kind === "sidof"
                       ? ` · ${t(dailySource(s) ? "diario" : "referencia")}`
                       : ""}
@@ -1233,7 +1283,9 @@ function Bulletin() {
                         ? filtered
                           ? "Tu selección"
                           : "En portada"
-                        : "El archivo",
+                        : view === "historico"
+                          ? "Fichas del catálogo"
+                          : "El archivo",
                     )}
                   </h2>
                   <span>
@@ -1305,18 +1357,22 @@ function Bulletin() {
                       {t(
                         filtered
                           ? "Ninguna publicación coincide."
-                          : allFailed
-                            ? "Aún no hay documentos recuperados."
-                            : "Tu primera edición comienza aquí.",
+                          : view === "historico"
+                            ? "Aún no hay fichas NOM guardadas."
+                            : allFailed
+                              ? "Aún no hay documentos recuperados."
+                              : "Tu primera edición comienza aquí.",
                       )}
                     </h2>
                     <p>
                       {t(
                         filtered
                           ? "Prueba con otro tema o amplía el periodo. Las publicaciones sin fecha oficial no aparecen al filtrar por últimos días."
-                          : allFailed
-                            ? "Las consultas a los sitios oficiales fallaron. Abre Estado de las fuentes para ver las direcciones y el motivo; puedes visitar cada sitio directamente."
-                            : "Consulta las fuentes para empezar a reunir publicaciones oficiales. Aquí aparecerán sus títulos, fechas y cambios, sin datos de ejemplo.",
+                          : view === "historico"
+                            ? "La carga inicial se procesa por lotes. Abre Estado de fuentes para revisar el avance o los errores de PLATIICA."
+                            : allFailed
+                              ? "Las consultas a los sitios oficiales fallaron. Abre Estado de las fuentes para ver las direcciones y el motivo; puedes visitar cada sitio directamente."
+                              : "Consulta las fuentes para empezar a reunir publicaciones oficiales. Aquí aparecerán sus títulos, fechas y cambios, sin datos de ejemplo.",
                       )}
                     </p>
                     <button
@@ -1324,11 +1380,14 @@ function Bulletin() {
                       onClick={
                         filtered
                           ? reset
-                          : allFailed
+                          : view === "historico"
                             ? () => navigate("fuentes")
-                            : () => void refresh()
+                            : allFailed
+                              ? () => navigate("fuentes")
+                              : () => void refresh()
                       }
                       disabled={
+                        view !== "historico" &&
                         !allFailed &&
                         !filtered &&
                         (!ready || updating || activeJobs)
@@ -1337,9 +1396,11 @@ function Bulletin() {
                       {t(
                         filtered
                           ? "Ver todas las publicaciones"
-                          : allFailed
-                            ? "Revisar las conexiones"
-                            : "Consultar SIDOF",
+                          : view === "historico"
+                            ? "Ver estado de PLATIICA"
+                            : allFailed
+                              ? "Revisar las conexiones"
+                              : "Consultar fuentes",
                       )}
                       <Icon name="arrow" />
                     </button>
@@ -1489,6 +1550,13 @@ function Bulletin() {
                         {t(
                           item.last_error
                             ? "Revisión parcial del periodo"
+                            : item.latest_check_status === "queued"
+                              ? "Consulta en cola"
+                              : item.latest_check_status === "running"
+                                ? item.latest_check_heartbeat_at &&
+                                  Date.now() - Date.parse(item.latest_check_heartbeat_at) > 120_000
+                                  ? "Proceso sin señal reciente"
+                                  : "Consulta en curso"
                             : item.last_success_at
                               ? "Última revisión completa"
                               : "Pendiente de consultar",
@@ -1503,6 +1571,36 @@ function Bulletin() {
                           : "Publicaciones oficiales SIDOF por fecha. Se guardan el texto disponible y una copia del original.",
                       )}
                     </p>
+                    {item.kind === "platiica_catalog" &&
+                      item.latest_check_status === "running" && (
+                        <div className="pending-dates">
+                          <strong>{t("Progreso de la carga")}</strong>
+                          <p>
+                            {item.catalog_discovered_count == null
+                              ? t("Descubriendo fichas en los sitemaps oficiales.")
+                              : t(
+                                  "{reviewed} revisadas de {discovered} fichas detectadas; {pending} pendientes y {unchanged} sin cambios.",
+                                  {
+                                    reviewed: item.latest_check_reviewed_count || 0,
+                                    discovered: item.catalog_discovered_count,
+                                    pending: item.pending_items,
+                                    unchanged: item.catalog_unchanged_count || 0,
+                                  },
+                                )}
+                          </p>
+                        </div>
+                      )}
+                    {item.latest_check_status === "running" &&
+                      item.latest_check_heartbeat_at &&
+                      Date.now() - Date.parse(item.latest_check_heartbeat_at) > 120_000 && (
+                        <div className="source-failure">
+                          <p>
+                            {t(
+                              "El proceso no ha enviado una señal reciente. Reinicia el portal para recuperar la consulta interrumpida; el trabajo pendiente se conserva.",
+                            )}
+                          </p>
+                        </div>
+                      )}
                     {
                       <details className="source-notes">
                         <summary>{t("Notas originales de la fuente")}</summary>

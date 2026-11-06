@@ -130,6 +130,30 @@ def test_schedule_opt_in_dedup_backlog_and_partial_resume(state):
     assert source.last_error
 
 
+def test_catalogue_batches_continue_after_ficha_errors_until_failed_queue(state):
+    db, source, _ = state
+    source.kind = "platiica_catalog"
+    source.schedule_enabled = True
+    source.next_due_at = utcnow() + timedelta(days=1)
+    db.commit()
+    job = SimpleNamespace(
+        requested_by="scheduler",
+        source_id=source.id,
+        status="partial",
+        error_count=1,
+        continuation={"phase": "fetching", "queue": [{}] * 10, "cursor": 1},
+        period_end=utcnow().date(),
+    )
+    advance_schedule(db, job)
+    assert source.next_due_at <= utcnow()
+
+    source.next_due_at = utcnow() + timedelta(days=1)
+    db.commit()
+    job.continuation = {"phase": "retrying_failed", "queue": [{}], "cursor": 0}
+    advance_schedule(db, job)
+    assert source.next_due_at > utcnow()
+
+
 def test_scheduling_missing_configuration_is_visible(state):
     db,source,_=state
     source.schedule_enabled=True;db.commit()
