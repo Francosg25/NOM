@@ -25,6 +25,8 @@ def check_deployment(client, expected_version, baseline=None, require_automatic=
 
         health = get("/api/health")
         checks["release"] = health.get("frontend", {}).get("version") == expected_version
+        checks["backend_release"] = health.get("backend", {}).get("version") == expected_version
+        checks["document_reader"] = health.get("backend", {}).get("document_reader") == "modal-v2"
         checks["ready"] = get("/api/ready").get("status") == "ready"
         state = get("/api/operations")
         warnings.extend(state.get("codes", []))
@@ -32,11 +34,11 @@ def check_deployment(client, expected_version, baseline=None, require_automatic=
         active = [s for s in overview["sources"] if s["active"]]
         expected_sources = {"sidof", "platiica_catalog"}
         active_kinds = {s["kind"] for s in active}
-        checks["required_sources_active"] = (
-            expected_sources.issubset(active_kinds) and active_kinds.issubset(expected_sources)
+        checks["required_sources_active"] = expected_sources.issubset(active_kinds) and active_kinds.issubset(
+            expected_sources
         )
         report["publication_count"] = sum(s.get("publication_count", 0) for s in active)
-        runs = get("/api/jobs?page_size=200")["items"]
+        runs = get("/api/jobs?page_size=200&summary=true")["items"]
         report["scheduler_job_ids"] = [j["id"] for j in runs if j["requested_by"] == "scheduler"]
         if require_automatic:
             old = set((baseline or {}).get("scheduler_job_ids", []))
@@ -58,18 +60,24 @@ def check_deployment(client, expected_version, baseline=None, require_automatic=
                 items = get("/api/publications?source_kind=platiica_catalog&page_size=1")["items"]
             sample = None
             if items:
-                doc = get("/api/publications/" + str(items[0]["id"]))
+                doc = get("/api/publications/" + str(items[0]["id"]) + "?include_content=false")
                 versions = [v for v in doc["versions"] if v.get("evidence_key")]
                 if versions:
                     sample = {"publication_id": doc["id"], "version_id": versions[0]["id"]}
         if sample:
             publication_id, version_id = int(sample["publication_id"]), int(sample["version_id"])
-            doc = get(f"/api/publications/{publication_id}")
+            doc = get(f"/api/publications/{publication_id}?include_content=false")
             checks["sample_version_preserved"] = any(v["id"] == version_id for v in doc["versions"])
             response = client.get(f"/api/versions/{version_id}/evidence")
             response.raise_for_status()
             sha = hashlib.sha256(response.content).hexdigest()
             checks["sample_evidence_preserved"] = not sample.get("sha256") or sample["sha256"] == sha
+            reading = get(f"/api/versions/{version_id}/reading")
+            checks["sample_reading_available"] = (
+                reading.get("version_id") == version_id
+                and reading.get("format") in {"structured", "plain"}
+                and isinstance(reading.get("blocks"), list)
+            )
             report["sample"] = {**sample, "sha256": sha}
         else:
             report["sample"] = None

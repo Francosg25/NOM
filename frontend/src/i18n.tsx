@@ -3,12 +3,41 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import type { ReactNode } from "react";
 
 type Language = "es" | "en";
 const english: Record<string, string> = {
+  "LECTURA DE NORMA": "STANDARD READER",
+  "El documento no pudo cargarse. Vuelve a intentarlo.": "The document could not load. Please try again.",
+  "Reintentar": "Try again",
+  "Versión del documento": "Document version",
+  "Información de la copia": "Copy information",
+  "Copia consultada el {date}.": "Copy retrieved on {date}.",
+  "Tamaño del texto": "Text size",
+  "Reducir tamaño del texto": "Decrease text size",
+  "Aumentar tamaño del texto": "Increase text size",
+  "Preparando lectura…": "Preparing document…",
+  "Parte": "Part",
+  "Ir a la parte": "Go to part",
+  "{number} de {total}": "{number} of {total}",
+  "Parte {number} de {total}": "Part {number} of {total}",
+  "Navegación del documento": "Document navigation",
+  "Continuar lectura": "Continue reading",
+  "Tabla del documento": "Document table",
+  "Figura o fórmula del documento oficial": "Figure or formula from the official document",
+  "Consulta esta figura o fórmula en la fuente oficial.": "View this figure or formula in the official source.",
+  "Copia consultada el {date}. La vista de lectura conserva el contenido y organiza su presentación. Puedes descargar la copia original.":
+    "Copy retrieved on {date}. The reading view preserves the content and organizes its presentation. You can download the original copy.",
+  "Norma de emergencia": "Emergency standard",
+  "Fechas sin publicación según el calendario oficial": "Non-publishing dates in the official calendar",
+  "El calendario oficial de SIDOF identifica esta fecha sin publicación.": "SIDOF's official calendar identifies this as a non-publishing date.",
+  "Consultar calendario oficial": "View official calendar",
+  "{count} referencias recuperadas del PDF oficial": "{count} references recovered from the official PDF",
+  "Página {page}": "Page {page}",
+  "Detalles técnicos": "Technical details",
   "Consultar producto": "Product lookup",
   "REVISIÓN PRELIMINAR": "PRELIMINARY REVIEW",
   "Consultar por producto": "Search by product",
@@ -84,9 +113,18 @@ const english: Record<string, string> = {
   "Publicaciones guardadas": "Saved publications",
   "Próxima consulta automática": "Next automatic check",
   "Fechas pendientes de verificar": "Dates still to be checked",
+  "Fechas sin índice verificable": "Dates without a verifiable index",
+  "Fechas con índice revisado": "Dates with a reviewed index",
+  "{count} fechas con índice revisado en esta ejecución": "{count} dates with an index reviewed in this run",
+  " · {count} fechas sin índice verificable": " · {count} dates without a verifiable index",
+  "Detalle de fechas pendientes": "Pending date details (Spanish)",
+  "SIDOF no entregó un índice para algunas fechas y su calendario no confirmó que fueran días sin publicación. Esas fechas siguen pendientes; las demás consultas pueden continuar.":
+    "SIDOF did not return an index for some dates, and its calendar did not confirm that they had no publication. Those dates remain pending; other checks can continue.",
   "Hay fechas pendientes de verificar.": "Some dates still need checking.",
   "{count} publicaciones guardadas. Abre el detalle para ver qué falta revisar.":
     "{count} publications saved. Open the details to see what still needs checking.",
+  "SIDOF: {sidof} publicaciones. PLATIICA: {catalog} fichas guardadas. Abre el detalle para ver qué falta revisar.":
+    "SIDOF: {sidof} publications. PLATIICA: {catalog} saved catalogue records. Open the details to see what still needs checking.",
   "Revisión parcial del periodo": "Partial period check",
   "El servidor consulta esta fuente automáticamente según la frecuencia indicada. Puedes cerrar el navegador; el servidor debe seguir encendido.":
     "The server checks this source automatically at the listed interval. You can close the browser; the server must keep running.",
@@ -500,6 +538,16 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     },
     [language],
   );
+  const dateFormats = useMemo(() => {
+    const locale = language === "en" ? "en-US" : "es-MX";
+    const date = { day: "numeric", month: "short", year: "numeric" } as const;
+    return {
+      official: new Intl.DateTimeFormat(locale, { ...date, timeZone: "UTC" }),
+      officialTime: new Intl.DateTimeFormat(locale, { ...date, timeZone: "UTC", hour: "2-digit", minute: "2-digit" }),
+      local: new Intl.DateTimeFormat(locale, { ...date, timeZone: "America/Mexico_City" }),
+      time: new Intl.DateTimeFormat(locale, { ...date, timeZone: "America/Mexico_City", hour: "2-digit", minute: "2-digit" }),
+    };
+  }, [language]);
   const format = useCallback(
     (value?: string | null, time = false) => {
       if (!value) return t("Pendiente");
@@ -511,18 +559,15 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
             : `${value}Z`,
       );
       if (Number.isNaN(date.valueOf())) return t("Fecha por confirmar");
-      return new Intl.DateTimeFormat(language === "en" ? "en-US" : "es-MX", {
-        timeZone: value.length === 10 ? "UTC" : "America/Mexico_City",
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        ...(time ? { hour: "2-digit", minute: "2-digit" } : {}),
-      }).format(date);
+      const formatter = value.length === 10 ? time ? dateFormats.officialTime : dateFormats.official :
+        time ? dateFormats.time : dateFormats.local;
+      return formatter.format(date);
     },
-    [language, t],
+    [dateFormats, t],
   );
+  const locale = useMemo(() => ({ language, setLanguage, t, format }), [language, t, format]);
   return (
-    <Context.Provider value={{ language, setLanguage, t, format }}>
+    <Context.Provider value={locale}>
       {children}
     </Context.Provider>
   );

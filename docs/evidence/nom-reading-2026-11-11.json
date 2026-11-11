@@ -1,0 +1,13 @@
+{
+  "version": "0.6.4",
+  "official_id": "DOF:5802721",
+  "original_json_sha256": "69395a8250e6dc2fc656e134fb04b549c463fc783bfc6d738f7d0b303610a429",
+  "text_characters_preserved_excluding_layout_whitespace": true,
+  "layout": {
+    "tables": 11,
+    "rows": 52,
+    "cells": 210,
+    "figures": 3
+  },
+  "blocks": 441
+}

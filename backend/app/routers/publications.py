@@ -3,9 +3,9 @@
 from datetime import date
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy import or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 from ..api_helpers import alert_dict, audit, fields, get_or_404, paginate, pub_dict, pub_dicts
 from ..auth import Identity, identity, require_role
 from ..db import get_db
@@ -13,6 +13,25 @@ from ..models import Alert, Audit, Publication, Source, Version
 from ..schemas import PublicationInput
 
 router = APIRouter(prefix="/api", tags=["publications"])
+
+
+def version_reading(version, publication):
+    from ..reading import reading_tree
+    from ..storage import get_storage
+
+    raw = None
+    media_type = version.media_type.split(";", 1)[0].strip().lower()
+    if version.evidence_key and media_type in {
+        "application/json",
+        "text/html",
+        "application/xhtml+xml",
+        "text/plain",
+    }:
+        try:
+            raw = get_storage().read(version.evidence_key)
+        except (FileNotFoundError, ValueError, OSError):
+            pass
+    return {"version_id": version.id, **reading_tree(raw, media_type, version.content, publication.title)}
 
 
 @router.get("/publications")
@@ -73,13 +92,26 @@ def publications(
 
 
 @router.get("/publications/{id}")
-def publication(id: int, db: Session = Depends(get_db), user: Identity = Depends(identity)):
+def publication(
+    id: int,
+    include_content: bool = True,
+    db: Session = Depends(get_db),
+    user: Identity = Depends(identity),
+):
     obj = get_or_404(db, Publication, id)
-    result = pub_dict(db, obj)
-    versions = db.scalars(
-        select(Version).where(Version.publication_id == id).order_by(Version.sequence.desc())
-    ).all()
-    result["versions"] = [{**fields(v), "evidence_url": f"/api/versions/{v.id}/evidence"} for v in versions]
+    result = pub_dict(db, obj, include_excerpt=include_content)
+    stmt = select(Version).where(Version.publication_id == id).order_by(Version.sequence.desc())
+    if not include_content:
+        stmt = stmt.options(defer(Version.content))
+    versions = db.scalars(stmt).all()
+    result["versions"] = [
+        {
+            **fields(v, exclude=() if include_content else {"content"}),
+            "evidence_url": f"/api/versions/{v.id}/evidence",
+            **({"reading": version_reading(v, obj)} if include_content and index == 0 else {}),
+        }
+        for index, v in enumerate(versions)
+    ]
     result["alerts"] = [
         alert_dict(db, a) for a in db.scalars(select(Alert).where(Alert.publication_id == id)).all()
     ]
@@ -158,3 +190,12 @@ def evidence(id: int, db: Session = Depends(get_db), user: Identity = Depends(id
             "Cache-Control": "private, no-store",
         },
     )
+
+
+@router.get("/versions/{id}/reading")
+def reading(id: int, db: Session = Depends(get_db), user: Identity = Depends(identity)):
+    version = get_or_404(db, Version, id)
+    publication = get_or_404(db, Publication, version.publication_id)
+    # Serialize in this synchronous route's worker. FastAPI's recursive encoder
+    # otherwise walks every inline node on the shared event loop.
+    return JSONResponse(version_reading(version, publication))

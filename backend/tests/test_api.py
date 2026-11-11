@@ -95,11 +95,14 @@ def test_partial_download_is_reported_separately_from_full_period_success(api):
         document = Document('CONTROLLED-PARTIAL','https://sidof.segob.gob.mx/notas/docFuente/1',
             'Controlled publication','Saved valid text',date(2026,11,2),raw=b'controlled')
         run_once(db,job_id=job.id,storage=store,collector=lambda *a,**kw:Batch([document],False,
-            {'queue':[{'day':'2026-11-01','failed':True}]},'Controlled partial',['2026-11-01: HTTP 404']))
+            {'queue':[{'day':'2026-11-01','failed':True}]},'Controlled partial',
+            ['2026-11-01: SIDOF: fecha sin índice, pero sin declaración oficial de ausencia de publicación'],
+            [{'day':'2026-11-02','notes_checked':1,'selected_ids':['CONTROLLED-PARTIAL'],'unresolved':[]}]))
     result = client.get('/api/dashboard',headers=READER).json()['sources'][0]
     assert result['publication_count'] == 1 and result['last_download_at']
     assert result['last_full_review_at'] is None
     assert result['pending_dates'] == ['2026-11-01']
+    assert result['recent_checked_dates'] == ['2026-11-02']
     assert result['latest_check_status'] == 'partial'
 
 
@@ -218,7 +221,7 @@ def test_served_frontend_reports_release_and_revalidates_html(api, tmp_path, mon
     health = client.get('/api/health')
     assert health.json()['frontend'] == manifest
     assert health.headers['cache-control'] == 'no-store'
-    assert client.get('/').headers['cache-control'] == 'no-cache'
+    assert client.get('/').headers['cache-control'] == 'no-store'
 
 
 @pytest.mark.parametrize('kind,url', [
@@ -671,3 +674,170 @@ def test_alerts_can_be_filtered_for_a_tracked_product(api):
     assert result.status_code == 200
     assert result.json()['total'] == 1
     assert result.json()['items'][0]['catalog_id'] == catalog_id
+
+
+def test_verified_calendar_run_clears_old_warning_without_calling_absence_an_index(api):
+    from app.collectors import Batch
+    from app.jobs import request_job, run_once
+
+    client, sessions, _, store = api
+    with sessions() as db:
+        source = Source(name='SIDOF', kind='sidof', urls=['https://sidof.segob.gob.mx/dof/sidof'])
+        db.add(source)
+        db.commit()
+        start, end = date(2026, 11, 7), date(2026, 11, 8)
+        job = request_job(db, source.id, 'scheduler', start, end)
+        run_once(db, job_id=job.id, storage=store, collector=lambda *a, **kw: Batch(
+            [], False, {'queue': [{'day': str(start)}, {'day': str(end)}]}, 'Controlled unavailable', ['HTTP 404']))
+        job = request_job(db, source.id, 'scheduler', start, end)
+        checks = [{'day': str(day), 'declared_no_publication': True, 'absence_basis': 'sidof_portal_calendar',
+                   'notes_checked': 0, 'selected_ids': [], 'unresolved': []} for day in (start, end)]
+        run_once(db, job_id=job.id, storage=store, collector=lambda *a, **kw: Batch(
+            [], True, None, 'Controlled verified calendar', checks=checks))
+    result = client.get('/api/dashboard', headers=READER).json()['sources'][0]
+    assert result['last_error'] is None and result['latest_check_status'] == 'succeeded'
+    assert result['pending_dates'] == [] and result['recent_checked_dates'] == []
+    assert result['confirmed_absence_dates'] == ['2026-11-08', '2026-11-07']
+
+
+def test_reading_uses_original_inline_structure_without_mutating_saved_versions(api):
+    import json
+
+    client, sessions, _, store = api
+    _, _, pub_id, _, _ = seed(sessions)
+    html = '<body><p>La regulaci<span>ó</span>n conserva 40 N/mm<sup>2</sup>.</p><table><tr><td>Tipo</td><td>Valor</td></tr><tr><td>CPC</td><td>30</td></tr></table></body>'
+    raw = json.dumps({'Nota': {'cadenaContenido': html}}, ensure_ascii=False).encode()
+    key = store.put(raw, 'application/json')
+    with sessions() as db:
+        version = Version(publication_id=pub_id, sequence=1, content='La regulaci\nó\nn conserva 40 N/mm\n2.',
+                          content_hash='reading-fixture', evidence_key=key, media_type='application/json')
+        db.add(version)
+        db.commit()
+        version_id = version.id
+    response = client.get(f'/api/versions/{version_id}/reading', headers=READER)
+    assert response.status_code == 200
+    reading = response.json()
+    assert reading['version_id'] == version_id and reading['format'] == 'structured'
+    assert reading['blocks'][1]['type'] == 'table'
+    from app.reading import inline_text
+    assert inline_text(reading['blocks'][0]['inlines']) == 'La regulación conserva 40 N/mm2.'
+    with sessions() as db:
+        version = db.get(Version, version_id)
+        assert version.content == 'La regulaci\nó\nn conserva 40 N/mm\n2.' and version.content_hash == 'reading-fixture'
+    assert client.get(f'/api/versions/{version_id}/evidence', headers=READER).content == raw
+    assert client.get('/api/versions/999999/reading', headers=READER).status_code == 404
+
+
+def test_missing_reading_evidence_falls_back_to_saved_content(api):
+    client, sessions, _, store = api
+    _, _, pub_id, _, _ = seed(sessions)
+    key = store.put(b'temporary test evidence', 'text/html')
+    with sessions() as db:
+        version = Version(publication_id=pub_id, sequence=1, content='Texto conservado. 3.5. CPC.',
+                          content_hash='reading-missing', evidence_key=key, media_type='text/html')
+        db.add(version)
+        db.commit()
+        version_id = version.id
+    (store.root / key).unlink()
+    result = client.get(f'/api/versions/{version_id}/reading', headers=READER)
+    assert result.status_code == 200 and result.json()['format'] == 'plain'
+    assert result.json()['blocks'][0]['inlines'][0]['text'] == 'Texto conservado. 3.5. CPC.'
+
+
+def test_publication_delivers_its_formatted_latest_version_and_runtime_identifies_the_reader(api):
+    import json
+
+    client, sessions, _, store = api
+    _, _, pub_id, _, _ = seed(sessions)
+    raw = json.dumps({'Nota': {'cadenaContenido': '<p>La regulaci<span>ó</span>n es legible.</p>'}}).encode()
+    key = store.put(raw, 'application/json')
+    with sessions() as db:
+        for number in [1, 2]:
+            db.add(Version(publication_id=pub_id, sequence=number, content='La regulaci\nó\nn es legible.',
+                           content_hash=f'reader-inline-{number}', evidence_key=key, media_type='text/html; charset=UTF-8'))
+        db.commit()
+    response = client.get(f'/api/publications/{pub_id}', headers=READER)
+    assert response.status_code == 200
+    latest, previous = response.json()['versions']
+    assert latest['reading']['version_id'] == latest['id'] and latest['reading']['format'] == 'structured'
+    assert 'reading' not in previous
+    from app.reading import inline_text
+    assert inline_text(latest['reading']['blocks'][0]['inlines']) == 'La regulación es legible.'
+    health = client.get('/api/health').json()
+    assert health['backend'] == {'version': '0.6.7', 'document_reader': 'modal-v2'}
+    policy = response.headers['content-security-policy']
+    assert "img-src 'self' data: https://sidof.segob.gob.mx;" in policy
+    assert "script-src 'self';" in policy and "connect-src 'self';" in policy
+
+
+def test_reader_metadata_does_not_download_or_format_historical_documents(api, monkeypatch):
+    client, sessions, _, store = api
+    _, _, pub_id, _, _ = seed(sessions)
+    raw = b'<p>Controlled preserved evidence.</p>'
+    key = store.put(raw, 'text/html')
+    with sessions() as db:
+        for number in range(1, 13):
+            version = Version(publication_id=pub_id, sequence=number, content='Controlled text. ' * 2000,
+                              content_hash=str(number), evidence_key=key, media_type='text/html')
+            db.add(version)
+            db.flush()
+        db.get(Publication, pub_id).current_version_id = version.id
+        db.commit()
+    monkeypatch.setattr(store, 'read', lambda _: pytest.fail('Metadata must not read evidence'))
+    response = client.get(f'/api/publications/{pub_id}?include_content=false', headers=READER)
+    assert response.status_code == 200
+    result = response.json()
+    assert len(result['versions']) == 12
+    assert all('content' not in version and 'reading' not in version for version in result['versions'])
+    assert len(response.content) < 10000
+    assert result['versions'][0]['sequence'] == 12
+    assert result['has_changes'] is True
+    assert all(version['evidence_url'] for version in result['versions'])
+
+
+def test_job_summaries_leave_the_saved_import_queue_available_in_detail(api):
+    client, sessions, _, _ = api
+    source_id, *_ = seed(sessions)
+    queue = [{'url': 'https://controlled.invalid/record/' + str(i)} for i in range(823)]
+    with sessions() as db:
+        db.add(Job(id='controlled-heavy-queue', source_id=source_id, requested_by='test', status='partial',
+                   period_start=date(2026, 11, 1), period_end=date(2026, 11, 11),
+                   continuation={'queue': queue}, error_count=2, error='Controlled pending dates'))
+        db.commit()
+    response = client.get('/api/jobs?summary=true', headers=READER)
+    assert response.status_code == 200 and len(response.content) < 2000
+    summary = response.json()['items'][0]
+    assert 'continuation' not in summary
+    assert summary['status'] == 'partial' and summary['error_count'] == 2
+    assert summary['error'] == 'Controlled pending dates'
+    assert client.get('/api/jobs/controlled-heavy-queue', headers=READER).json()['continuation']['queue'] == queue
+
+
+def test_dashboard_reads_index_coverage_without_loading_full_audit_documents(api):
+    from sqlalchemy import event
+
+    client, sessions, _, _ = api
+    with sessions() as db:
+        source = Source(name='Controlled SIDOF', kind='sidof', urls=[])
+        db.add(source)
+        db.flush()
+        db.add(Job(id='controlled-coverage', source_id=source.id, requested_by='test', status='succeeded',
+                   period_start=date(2026, 11, 6), period_end=date(2026, 11, 8)))
+        db.add_all([Audit(actor='test', entity_type='job', entity_id='controlled-coverage',
+                         action='revisar_indice_diario', after={'day': day, 'declared_no_publication': absent,
+                         'recovered_references': [{'text': 'Controlled saved detail. ' * 2000}]})
+                    for day, absent in [('2026-11-06', False), ('2026-11-07', True), ('2026-11-08', True)]])
+        db.commit()
+    loaded = []
+    def audit_loaded(record, _):
+        loaded.append(record.id)
+    event.listen(Audit, 'load', audit_loaded)
+    try:
+        response = client.get('/api/dashboard', headers=READER)
+    finally:
+        event.remove(Audit, 'load', audit_loaded)
+    assert response.status_code == 200
+    source = response.json()['sources'][0]
+    assert source['recent_checked_dates'] == ['2026-11-06']
+    assert source['confirmed_absence_dates'] == ['2026-11-08', '2026-11-07']
+    assert loaded == []

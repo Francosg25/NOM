@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta, timezone
+import re
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, select
+from sqlalchemy.orm import defer
 
 from .models import Audit, CatalogItem, Publication, Source, Version, utcnow
 
@@ -12,8 +14,8 @@ def mexico_today():
     return utcnow().astimezone(ZoneInfo("America/Mexico_City")).date()
 
 
-def fields(obj):
-    values = {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
+def fields(obj, *, exclude=()):
+    values = {c.name: getattr(obj, c.name) for c in obj.__table__.columns if c.name not in exclude}
     for key, value in values.items():
         if isinstance(value, datetime) and value.tzinfo is None:
             values[key] = value.replace(tzinfo=timezone.utc)
@@ -61,7 +63,7 @@ def catalog_dict(obj):
     return result
 
 
-def pub_dict(db, obj, context=None):
+def pub_dict(db, obj, context=None, *, include_excerpt=True):
     result = fields(obj)
     source = context[0].get(obj.source_id) if context else db.get(Source, obj.source_id)
     result["source_name"] = source.name if source else None
@@ -100,11 +102,23 @@ def pub_dict(db, obj, context=None):
     version = (
         context[2].get(obj.current_version_id)
         if context
-        else db.get(Version, obj.current_version_id)
+        else db.get(
+            Version, obj.current_version_id, options=[] if include_excerpt else [defer(Version.content)]
+        )
         if obj.current_version_id
         else None
     )
-    result["excerpt"] = " ".join(version.content.split())[:420] if version else ""
+    excerpt = " ".join(version.content.split()) if version and include_excerpt else ""
+    title = " ".join(obj.title.split())
+    if title:
+        for _ in range(3):
+            trimmed = re.sub(
+                r"^" + re.escape(title.rstrip(".")) + r"\.?\s*", "", excerpt, count=1, flags=re.I
+            )
+            if trimmed == excerpt:
+                break
+            excerpt = trimmed
+    result["excerpt"] = excerpt[:420]
     result["has_changes"] = bool(version and version.sequence > 1)
     result["captured_at"] = version.captured_at.isoformat() if version else None
     return result

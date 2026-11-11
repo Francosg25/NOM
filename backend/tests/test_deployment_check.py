@@ -6,7 +6,7 @@ import pytest
 from app.deployment_check import check_deployment
 
 
-@pytest.mark.parametrize("fault", [None, "version", "evidence", "worker", "scheduler"])
+@pytest.mark.parametrize("fault", [None, "version", "backend", "reader", "evidence", "worker", "scheduler"])
 def test_deployment_probe_rejects_regressions_after_restart(fault):
     baseline = {
         "checked_at": "2026-10-01T00:00:00Z",
@@ -18,7 +18,13 @@ def test_deployment_probe_rejects_regressions_after_restart(fault):
     def handle(request):
         path = request.url.path
         data = {
-            "/api/health": {"frontend": {"version": "wrong" if fault == "version" else "0.6.0"}},
+            "/api/health": {
+                "frontend": {"version": "wrong" if fault == "version" else "0.6.5"},
+                "backend": {
+                    "version": "old" if fault == "backend" else "0.6.5",
+                    "document_reader": "old" if fault == "reader" else "modal-v2",
+                },
+            },
             "/api/ready": {"status": "ready"},
             "/api/operations": {"codes": []},
             "/api/dashboard": {
@@ -38,11 +44,12 @@ def test_deployment_probe_rejects_regressions_after_restart(fault):
                 ]
             },
             "/api/publications/1": {"versions": [{"id": 2}]},
+            "/api/versions/2/reading": {"version_id": 2, "format": "structured", "blocks": []},
         }
         if path == "/api/versions/2/evidence":
             return httpx.Response(200, content=b"corrupt" if fault == "evidence" else b"original")
         return httpx.Response(503 if path == "/api/ready" and fault == "worker" else 200, json=data[path])
 
     with httpx.Client(transport=httpx.MockTransport(handle), base_url="https://controlled.test") as client:
-        result = check_deployment(client, "0.6.0", baseline, require_automatic=True)
+        result = check_deployment(client, "0.6.5", baseline, require_automatic=True)
     assert result["passed"] is (fault is None)

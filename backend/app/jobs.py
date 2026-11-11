@@ -313,10 +313,30 @@ def ingest_document(
         db.flush()
     elif pub.is_demo != is_demo:
         raise ValueError("No mezcle demostración y publicaciones oficiales")
+    previous = db.get(Version, pub.current_version_id) if pub.current_version_id else None
+    if previous and previous.content.strip() and document.processing_note and not document.content.strip():
+        # An unavailable body is not a new legal version. Preserve the readable
+        # copy and record the incomplete response independently for the retry.
+        pub.last_seen_at = now
+        key = storage.put(document.raw or b"", document.media_type)
+        db.add(
+            Audit(
+                actor="sistema",
+                action="conservar_version_valida",
+                entity_type="publications",
+                entity_id=str(pub.id),
+                after={
+                    "retained_version_id": previous.id,
+                    "incomplete_evidence_key": key,
+                    "reason": document.processing_note,
+                },
+            )
+        )
+        _record_observation(db, job_id, pub, previous, "incomplete_reference")
+        return "unchanged"
     pub.norm_status = document.norm_status
     pub.product_scope = document.product_scope
     pub.source_updated_at = document.source_updated_at
-    previous = db.get(Version, pub.current_version_id) if pub.current_version_id else None
     pub.last_seen_at = now
     content_hash = _digest(document)
     if previous and previous.content_hash == content_hash:

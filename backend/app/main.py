@@ -8,9 +8,10 @@ from threading import Event
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.gzip import GZipMiddleware
 from pydantic import Field
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 from sqlalchemy.exc import IntegrityError
 from .auth import Identity, identity, require_role
 from .api_helpers import (
@@ -62,7 +63,7 @@ async def lifespan(app):
 
 app = FastAPI(
     title="JE NOM Monitor",
-    version="0.6.0",
+    version="0.6.7",
     lifespan=lifespan,
     docs_url=None if production else "/api/docs",
     openapi_url=None if production else "/api/openapi.json",
@@ -71,6 +72,7 @@ app = FastAPI(
 app.include_router(operations_router)
 app.include_router(publications_router)
 app.include_router(product_search_router)
+app.add_middleware(GZipMiddleware, minimum_size=4096, compresslevel=3)
 
 
 @app.middleware("http")
@@ -80,7 +82,7 @@ async def security_headers(request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "same-origin"
     response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: https://sidof.segob.gob.mx; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
     )
     if request.url.path == "/api/docs" and not production:
         response.headers["Content-Security-Policy"] = (
@@ -154,7 +156,12 @@ def health():
         frontend = json.loads(release.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         frontend = {}
-    return {"status": "ok", "service": "JE NOM Monitor", "frontend": frontend}
+    return {
+        "status": "ok",
+        "service": "JE NOM Monitor",
+        "frontend": frontend,
+        "backend": {"version": app.version, "document_reader": "modal-v2"},
+    }
 
 
 @app.get("/api/auth/config")
@@ -200,6 +207,32 @@ def source_progress(db, sources):
         j.source_id: j
         for j in db.scalars(select(Job).where(Job.id.in_(select(ranked.c.id).where(ranked.c.position == 1))))
     }
+    recent_checks, confirmed_absences = {}, {}
+    for source in sources:
+        if source.kind != "sidof":
+            continue
+        latest_days = {}
+        for day, declared_absence in db.execute(
+            select(Audit.after["day"].as_string(), Audit.after["declared_no_publication"].as_boolean())
+            .join(Job, Audit.entity_id == Job.id)
+            .where(
+                Job.source_id == source.id,
+                Audit.entity_type == "job",
+                Audit.action == "revisar_indice_diario",
+            )
+            .order_by(Audit.id.desc())
+            .limit(1000)
+        ):
+            if day:
+                latest_days.setdefault(day, declared_absence)
+        recent_checks[source.id] = sorted(
+            (day for day, absent in latest_days.items() if not absent),
+            reverse=True,
+        )[:14]
+        confirmed_absences[source.id] = sorted(
+            (day for day, absent in latest_days.items() if absent),
+            reverse=True,
+        )[:14]
     result = []
     for source in sources:
         count, downloaded = totals.get(source.id, (0, None))
@@ -214,6 +247,8 @@ def source_progress(db, sources):
                 "last_download_at": downloaded,
                 "last_full_review_at": source.last_success_at,
                 "pending_dates": pending,
+                "recent_checked_dates": recent_checks.get(source.id, []),
+                "confirmed_absence_dates": confirmed_absences.get(source.id, []),
                 "pending_items": max(0, len(queue) - cursor)
                 + len((job.continuation or {}).get("failed", []) if job else []),
                 "latest_check_status": job.status if job else None,
@@ -601,8 +636,10 @@ def update_source(
     data = body.model_dump(exclude_unset=True)
     if any(v is None for k, v in data.items() if k != "schedule_start"):
         raise HTTPException(422, "Los campos de fuente no admiten null")
-    if data.get("kind") == "platiica_catalog" and obj.kind != "platiica_catalog" and db.scalar(
-        select(Source.id).where(Source.kind == "platiica_catalog", Source.id != id).limit(1)
+    if (
+        data.get("kind") == "platiica_catalog"
+        and obj.kind != "platiica_catalog"
+        and db.scalar(select(Source.id).where(Source.kind == "platiica_catalog", Source.id != id).limit(1))
     ):
         raise HTTPException(409, "El catálogo PLATIICA ya está registrado")
     if any(
@@ -653,14 +690,17 @@ def jobs(
     source_id: int | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=200),
+    summary: bool = False,
     db: Session = Depends(get_db),
     user: Identity = Depends(identity),
 ):
     stmt = select(Job).order_by(Job.requested_at.desc())
     if source_id:
         stmt = stmt.where(Job.source_id == source_id)
+    if summary:
+        stmt = stmt.options(defer(Job.continuation))
     rows, result = paginate(db, stmt, page, page_size)
-    result["items"] = [fields(o) for o in rows]
+    result["items"] = [fields(o, exclude={"continuation"} if summary else ()) for o in rows]
     return result
 
 
@@ -805,4 +845,4 @@ def frontend(path: str):
     index = dist / "index.html"
     if not index.is_file():
         raise HTTPException(503, "Compila el frontend con npm run build antes de iniciar")
-    return FileResponse(index, headers={"Cache-Control": "no-cache"})
+    return FileResponse(index, headers={"Cache-Control": "no-store"})

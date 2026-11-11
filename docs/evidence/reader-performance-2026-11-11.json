@@ -1,0 +1,122 @@
+{
+  "date": "2026-11-11",
+  "before_version": "0.6.6",
+  "before_commit": "7fbf1ef",
+  "after_version": "0.6.7",
+  "scope": "Local component work and isolated SQLite API; no Azure or browser paint/scroll measurements.",
+  "api_before": {
+    "fixture": {
+      "versions": 12,
+      "jobs": 12,
+      "queue_per_job": 823,
+      "index_audits": 300
+    },
+    "endpoints": {
+      "/api/publications/1?include_content=false": {
+        "cold_ms": 291.59,
+        "warm_median_ms": 26.01,
+        "decoded_bytes": 900722,
+        "wire_bytes": 900722
+      },
+      "/api/versions/12/reading": {
+        "cold_ms": 18.77,
+        "warm_median_ms": 23.21,
+        "decoded_bytes": 159527,
+        "wire_bytes": 159527
+      },
+      "/api/jobs?page_size=12&summary=true": {
+        "cold_ms": 79.08,
+        "warm_median_ms": 75.62,
+        "decoded_bytes": 912012,
+        "wire_bytes": 912012
+      },
+      "/api/dashboard": {
+        "cold_ms": 227.04,
+        "warm_median_ms": 100.14,
+        "decoded_bytes": 1001,
+        "wire_bytes": 1001
+      }
+    }
+  },
+  "api_after": {
+    "version": "0.6.7",
+    "sample_sha256": "69395a8250e6dc2fc656e134fb04b549c463fc783bfc6d738f7d0b303610a429",
+    "fixture": {
+      "versions": 12,
+      "jobs": 12,
+      "queue_per_job": 823,
+      "index_audits": 300
+    },
+    "endpoints": {
+      "/api/publications/1?include_content=false": {
+        "cold_ms": 21.74,
+        "warm_median_ms": 4.81,
+        "decoded_bytes": 4663,
+        "wire_bytes": 898
+      },
+      "/api/versions/12/reading": {
+        "cold_ms": 163.43,
+        "warm_median_ms": 9.16,
+        "decoded_bytes": 129717,
+        "wire_bytes": 23454
+      },
+      "/api/jobs?page_size=12&summary=true": {
+        "cold_ms": 10.06,
+        "warm_median_ms": 5.3,
+        "decoded_bytes": 4416,
+        "wire_bytes": 333
+      },
+      "/api/dashboard": {
+        "cold_ms": 41.83,
+        "warm_median_ms": 24.45,
+        "decoded_bytes": 1001,
+        "wire_bytes": 1001
+      }
+    }
+  },
+  "component_before": {
+    "environment": "production React + jsdom; no layout/paint measurement",
+    "blocks_in_source": 441,
+    "first_part_elements": 1440,
+    "mount_median_ms": 56.03,
+    "mount_samples_ms": [
+      33.3,
+      35.33,
+      56.03,
+      87.36,
+      104.63
+    ]
+  },
+  "component_after": {
+    "environment": "production React + jsdom; no layout/paint measurement",
+    "blocks_in_source": 441,
+    "first_part_elements": 63,
+    "parts": 18,
+    "max_part_elements": 168,
+    "non_whitespace_characters_across_parts": 49360,
+    "mount_median_ms": 8.48,
+    "mount_samples_ms": [
+      6.33,
+      7.21,
+      8.48,
+      8.8,
+      16.98
+    ]
+  },
+  "preservation": {
+    "evidence_sha256": "69395a8250e6dc2fc656e134fb04b549c463fc783bfc6d738f7d0b303610a429",
+    "original_block_count": 441,
+    "new_block_count": 441,
+    "non_whitespace_characters_unchanged": true,
+    "text_characters": 49360,
+    "cold_tree_ms": 143.72,
+    "tree_bytes_before": 172556,
+    "tree_bytes_after": 138255
+  },
+  "limitations": [
+    "API fixture history is synthetic: 12 versions, 12 jobs of 823 records and 300 large audit entries. It is not a copy of the user database.",
+    "jsdom measures React DOM creation; it cannot measure CSS layout, GPU composition or scrolling.",
+    "No authenticated Azure session or complete public portal URL was supplied for remote performance checks.",
+    "Interactive local browser testing was unavailable: the earlier Chromium launch failed with socket EPERM; shared Chrome could not reach the local server. No blocked file preview workaround was used."
+  ]
+}

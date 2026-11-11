@@ -92,7 +92,8 @@ def test_missing_title_resolves_from_detail_or_stays_visible_without_blocking_no
     service.note(3, None, html='<p>Texto sin encabezado identificable.</p>')
     service.note(4)
     batch = daily(service)
-    assert batch.complete and not batch.errors
+    assert not batch.complete and batch.errors
+    assert batch.continuation['queue'][0]['day'] == str(DAY)
     assert [d.official_id for d in batch.documents] == ['DOF:1', 'DOF:4']
     assert [d['id'] for d in batch.checks[0]['unresolved']] == ['DOF:2', 'DOF:3']
     assert all(len(d['detail_sha256']) == 64 for d in batch.checks[0]['unresolved'])
@@ -103,9 +104,11 @@ def test_known_nom_without_text_keeps_reference_and_never_claims_readable_text()
     service.note(1)
     service.details['1'].update(titulo=None, cadenaContenido=None)
     batch = daily(service)
-    assert batch.complete and len(batch.documents) == 1
+    assert not batch.complete and batch.errors and len(batch.documents) == 1
     assert not batch.documents[0].content and batch.documents[0].processing_note
     assert batch.checks[0]['unresolved'][0]['id'] == 'DOF:1'
+    resumed = daily(service, cursor=batch.continuation)
+    assert not resumed.complete and resumed.errors  # An empty retry cannot clear missing text.
 
 
 def test_failed_detail_keeps_successes_and_exact_retry_point():
@@ -165,6 +168,29 @@ def test_unknown_empty_day_is_pending_until_official_absence_is_declared():
     assert absent.complete and absent.checks[0]['declared_no_publication']
 
 
+def test_404_day_requires_official_calendar_confirmation():
+    weekend = date(2026, 11, 8)
+    stamp = weekend.strftime('%d-%m-%Y')
+    calls = []
+
+    def service(url, declared=True):
+        calls.append(url)
+        if '/diarios/porFecha/' in url or '/notas/' in url:
+            raise CollectionError('Consulta oficial falló: HTTP 404 (sidof.segob.gob.mx)')
+        return response(FechasSinPublicacion=[stamp] if declared else [])
+
+    batch = daily(service, start=weekend, end=weekend)
+    assert batch.complete and not batch.errors
+    assert batch.checks[0]['declared_no_publication']
+    assert batch.checks[0]['calendar_sha256']
+    assert batch.checks[0]['manifest_sha256'] is None
+    assert calls == [f'{API_BASE}/diarios/porFecha/{stamp}', f'{API_BASE}/notas/{stamp}', f'{API_BASE}/diarios/2026']
+
+    pending = daily(lambda url: service(url, False), start=weekend, end=weekend)
+    assert not pending.complete and pending.errors and not pending.checks
+    assert pending.continuation['queue'][0]['day'] == str(weekend)
+
+
 def test_failed_date_does_not_block_other_dates_and_can_be_retried():
     service = Service(); service.note(1); service.note(2, day=DAY + timedelta(days=1))
     service.fail = '/diarios/porFecha/03-11-2026'
@@ -217,7 +243,7 @@ def test_job_audits_repeat_evidence_and_unresolved_coverage(state, monkeypatch):
     monkeypatch.setattr(verification, 'run_once', lambda *args, **kwargs: run_once(*args, collector=collector, **kwargs))
     first = verification.verify_sources(db, store, DAY, DAY, {'sidof':['DOF:1']})
     second = verification.verify_sources(db, store, DAY, DAY, {'sidof':['DOF:1']})
-    assert first['technical_passed'] and second['technical_passed']
+    assert not first['technical_passed'] and not second['technical_passed']
     assert not first['coverage_verified'] and not first['passed']
     assert second['sources'][0]['versions_added'] == 0
     assert second['sources'][0]['unresolved_ids'] == ['DOF:2']
@@ -266,3 +292,43 @@ def test_configuration_change_starts_new_period_without_obsolete_cursor(state):
     current = db.get(Job, schedule_due(db, utcnow())[0])
     assert current.id != previous.id and current.continuation is None
     assert current.period_start == DAY
+
+
+def test_recovery_upgrade_schedules_once_preserves_data_and_corrects_emergency_label(state, monkeypatch):
+    from app import monitor
+    from types import SimpleNamespace
+
+    db, source, store = state
+    source.schedule_enabled = True
+    source.schedule_start = DAY
+    source.next_due_at = utcnow() + timedelta(days=1)
+    service = Service()
+    service.note(1, 'Norma Oficial Mexicana de Emergencia NOM-EM-023-SE-2026')
+    doc = daily(service).documents[0]
+    doc.kind = 'norma_definitiva'  # Simulate the old automatically generated label.
+    ingest_document(db, source, doc, store)
+    db.commit()
+    monkeypatch.setattr(monitor, 'get_settings', lambda: SimpleNamespace(scheduler_enabled=True))
+    monitor.refresh_sidof_recovery(db)
+    assert source.next_due_at is None
+    assert db.scalar(select(Publication)).kind == 'norma_emergencia'
+    assert db.scalar(select(func.count(Version.id))) == 1
+    assert db.scalar(select(func.count(Audit.id)).where(Audit.action == 'activar_recuperacion_sidof_063')) == 1
+    source.next_due_at = utcnow() + timedelta(days=1)
+    db.commit()
+    monitor.refresh_sidof_recovery(db)
+    assert source.next_due_at is not None
+
+
+def test_recovery_upgrade_respects_disabled_scheduling(state, monkeypatch):
+    from app import monitor
+    from types import SimpleNamespace
+
+    db, source, _ = state
+    source.schedule_enabled = False
+    source.next_due_at = utcnow() + timedelta(days=1)
+    db.commit()
+    monkeypatch.setattr(monitor, 'get_settings', lambda: SimpleNamespace(scheduler_enabled=True))
+    monitor.refresh_sidof_recovery(db)
+    assert source.next_due_at is not None
+    assert not db.scalar(select(Audit.id).where(Audit.action == 'activar_recuperacion_sidof_063'))

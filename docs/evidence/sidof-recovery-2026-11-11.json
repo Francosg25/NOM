@@ -1,0 +1,840 @@
+Warning: truncated output (original token count: 16102)
+Total output lines: 1082
+
+{
+  "version": "0.6.3",
+  "period_start": "2026-11-02",
+  "period_end": "2026-11-11",
+  "source": "https://sidof.segob.gob.mx/dof/sidof",
+  "full_period_live_run": {
+    "generated_at": "2026-11-11T18:26:44.329664+00:00",
+    "start": "2026-11-02",
+    "end": "2026-11-11",
+    "batches": [
+      {
+        "complete": false,
+        "errors": [],
+        "checks": [
+          {
+            "day": "2026-11-11",
+            "diary_ids": [
+              "330745"
+            ],
+            "notes_checked": 66,
+            "details_required": 8,
+            "selected_ids": [],
+            "unresolved": [],
+            "declared_no_publication": false,
+            "calendar_sha256": null,
+            "manifest_sha256": "6174a87b436de34537cb89a814b184274e9d847702a7ea50f1325b5699830c45",
+            "index_sha256": "2acf987508d8a9f8218e3d1d77b9d659e3f894b30747d9796af91859bffcecd2",
+            "recovered_references": [
+              {
+                "id": "DOF:5803536",
+                "title": "ACUERDO Secretarial 203/2026 por el que se dan a conocer a la  comunidad marítima y al público en general, las enmiendas al Convenio para Facilitar el Tráfico Marítimo Internacional, 1965, incluidas en las Resoluciones FAL.14(46) y FAL.15(47) de la Organización Marítima Internacional.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330745",
+                "page": 4,
+                "section": "UNICA",
+                "pdf_sha256": "2d68aeaf846664bf29c6c0007b5e55ec226b4426af51dcd9a25911ea80106314",
+                "page_text_sha256": "4b4b72b131d9d8e5d68c62abf77aab2382b5babf4e48746237df2f6fa05f023e",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803539",
+                "title": "VALOR UNITARIO PESOS (M.N.) Aceite quemado Litro 2.8000 Acero cobrizado (copperweld) Kilogramo 3.0346 Acero inoxidable (baleros, instrumental médico dañado y pedacería) Kilogramo 12.3570 Acero inoxidable 430 Kilogramo 12.3750 Acumuladores Kilogramo 9.5000 Aisladores de porcelana Kilogramo 0.5854 Alambre de cobre con papel Kilogramo 144.5000 Alfombra y bajo alfombra Kilogramo 2.2184",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330745",
+                "page": 9,
+                "section": "UNICA",
+                "pdf_sha256": "2d68aeaf846664bf29c6c0007b5e55ec226b4426af51dcd9a25911ea80106314",
+                "page_text_sha256": "551e54a72a853131d0b9293f835d16774ccb597721d870706af7124afbee7e2b",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803541",
+                "title": "Página 14 del Diario Oficial del 11/11/2026",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330745",
+                "page": 14,
+                "section": "UNICA",
+                "pdf_sha256": "2d68aeaf846664bf29c6c0007b5e55ec226b4426af51dcd9a25911ea80106314",
+                "page_text_sha256": "298dd42428d2310c8c98fd7f087f226469e79de1878de9980cf2e1727ab46225",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803543",
+                "title": "CIRCULAR por la que se comunica a las dependencias y entidades de la Administración Pública Federal, entidades federativas, municipios, dema rcaciones territoriales de la Ciudad de México, y entes públicos de unas y otros, que deberán abstenerse de aceptar propuestas y/o celebrar contratos con la empresa Alcose del Centro Sociedad Anónima de Capital Variable.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330745",
+                "page": 18,
+                "section": "UNICA",
+                "pdf_sha256": "2d68aeaf846664bf29c6c0007b5e55ec226b4426af51dcd9a25911ea80106314",
+                "page_text_sha256": "3f512d900b2e8054296cf4c4614b2f42794edaec3e68df7f48d0488048a48f56",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803546",
+                "title": "AVISO por el que se da a conocer la actualización de las Políticas Hospitalarias del Hospital Juárez de México.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330745",
+                "page": 21,
+                "section": "UNICA",
+                "pdf_sha256": "2d68aeaf846664bf29c6c0007b5e55ec226b4426af51dcd9a25911ea80106314",
+                "page_text_sha256": "930e4fe769cc16138328c8b4d07fd37296517c64173f12c571ad9504ef7b398b",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803548",
+                "title": "ACUERDO 15.1394.2026 mediante el cual la Junta Directiva del Instituto de Segu ridad y Servicios Sociales de los Trabajadores del Estado, aprobó el Programa de Liquidación Anticipada con Descuento.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330745",
+                "page": 22,
+                "section": "UNICA",
+                "pdf_sha256": "2d68aeaf846664bf29c6c0007b5e55ec226b4426af51dcd9a25911ea80106314",
+                "page_text_sha256": "00939fd24cebbf7374b77250864d3ccd01cdcb6864f5f77a2eb101a13e790a7f",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803551",
+                "title": "TIPO de cambio para solventar obligaciones deno minadas en moneda extranjera pagaderas en la República Mexicana.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330745",
+                "page": 28,
+                "section": "UNICA",
+                "pdf_sha256": "2d68aeaf846664bf29c6c0007b5e55ec226b4426af51dcd9a25911ea80106314",
+                "page_text_sha256": "258c5d1c5d50ecebebe7d7aa84919440cf2d1e52345f77cf91141b10f53b1271",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803556",
+                "title": "Página 29 del Diario Oficial del 11/11/2026",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330745",
+                "page": 29,
+                "section": "UNICA",
+                "pdf_sha256": "2d68aeaf846664bf29c6c0007b5e55ec226b4426af51dcd9a25911ea80106314",
+                "page_text_sha256": "bba783a2f1c0153fdf33641938829d379e647817d1e5d8db3f504c574cdb00b6",
+                "selected": false
+              }
+            ]
+          },
+          {
+            "day": "2026-11-10",
+            "diary_ids": [
+              "330726"
+            ],
+            "notes_checked": 186,
+            "details_required": 7,
+            "selected_ids": [],
+            "unresolved": [],
+            "declared_no_publication": false,
+            "calendar_sha256": null,
+            "manifest_sha256": "ca74fa815f97d93015b6ac0137d87f8e5afde5032ee5f536ed976666a3203c1b",
+            "index_sha256": "9c61d212c77d71ab0d6addb666cdf80d4516c4a0545fbad252f8d602d84d9b26",
+            "recovered_references": [
+              {
+                "id": "DOF:5803338",
+                "title": "Página 3 del Diario Oficial del 10/11/2026",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330726",
+                "page": 3,
+                "section": "UNICA",
+                "pdf_sha256": "3c4334072f8b06a886f072cc2684a76e88b25f0f2333c7e72dfba82b7fc9b662",
+                "page_text_sha256": "e88a513edcd2a03d0af7ba4541bb2b937cc3a18ae5a7e4e5ca4381b29f85bd53",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803340",
+                "title": "ACUERDO por el que se actualiza el Compendio Nacional de Insumos para la Salud versión 2025, publicado el 26 de abril de 2025.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330726",
+                "page": 25,
+                "section": "UNICA",
+                "pdf_sha256": "3c4334072f8b06a886f072cc2684a76e88b25f0f2333c7e72dfba82b7fc9b662",
+                "page_text_sha256": "80a0d15df979b8a385235734c9a51108eed051abab2783ee5929b430b5e52d33",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803342",
+                "title": "ÍNDICE TEMÁTICO Antecedentes: La Presidenta de la Comisión Nacional de los Derechos Humanos promovió acción de inconstitucionalidad en contra de los Poderes Ejecutivo y Legislativo del Estado de Hidalgo, por la expedición de la Ley Orgánica del Poder Judicial de este Estado,  en particular, respecto de los artículos 180, 182, fracciones I y V, 183, en su porción normativa: “el Acuer do en materia de Responsabilidades Administrativas del Poder Judicial”, 187, en su porción normativa: “el Acuerdo de Disposiciones en Materia de Responsabilidades Administrativas del Poder Judicial”, y 190, en la porción normativa: “y en los acuerdos generales que al efecto se expidan por parte del Pleno del Consejo de la Judicatura”, de la Ley Orgánica del Poder Judicial del Estado de Hidalgo, expedida mediante Decreto 885 publicado en el Periódico Oficial de la mencionada entidad el 9 de mayo de 2024, al considerar que vulneraban los principios de legalidad y",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330726",
+                "page": 51,
+                "section": "UNICA",
+                "pdf_sha256": "3c4334072f8b06a886f072cc2684a76e88b25f0f2333c7e72dfba82b7fc9b662",
+                "page_text_sha256": "df6917602a3f62d3a1ba3829c2595eea4f21e332b7b5fc6d5a7c373a1a0e4c2c",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803344",
+                "title": "AVISO por el que se hace del conocimiento del público en general la incorporación de diversas autoridades a los modelos de interconexión digital del Poder Judicial de la Federación.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330726",
+                "page": 76,
+                "section": "UNICA",
+                "pdf_sha256": "3c4334072f8b06a886f072cc2684a76e88b25f0f2333c7e72dfba82b7fc9b662",
+                "page_text_sha256": "95484bb69d9dfc73e6202443a3b880d249d198c1def1b7ff6b47d1e4ee241a7d",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803346",
+                "title": "TIPO de cambio para solventar obligaciones deno minadas en moneda extranjera pagaderas en la República Mexicana.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330726",
+                "page": 82,
+                "section": "UNICA",
+                "pdf_sha256": "3c4334072f8b06a886f072cc2684a76e88b25f0f2333c7e72dfba82b7fc9b662",
+                "page_text_sha256": "cdb83e2ad8c0ca53fba2e09f16f9996f678f441016262459f239951013de2230",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803351",
+                "title": "VALOR de la unidad de inversión.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330726",
+                "page": 83,
+                "section": "UNICA",
+                "pdf_sha256": "3c4334072f8b06a886f072cc2684a76e88b25f0f2333c7e72dfba82b7fc9b662",
+                "page_text_sha256": "ae5db30049663e1e468a39f8aa983a10c8776feb8b4da909651f281d9f460b41",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803354",
+                "title": "CIRCULAR por la que se comunica a las dependencias y en tidades de la Administración Pública Federal, a las empresas productivas del Estado, así como a las entidade s federativas, municipios y alcaldías de la Ciudad de México, que la particular responsable Soluciones Integral es Logísticas, Marítimas y Portuarias, S.A. de C.V., se encuentra en una inhabilitación tempor al por el período de tres meses para participar en adquisiciones, arrendamientos, servicios u obras públicas.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330726",
+                "page": 84,
+                "section": "UNICA",
+                "pdf_sha256": "3c4334072f8b06a886f072cc2684a76e88b25f0f2333c7e72dfba82b7fc9b662",
+                "page_text_sha256": "382bd52d2c32059bc196ef0fde4e634bb9c74a17106071a14d25db151895706d",
+                "selected": false
+              }
+            ]
+          }
+        ],
+        "documents": []
+      },
+      {
+        "complete": false,
+        "errors": [],
+        "checks": [
+          {
+            "day": "2026-11-09",
+            "diary_ids": [
+              "330705",
+              "330725"
+            ],
+            "notes_checked": 51,
+            "details_required": 7,
+            "selected_ids": [],
+            "unresolved": [],
+            "declared_no_publication": false,
+            "calendar_sha256": null,
+            "manifest_sha256": "2e2c9c24d22eb71686263740a855909872962b742dca49854cedc8edf9838b22",
+            "index_sha256": "ac7e5032dd07785a145e1752153137882eb7168c8d1cf5f6fe21def94dd91790",
+            "recovered_references": [
+              {
+                "id": "DOF:5803276",
+                "title": "DECRETO por el que se concede autorización a la persona titular del Poder Ejecutivo Federal para permitir la salida de los elementos que integran una  delegación de tropas nacionales fuera de los límites del país, a efecto de que participen en el ejercicio “Cambrian Patrol 2026”, que se llevará a cabo  del 2 al 14 de octubre de 2026, en Brecon, Gales, Reino Unido.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330705",
+                "page": 3,
+                "section": "UNICA",
+                "pdf_sha256": "eb0d67a56552776a3d6d3a49027f6b150f1485a2b8611d930de91d635d29e517",
+                "page_text_sha256": "d952c18587679bc2a15ec427b7b8c95afccbdcdac2f7f6186ee6f984954b1f8f",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803278",
+                "title": "AVISO por el que se dan a conocer las tarifas autorizadas para el cobro de diferentes servicios portuarios, aplicables en diversos puertos de México.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330705",
+                "page": 4,
+                "section": "UNICA",
+                "pdf_sha256": "eb0d67a56552776a3d6d3a49027f6b150f1485a2b8611d930de91d635d29e517",
+                "page_text_sha256": "9307307936795a1323422ebfdfbee6fd2695deb8facb77b618941e407b085801",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803281",
+                "title": "CIRCULAR por la que se comunica a las dependencias y en tidades de la Administración Pública Federal, a las entidades federativas y sus municipios, a los entes púb licos de unas y otros, así como a las demarcaciones territoriales de la Ciudad de México, que deberán abstenerse de aceptar propuestas o celebrar contratos con la empresa Sistemas Prácticos en Seguridad Privada, S.A. de C.V.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330705",
+                "page": 6,
+                "section": "UNICA",
+                "pdf_sha256": "eb0d67a56552776a3d6d3a49027f6b150f1485a2b8611d930de91d635d29e517",
+                "page_text_sha256": "f76436e9dc31914c706e0651af47f8e5928ee83f71ea21019db74950e130b227",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803283",
+                "title": "CONVENIO Específico de Coordinación para la transferencia de los bienes inmuebles relacionados con los establecimientos de salud a que se refieren la Cláusula Segunda y el Anexo 1 del Convenio de Coordinación que establece la forma de colaboración en materia de person al, infraestructura, equipamiento, medicamentos y demás insumos asociados para la prestación gratuita de servicios de salud, para las personas sin seguridad social, que celebran Servicios de Salud del Instituto Mexicano del Seguro Social para el Bienestar (IMSS-BIENESTAR) y el Estado de Yucatán.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330705",
+                "page": 8,
+                "section": "UNICA",
+                "pdf_sha256": "eb0d67a56552776a3d6d3a49027f6b150f1485a2b8611d930de91d635d29e517",
+                "page_text_sha256": "9e4e17219580b4cb9e8645387bba4ccb04f9bce41fda6e3cddc46806dc2872b8",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803285",
+                "title": "TIPO de cambio para solventar obligaciones deno minadas en moneda extranjera pagaderas en la República Mexicana.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330705",
+                "page": 42,
+                "section": "UNICA",
+                "pdf_sha256": "eb0d67a56552776a3d6d3a49027f6b150f1485a2b8611d930de91d635d29e517",
+                "page_text_sha256": "da073082759e90c16d3455ea288578e7d36261e5bdbe35e13ff5dee0d7fbcc64",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803289",
+                "title": "RESOLUCIÓN del Consejo General del Instituto Nacional Electoral sobre la procedencia constitucional y legal de las modificaciones a los documentos básicos del Partido Paz, realizadas en cumplimiento al punto segundo de la Resolución identificada con la clave INE/CG344/2026, así como en el ejercicio de su libertad de autoorganización.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330705",
+                "page": 43,
+                "section": "UNICA",
+                "pdf_sha256": "eb0d67a56552776a3d6d3a49027f6b150f1485a2b8611d930de91d635d29e517",
+                "page_text_sha256": "693efefb0c49a1f91a6f87453a0089dd2ad9c03051cb3daa9b94debedfa2fbf7",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803336",
+                "title": "ACUERDO General del Pleno del Órgano de Administración Judicial que abroga el similar por el que se regula el Proceso de Evaluación del Desempeño del Personal de Carrera Judicial del Poder Judicial de la Federación.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330725",
+                "page": 2,
+                "section": "UNICA",
+                "pdf_sha256": "3d0f4116562d5be4d90637033ba8e34907f39a025452b744cca9f7928c2c8166",
+                "page_text_sha256": "1a8386d15627b71e657f63bc3561199eb086aa92fc81a68b5ec717bb7e994598",
+                "selected": false
+              }
+            ]
+          },
+          {
+            "day": "2026-11-08",
+            "diary_ids": [],
+            "notes_checked": 0,
+            "details_required": 0,
+            "selected_ids": [],
+            "unresolved": [],
+            "declared_no_publication": true,
+            "absence_basis": "sidof_portal_calendar",
+            "calendar_url": "https://sidof.segob.gob.mx/assets/css/calendarCss/2026.css",
+            "calendar_sha256": "7657ff742d18d2f80cc067e9eeba06b3685f27f24fd22cce34873fc87ae50621",
+            "calendar_page_url": "https://sidof.segob.gob.mx/welcome/08-11-2026",
+            "calendar_page_sha256": "c2421fb0f5141bd1883dd94090e8302a7d245c5543ca5444857e728c1944c6f9",
+            "calendar_displayed_date": "2026-11-06",
+            "api_calendar_sha256": "c5f39f058ed1863472cdce2e2040bcd59bae4204b35ffe3a2baad12a8208951f",
+            "manifest_sha256": null,
+            "index_sha256": null
+          },
+          {
+            "day": "2026-11-07",
+            "diary_ids": [],
+            "notes_checked": 0,
+            "details_required": 0,
+            "selected_ids": [],
+            "unresolved": [],
+            "declared_no_publication": true,
+            "absence_basis": "sidof_portal_calendar",
+            "calendar_url": "https://sidof.segob.gob.mx/assets/css/calendarCss/2026.css",
+            "calendar_sha256": "7657ff742d18d2f80cc067e9eeba06b3685f27f24fd22cce34873fc87ae50621",
+            "calendar_page_url": "https://sidof.segob.gob.mx/welcome/07-11-2026",
+            "calendar_page_sha256": "0338c03510be553a6a7eea5ae6eff984e55066f9c6a55aa5564ad3a787e7bef6",
+            "calendar_displayed_date": "2026-11-06",
+            "api_calendar_sha256": "c5f39f058ed1863472cdce2e2040bcd59bae4204b35ffe3a2baad12a8208951f",
+            "manifest_sha256": null,
+            "index_sha256": null
+          }
+        ],
+        "documents": []
+      },
+      {
+        "complete": false,
+        "errors": [],
+        "checks": [
+          {
+            "day": "2026-11-06",
+            "diary_ids": [
+              "330665",
+              "330685"
+            ],
+            "notes_checked": 85,
+            "details_required": 6,
+            "selected_ids": [],
+            "unresolved": [],
+            "declared_no_publication": false,
+            "calendar_sha256": null,
+            "manifest_sha256": "0df5c40e89844d45d1df15256f0c173969443b5f949af203ba4ff497a76c4949",
+            "index_sha256": "1b9e56d8f79f748c053e52b03948dad9a058ce8a6ecf4f4f78f3bde6f1731ebd",
+            "recovered_references": [
+              {
+                "id": "DOF:5803156",
+                "title": "DECRETO por el que se declara el 14 de noviembre de cada año como: “Día de la Infantería de Marina”.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330665",
+                "page": 4,
+                "section": "UNICA",
+                "pdf_sha256": "0d188b1c9bbf2a26b59dca07a189ca7403a8dfc884858e1977a1ecc2f13a11ba",
+                "page_text_sha256": "36f9d2fc07b8e748c355ab62acb3c709eda98c354db7d179c1bc489a5595ef9a",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803158",
+                "title": "ANEXOS 1, 2, 7, 11, 14, 15 y 29 de la Cuarta Resolución de  Modificaciones a la Resolución Miscelánea Fiscal para 2026, publicada el 30 de octubre de 2026.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330665",
+                "page": 6,
+                "section": "UNICA",
+                "pdf_sha256": "0d188b1c9bbf2a26b59dca07a189ca7403a8dfc884858e1977a1ecc2f13a11ba",
+                "page_text_sha256": "fe5e4bfef42ea34433e273496bc058250cbfdc3157fdd8df8db0c4be22d2d547",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803165",
+                "title": "TIPO de cambio para solventar obligaciones deno minadas en moneda extranjera pagaderas en la República Mexicana.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330665",
+                "page": 285,
+                "section": "UNICA",
+                "pdf_sha256": "0d188b1c9bbf2a26b59dca07a189ca7403a8dfc884858e1977a1ecc2f13a11ba",
+                "page_te…4102 tokens truncated…ob.mx/dof/sidof/documentos/pdf/330605",
+                "page": 140,
+                "section": "UNICA",
+                "pdf_sha256": "bbae8e830a66c027ecdd4b37e25b0ca5862ac743c73f5b7bb215d03962672cf7",
+                "page_text_sha256": "29ed2d329852cb2c9d05ab4d3e4d1862d9e472ba92dea1bff557e0ae02285647",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802952",
+                "title": "TIPO de cambio para solventar obligaciones deno minadas en moneda extranjera pagaderas en la República Mexicana.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330605",
+                "page": 149,
+                "section": "UNICA",
+                "pdf_sha256": "bbae8e830a66c027ecdd4b37e25b0ca5862ac743c73f5b7bb215d03962672cf7",
+                "page_text_sha256": "6b103a341bb6157b6a71c2e5c5d576c3198a1e4e0659a5e45b14d504ef954234",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802956",
+                "title": "Página 150 del Diario Oficial del 04/11/2026",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330605",
+                "page": 150,
+                "section": "UNICA",
+                "pdf_sha256": "bbae8e830a66c027ecdd4b37e25b0ca5862ac743c73f5b7bb215d03962672cf7",
+                "page_text_sha256": "e3230f400eca02c4d5c83698628b1ea2965c4d28db629474826d643080845d18",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802959",
+                "title": "ACUERDO del Consejo General del Instituto Nacional Elector al por el que se ordena la publicación del Catálogo Nacional de estaciones de radio y canales de televisión que participarán en la cobertura del Proceso Electoral Federal 2026-2027, los procesos electorales locales coincide ntes con el federal, así como del periodo ordinario durante 2027.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330605",
+                "page": 165,
+                "section": "UNICA",
+                "pdf_sha256": "bbae8e830a66c027ecdd4b37e25b0ca5862ac743c73f5b7bb215d03962672cf7",
+                "page_text_sha256": "4342eabc4f6e995298e89b1f3523439cea4e6e5950bd0dff1ac1cd8ac464cb4e",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803016",
+                "title": "DECRETO por el que se expide la Ley de Economía Digital para Pagos Digitales y Electrónicos.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330625",
+                "page": 2,
+                "section": "UNICA",
+                "pdf_sha256": "abd49f1355832dc3b61aaa168b08f0eea13ae6f6185200441a126e575c0ab9a9",
+                "page_text_sha256": "4f0e2f5f5603167e81421c8418bef63f6ba74a22d23c17352500bb8f194f6d22",
+                "selected": false
+              }
+            ]
+          },
+          {
+            "day": "2026-11-03",
+            "diary_ids": [
+              "330585"
+            ],
+            "notes_checked": 174,
+            "details_required": 9,
+            "selected_ids": [],
+            "unresolved": [],
+            "declared_no_publication": false,
+            "calendar_sha256": null,
+            "manifest_sha256": "aa9e5c76cec0c2e03761419eb86686abc01dcdfa0cf7b832d340c1a762cb4771",
+            "index_sha256": "0ad2c1d856b06c8dc92ac49d63aedca3518c86678a497e9ae4c0797f32925343",
+            "recovered_references": [
+              {
+                "id": "DOF:5802756",
+                "title": "AVISO por el que se dan a conocer las reformas, adicione s y derogaciones a las diversas disposiciones de los Lineamientos Generales para la Integración, Organizac ión y Funcionamiento de las Comisiones del Sistema Nacional de Protección Integral de Niñas, Niños y Adolescentes.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330585",
+                "page": 4,
+                "section": "UNICA",
+                "pdf_sha256": "6ac6797686364f04f8fe873754484b18dad23107cced42539dd8a1f351b04af9",
+                "page_text_sha256": "feac6a2eba86a756bf6a12aed9ca74c9ae0543a7cd6e0c07d4ba0b515aea3a52",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802759",
+                "title": "AVISO POR EL QUE SE DAN A CONOCER LAS REFORMAS, ADICIONES Y DEROGACIONES A LAS",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330585",
+                "page": 6,
+                "section": "UNICA",
+                "pdf_sha256": "6ac6797686364f04f8fe873754484b18dad23107cced42539dd8a1f351b04af9",
+                "page_text_sha256": "25a84d5e480137fc6bfb95db7d2a36ffe9a4064b1be8dd26ef5bd5ed77173c15",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802762",
+                "title": "CIRCULAR por la que se comunica a las dependencias y enti dades de la Administración Pública Federal, Fiscalía General de la República, entidades federativas, municipios y demarcaciones territoriales de la Ciudad de México, que la Décimo Segunda Sala Regional  en la Ciudad de México del Tribunal Federal de Justicia Administrativa, dentro del juicio contencioso administrativo número 7762/25-17-12-2, promovido por la empresa Flow & Low de México, Sociedad Anónima de Capital Variable, por conducto de su representante legal, el ciudadano Eduardo López Martín del Campo, mediante sentencia definitiva de dos de marzo de dos mil veintiséis, declaró la nulidad de la resolución número T.O.I.C.07/1011 de di ecinueve de marzo de dos mil veinti cinco, emitida en el expediente administrativo 009/REC.REV./2024, así co mo la originalmente recurrida de fecha 30 de octubre de dos mil veinticuatro, dictada en el procedimiento administrativo de sanción a proveedores y licitantes número 044/PAS/2022.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330585",
+                "page": 12,
+                "section": "UNICA",
+                "pdf_sha256": "6ac6797686364f04f8fe873754484b18dad23107cced42539dd8a1f351b04af9",
+                "page_text_sha256": "fc64ba2650b0abef2187f21dcda2f4f5e588919042c2f85bea0179d2887e6e2c",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802764",
+                "title": "Página 14 del Diario Oficial del 03/11/2026",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330585",
+                "page": 14,
+                "section": "UNICA",
+                "pdf_sha256": "6ac6797686364f04f8fe873754484b18dad23107cced42539dd8a1f351b04af9",
+                "page_text_sha256": "f715c6ba8a83a64090f08b6cc90a2d145ae6528f271c91887d29f14e82e177c3",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802766",
+                "title": "ACUERDO por el que se modifican las Re glas de Operación del Programa de Vivienda Social para el ejercicio fiscal 2026.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330585",
+                "page": 41,
+                "section": "UNICA",
+                "pdf_sha256": "6ac6797686364f04f8fe873754484b18dad23107cced42539dd8a1f351b04af9",
+                "page_text_sha256": "129f13e459de0f6383be3fd6df5899f07b44eaa9a9319b5e7d3c391e7f913a25",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802768",
+                "title": "DECRETO relativo a la revisión de la Cuenta de la Hacienda Pública Federal correspondiente al Ejercicio Fiscal 2024.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330585",
+                "page": 42,
+                "section": "UNICA",
+                "pdf_sha256": "6ac6797686364f04f8fe873754484b18dad23107cced42539dd8a1f351b04af9",
+                "page_text_sha256": "26555bf9faee8e7481fe2280f62277d63f6b617ecc8f2555027457f48fa8f7fa",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802770",
+                "title": "ÍNDICE TEMÁTICO Apartado Criterio y decisión Págs. I. COMPETENCIA El Tribunal Pleno es competente para conocer y resolver el presente asunto. 4-5 II. PRECISIÓN DE LAS",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330585",
+                "page": 44,
+                "section": "UNICA",
+                "pdf_sha256": "6ac6797686364f04f8fe873754484b18dad23107cced42539dd8a1f351b04af9",
+                "page_text_sha256": "f611bb1900c8ef71b2c543842483d2c13ce3d90c37c3e3ffed25280b4b5031aa",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802772",
+                "title": "TIPO de cambio para solventar obligaciones deno minadas en moneda extranjera pagaderas en la República Mexicana.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330585",
+                "page": 87,
+                "section": "UNICA",
+                "pdf_sha256": "6ac6797686364f04f8fe873754484b18dad23107cced42539dd8a1f351b04af9",
+                "page_text_sha256": "c03cace618e6678ba681b0b36707c1d3797a7ba2feafdab8d5ca5a8f86878a91",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802777",
+                "title": "Página 88 del Diario Oficial del 03/11/2026",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330585",
+                "page": 88,
+                "section": "UNICA",
+                "pdf_sha256": "6ac6797686364f04f8fe873754484b18dad23107cced42539dd8a1f351b04af9",
+                "page_text_sha256": "8ab68a6aee3aeca582ff40caebb093fb4f0e6ec631eec024136b9c2eba518a5f",
+                "selected": false
+              }
+            ]
+          }
+        ],
+        "documents": []
+      },
+      {
+        "complete": true,
+        "errors": [],
+        "checks": [
+          {
+            "day": "2026-11-02",
+            "diary_ids": [
+              "330565"
+            ],
+            "notes_checked": 35,
+            "details_required": 9,
+            "selected_ids": [
+              "DOF:5802721",
+              "DOF:5802720"
+            ],
+            "unresolved": [],
+            "declared_no_publication": false,
+            "calendar_sha256": null,
+            "manifest_sha256": "0e58009583d270e94ed03e0e79d5b6dc4040d420d06ddedc3ee8cb19a7fd0e7e",
+            "index_sha256": "8da28d0ee08ef93bf3b6d9f8539ebdbd8654c45de841a58a837ba4d9cdfcf3eb",
+            "recovered_references": [
+              {
+                "id": "DOF:5802716",
+                "title": "AVISO por el que se da a conocer el Acuerdo de disolución de la Comisión de Protección Especial de Niñas, Niños y Adolescentes CPENNA.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330565",
+                "page": 4,
+                "section": "UNICA",
+                "pdf_sha256": "2a1f8f61a6d07a915249bafb89f53d243010153763640168b7fa23b31453312a",
+                "page_text_sha256": "d146b42de3b4effad604fc7388347c3e65a35a044e89884155172c3271a1720e",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802718",
+                "title": "ACUERDO por el que se establecen accion es de simplificación para trámites que se realizan ante la Agencia Nacional de Seguridad Industrial y de Protección al Medio Ambiente del Sector Hidrocarburos, así como se expiden y modifican los formatos que se mencionan.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330565",
+                "page": 6,
+                "section": "UNICA",
+                "pdf_sha256": "2a1f8f61a6d07a915249bafb89f53d243010153763640168b7fa23b31453312a",
+                "page_text_sha256": "98ed499ebbe3f55a50a0bd605b4b161ac39351ccef12b70204d7f616878d532e",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802720",
+                "title": "NORMA Oficial Mexicana de Emergencia NOM-EM-023-SE -2026, Industria del cemento-Cementos hidráulicos- Especificaciones de calidad, métodos de prueba e información comercial.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330565",
+                "page": 40,
+                "section": "UNICA",
+                "pdf_sha256": "2a1f8f61a6d07a915249bafb89f53d243010153763640168b7fa23b31453312a",
+                "page_text_sha256": "a663867dd24a0f543064a48ec04c65dcfd9845789b9c40298ec22769b86f46fe",
+                "selected": true
+              },
+              {
+                "id": "DOF:5802722",
+                "title": "ACUERDO número 10/10/25 por el que se delega la facultad que se indica a la person a Titular de la Dirección General del Bachillerato.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330565",
+                "page": 59,
+                "section": "UNICA",
+                "pdf_sha256": "2a1f8f61a6d07a915249bafb89f53d243010153763640168b7fa23b31453312a",
+                "page_text_sha256": "c9b95f811739ce8c3015050df527244b0cab390fbb21de343e90c8cc00ddf913",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802724",
+                "title": "AVISO mediante el cual se da a conocer la página electrónica donde se encuentr a disponible el Código de Conducta de las personas servidoras públicas del Ce ntro de Investigación y Desarrollo Tecnológico en Electroquímica S.C.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330565",
+                "page": 61,
+                "section": "UNICA",
+                "pdf_sha256": "2a1f8f61a6d07a915249bafb89f53d243010153763640168b7fa23b31453312a",
+                "page_text_sha256": "f3486e31331823a2c58ca6d7d0040983bbc1f679023a3a230cdd5fb0d17e8855",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802726",
+                "title": "ACUERDO por el que se emiten los Lineamientos que deberá n observar los bancos de sangre para la disposición del Plasma Residual con fines de industrialización para la producción de hemoderivados.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330565",
+                "page": 62,
+                "section": "UNICA",
+                "pdf_sha256": "2a1f8f61a6d07a915249bafb89f53d243010153763640168b7fa23b31453312a",
+                "page_text_sha256": "3c47c529fba6a8ab4765e83728a9ff5f462de50dbf9e49d6319ac7721be60f69",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802729",
+                "title": "Página 94 del Diario Oficial del 02/11/2026",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330565",
+                "page": 94,
+                "section": "UNICA",
+                "pdf_sha256": "2a1f8f61a6d07a915249bafb89f53d243010153763640168b7fa23b31453312a",
+                "page_text_sha256": "84693f5d10cd2915083f36718fdd3ac99c742264dc7fdbec5040cfccdcae3094",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802732",
+                "title": "Página 98 del Diario Oficial del 02/11/2026",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330565",
+                "page": 98,
+                "section": "UNICA",
+                "pdf_sha256": "2a1f8f61a6d07a915249bafb89f53d243010153763640168b7fa23b31453312a",
+                "page_text_sha256": "4f811a11c6664cbc95f18464047df87b3de51c8877e25a76721b961896545ae4",
+                "selected": false
+              }
+            ]
+          }
+        ],
+        "documents": [
+          {
+            "id": "DOF:5802721",
+            "title": "Norma Oficial Mexicana de Emergencia NOM-EM-023-SE-2026, Industria del cemento-Cementos hidráulicos-Especificaciones de calidad, métodos de prueba e información comercial.",
+            "kind": "norma_emergencia",
+            "published_on": "2026-11-02"
+          },
+          {
+            "id": "DOF:5802720",
+            "title": "NORMA Oficial Mexicana de Emergencia NOM-EM-023-SE -2026, Industria del cemento-Cementos hidráulicos- Especificaciones de calidad, métodos de prueba e información comercial.",
+            "kind": "norma_emergencia",
+            "published_on": "2026-11-02"
+          }
+        ]
+      }
+    ]
+  },
+  "final_nov2_live_run": {
+    "generated_at": "2026-11-11T18:31:16.969695+00:00",
+    "complete": true,
+    "errors": [],
+    "checks": [
+      {
+        "day": "2026-11-02",
+        "diary_ids": [
+          "330565"
+        ],
+        "notes_checked": 35,
+        "details_required": 9,
+        "selected_ids": [
+          "DOF:5802721"
+        ],
+        "unresolved": [],
+        "declared_no_publication": false,
+        "calendar_sha256": null,
+        "manifest_sha256": "0e58009583d270e94ed03e0e79d5b6dc4040d420d06ddedc3ee8cb19a7fd0e7e",
+        "index_sha256": "8da28d0ee08ef93bf3b6d9f8539ebdbd8654c45de841a58a837ba4d9cdfcf3eb",
+        "recovered_references": [
+          {
+            "id": "DOF:5802716",
+            "title": "AVISO por el que se da a conocer el Acuerdo de disolución de la Comisión de Protección Especial de Niñas, Niños y Adolescentes CPENNA.",
+            "method": "official_pdf_page",
+            "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330565",
+            "page": 4,
+            "section": "UNICA",
+            "pdf_sha256": "2a1f8f61a6d07a915249bafb89f53d243010153763640168b7fa23b31453312a",
+            "page_text_sha256": "d146b42de3b4effad604fc7388347c3e65a35a044e89884155172c3271a1720e",
+            "selected": false
+          },
+          {
+            "id": "DOF:5802718",
+            "title": "ACUERDO por el que se establecen accion es de simplificación para trámites que se realizan ante la Agencia Nacional de Seguridad Industrial y de Protección al Medio Ambiente del Sector Hidrocarburos, así como se expiden y modifican los formatos que se mencionan.",
+            "method": "official_pdf_page",
+            "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330565",
+            "page": 6,
+            "section": "UNICA",
+            "pdf_sha256": "2a1f8f61a6d07a915249bafb89f53d243010153763640168b7fa23b31453312a",
+            "page_text_sha256": "98ed499ebbe3f55a50a0bd605b4b161ac39351ccef12b70204d7f616878d532e",
+            "selected": false
+          },
+          {
+            "id": "DOF:5802720",
+            "title": "NORMA Oficial Mexicana de Emergencia NOM-EM-023-SE -2026, Industria del cemento-Cementos hidráulicos- Especificaciones de calidad, métodos de prueba e información comercial.",
+            "method": "official_pdf_page",
+            "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330565",
+            "page": 40,
+            "section": "UNICA",
+            "pdf_sha256": "2a1f8f61a6d07a915249bafb89f53d243010153763640168b7fa23b31453312a",
+            "page_text_sha256": "a663867dd24a0f543064a48ec04c65dcfd9845789b9c40298ec22769b86f46fe",
+            "represented_by": "DOF:5802721",
+            "selected": false
+          },
+          {
+            "id": "DOF:5802722",
+            "title": "ACUERDO número 10/10/25 por el que se delega la facultad que se indica a la person a Titular de la Dirección General del Bachillerato.",
+            "method": "official_pdf_page",
+            "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330565",
+            "page": 59,
+            "section": "UNICA",
+            "pdf_sha256": "2a1f8f61a6d07a915249bafb89f53d243010153763640168b7fa23b31453312a",
+            "page_text_sha256": "c9b95f811739ce8c3015050df527244b0cab390fbb21de343e90c8cc00ddf913",
+            "selected": false
+          },
+          {
+            "id": "DOF:5802724",
+            "title": "AVISO mediante el cual se da a conocer la página electrónica donde se encuentr a disponible el Código de Conducta de las personas servidoras públicas del Ce ntro de Investigación y Desarrollo Tecnológico en Electroquímica S.C.",
+            "method": "official_pdf_page",
+            "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330565",
+            "page": 61,
+            "section": "UNICA",
+            "pdf_sha256": "2a1f8f61a6d07a915249bafb89f53d243010153763640168b7fa23b31453312a",
+            "page_text_sha256": "f3486e31331823a2c58ca6d7d0040983bbc1f679023a3a230cdd5fb0d17e8855",
+            "selected": false
+          },
+          {
+            "id": "DOF:5802726",
+            "title": "ACUERDO por el que se emiten los Lineamientos que deberá n observar los bancos de sangre para la disposición del Plasma Residual con fines de industrialización para la producción de hemoderivados.",
+            "method": "official_pdf_page",
+            "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330565",
+            "page": 62,
+            "section": "UNICA",
+            "pdf_sha256": "2a1f8f61a6d07a915249bafb89f53d243010153763640168b7fa23b31453312a",
+            "page_text_sha256": "3c47c529fba6a8ab4765e83728a9ff5f462de50dbf9e49d6319ac7721be60f69",
+            "selected": false
+          },
+          {
+            "id": "DOF:5802729",
+            "title": "Página 94 del Diario Oficial del 02/11/2026",
+            "method": "official_pdf_page",
+            "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330565",
+            "page": 94,
+            "section": "UNICA",
+            "pdf_sha256": "2a1f8f61a6d07a915249bafb89f53d243010153763640168b7fa23b31453312a",
+            "page_text_sha256": "84693f5d10cd2915083f36718fdd3ac99c742264dc7fdbec5040cfccdcae3094",
+            "selected": false
+          },
+          {
+            "id": "DOF:5802732",
+            "title": "Página 98 del Diario Oficial del 02/11/2026",
+            "method": "official_pdf_page",
+            "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330565",
+            "page": 98,
+            "section": "UNICA",
+            "pdf_sha256": "2a1f8f61a6d07a915249bafb89f53d243010153763640168b7fa23b31453312a",
+            "page_text_sha256": "4f811a11c6664cbc95f18464047df87b3de51c8877e25a76721b961896545ae4",
+            "selected": false
+          }
+        ]
+      }
+    ],
+    "documents": [
+      {
+        "id": "DOF:5802721",
+        "title": "Norma Oficial Mexicana de Emergencia NOM-EM-023-SE-2026, Industria del cemento-Cementos hidráulicos-Especificaciones de calidad, métodos de prueba e información comercial.",
+        "kind": "norma_emergencia",
+        "published_on": "2026-11-02"
+      }
+    ]
+  },
+  "summary": {
+    "checked_dates": 10,
+    "indexed_notes": 787,
+    "pdf_references_recovered": 65,
+    "unresolved_references": 0,
+    "request_errors": 0,
+    "confirmed_calendar_absences": [
+      "2026-11-07",
+      "2026-11-08"
+    ],
+    "unique_selected_publications_after_deduplication": [
+      "DOF:5802721"
+    ]
+  }
+}

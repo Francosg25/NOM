@@ -28,8 +28,13 @@ _MAX_NOM_PAGES = 10_000
 
 
 def _xml_entries(raw: bytes) -> list[tuple[str, str | None]]:
+    # A sitemap does not need DTDs or entities. Remove NULs only for this guard
+    # so UTF-16/32 declarations cannot bypass it; parse the original bytes.
+    declarations = raw.replace(b"\x00", b"").lower()
+    if b"<!doctype" in declarations or b"<!entity" in declarations:
+        raise CollectionError("El sitemap contiene declaraciones XML no admitidas; inventario pendiente")
     try:
-        root = ET.fromstring(raw)
+        root = ET.fromstring(raw)  # nosec B314
     except ET.ParseError as exc:
         raise CollectionError("El sitemap oficial no contiene XML válido; inventario pendiente") from exc
     entries = []
@@ -46,7 +51,9 @@ def _parse_lastmod(value: str | None) -> datetime | None:
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError as exc:
-        raise CollectionError("El sitemap incluye una fecha lastmod inválida; sincronización pendiente") from exc
+        raise CollectionError(
+            "El sitemap incluye una fecha lastmod inválida; sincronización pendiente"
+        ) from exc
     return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed.astimezone(timezone.utc)
 
 
@@ -57,7 +64,12 @@ def _stored_datetime(value: datetime | None) -> datetime | None:
 
 
 def _page_text(soup: BeautifulSoup) -> tuple[str, BeautifulSoup]:
-    node = soup.select_one(".entry-content") or soup.select_one("article") or soup.select_one("main") or soup.body
+    node = (
+        soup.select_one(".entry-content")
+        or soup.select_one("article")
+        or soup.select_one("main")
+        or soup.body
+    )
     if node is None:
         raise CollectionError("La ficha oficial no contiene una sección de contenido; requiere revisión")
     for element in node.select("script, style, nav, header, footer, form, noscript"):
@@ -108,9 +120,7 @@ def _document(url: str, fetched: FetchResult, sitemap_lastmod: str | None) -> Do
     product_scope = _field(lines, "Producto, servicio, proceso o sistema")
     official_title = _field(lines, "Título de la Norma") or page_title
     if not code_match or not official_title:
-        raise CollectionError(
-            "La ficha carece de clave o título estructurado; requiere revisión"
-        )
+        raise CollectionError("La ficha carece de clave o título estructurado; requiere revisión")
     norm_code = code_match.group(0).upper()
     if not _NOM_CODE.fullmatch(norm_code):
         raise CollectionError("La clave oficial de la ficha no corresponde a una NOM")
@@ -217,9 +227,7 @@ def collect_catalog(
                 raise CollectionError("El cursor del catálogo está fuera de rango")
             if "phase" not in state:
                 expected_pages = state.get("discovered", 0) - state.get("skipped", 0)
-                state["phase"] = (
-                    "fetching" if len(state["queue"]) == expected_pages else "retrying_failed"
-                )
+                state["phase"] = "fetching" if len(state["queue"]) == expected_pages else "retrying_failed"
             if state["phase"] not in {"fetching", "retrying_failed"}:
                 raise CollectionError("La fase del punto de continuación del catálogo no es válida")
 

@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
+import pytest
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import sessionmaker
 
 from app.collectors import Batch, CollectionError, Document, FetchResult
-from app.collectors.platiica_catalog import SITEMAP_URL, _document, collect_catalog
+from app.collectors.platiica_catalog import SITEMAP_URL, _document, _xml_entries, collect_catalog
 from app.jobs import request_job, run_once
 from app.models import Alert, Base, Publication, Source, Version, utcnow
 from app.storage import LocalEvidenceStore
@@ -13,6 +14,15 @@ from app.storage import LocalEvidenceStore
 POST_SITEMAP = "https://platiica.economia.gob.mx/normalizacion/wp-sitemap-posts-post-1.xml"
 OLD_NOM = "https://platiica.economia.gob.mx/normalizacion/nom-010-stps-1999/"
 CURRENT_NOM = "https://platiica.economia.gob.mx/normalizacion/nom-037-sct2-2020/"
+
+
+@pytest.mark.parametrize('encoding', ['utf-8', 'utf-16', 'utf-32'])
+@pytest.mark.parametrize('declaration', ['<!DOCTYPE urlset [<!ENTITY expanded "unsafe">]>',
+                                        '<!ENTITY expanded "unsafe">'])
+def test_sitemaps_reject_entity_expansion_before_parsing(encoding, declaration):
+    raw = (declaration + '<urlset><url><loc>&expanded;</loc></url></urlset>').encode(encoding)
+    with pytest.raises(CollectionError, match='declaraciones XML no admitidas'):
+        _xml_entries(raw)
 
 
 def _xml(entries):

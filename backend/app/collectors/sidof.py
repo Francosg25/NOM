@@ -10,6 +10,7 @@ import unicodedata
 from bs4 import BeautifulSoup
 
 from .core import Batch, CollectionError, Document, SafeFetcher, _kind
+from .sidof_recovery import JournalRecovery, PDF_MAX_BYTES, portal_calendar_absence
 
 API_BASE = "https://sidof.segob.gob.mx/dof/sidof"
 EDITIONS = {
@@ -31,6 +32,8 @@ def validate_api_urls(urls):
 
 
 def _text(value):
+    if not isinstance(value, str) or value.strip().lower() in {"null", "none"}:
+        return ""
     return BeautifulSoup(value or "", "html.parser").get_text(" ", strip=True).replace("\u00ad", "")
 
 
@@ -70,7 +73,7 @@ def _json(result):
     return data
 
 
-def _document(result, expected, day):
+def _document(result, expected, day, recovery=None, check=None):
     payload = _json(result)
     note = payload.get("Nota")
     if isinstance(note, list) and len(note) == 1:
@@ -86,10 +89,32 @@ def _document(result, expected, day):
         raise CollectionError("SIDOF: el detalle no corresponde al código, fecha y diario solicitados")
     if payload.get("tamanioExcesivo") is True or note.get("tamanioExcesivo") is True:
         raise CollectionError(f"SIDOF: contenido marcado como parcial para DOF:{code}")
-    html = note.get("cadenaContenido") or note.get("contenido")
+
+    def recover_pdf():
+        if recovery is None:
+            return False, None, None
+        try:
+            document, evidence = recovery.recover(expected, note, day, relevant)
+            if check is not None:
+                check.setdefault("recovered_references", []).append(evidence)
+            return True, document, None
+        except CollectionError as exc:
+            return False, None, str(exc)
+
+    html = next(
+        (
+            value
+            for key in ("cadenaContenido", "contenido", "contenidoTxt")
+            if isinstance(value := note.get(key), str)
+            and value.strip()
+            and value.strip().lower() not in {"null", "none"}
+        ),
+        None,
+    )
     if not isinstance(html, str) or not html.strip():
-        html = note.get("contenidoTxt")
-    if not isinstance(html, str) or not html.strip():
+        recovered, document, recovery_error = recover_pdf()
+        if recovered:
+            return document
         title = _text(note.get("titulo")) or expected.get("title", "")
         if relevant(title):
             return Document(
@@ -108,6 +133,7 @@ def _document(result, expected, day):
             "url": f"https://sidof.segob.gob.mx/notas/docFuente/{code}",
             "reason": "Sin título ni texto extraíble; no se pudo descartar relevancia NOM.",
             "detail_sha256": hashlib.sha256(result.body).hexdigest(),
+            "recovery_error": recovery_error,
         }
     soup = BeautifulSoup(html, "html.parser")
     for node in soup.select("script,style,nav,header,footer,form"):
@@ -137,11 +163,15 @@ def _document(result, expected, day):
                 "",
             )
     if not title:
+        recovered, document, recovery_error = recover_pdf()
+        if recovered:
+            return document
         return {
             "id": f"DOF:{code}",
             "url": f"https://sidof.segob.gob.mx/notas/docFuente/{code}",
             "reason": "Texto disponible sin encabezado identificable; clasificación NOM pendiente.",
             "detail_sha256": hashlib.sha256(result.body).hexdigest(),
+            "recovery_error": recovery_error,
         }
     if not relevant(title):
         return None
@@ -166,7 +196,60 @@ def _document(result, expected, day):
 
 def _load_day(client, day):
     stamp = day.strftime("%d-%m-%Y")
-    manifest_result = client(f"{API_BASE}/diarios/porFecha/{stamp}")
+
+    def official_absence():
+        result = client(f"{API_BASE}/diarios/{day.year}")
+        calendar = _json(result)
+        dates = calendar.get("FechasSinPublicacion")
+        diaries = calendar.get("ListaDiarios", [])
+        contradictory = not isinstance(diaries, list) or any(
+            not isinstance(row, dict) or row.get("fecha") == stamp for row in diaries
+        )
+        evidence = None
+        if not contradictory and isinstance(dates, list) and stamp in dates:
+            evidence = {
+                "absence_basis": "sidof_api_calendar",
+                "calendar_url": f"{API_BASE}/diarios/{day.year}",
+                "calendar_sha256": hashlib.sha256(result.body).hexdigest(),
+            }
+        elif not contradictory:
+            evidence = portal_calendar_absence(client, day, calendar)
+        if evidence is None:
+            raise CollectionError(
+                "SIDOF: fecha sin índice, pero sin declaración oficial de ausencia de publicación"
+            )
+        return [], {
+            "day": str(day),
+            "diary_ids": [],
+            "notes_checked": 0,
+            "details_required": 0,
+            "selected_ids": [],
+            "unresolved": [],
+            "declared_no_publication": True,
+            **evidence,
+            "api_calendar_sha256": hashlib.sha256(result.body).hexdigest(),
+            "manifest_sha256": None,
+            "index_sha256": None,
+        }
+
+    try:
+        manifest_result = client(f"{API_BASE}/diarios/porFecha/{stamp}")
+    except CollectionError as exc:
+        if re.search(r"\bHTTP 404\b", str(exc)):
+            # A missing manifest cannot hide an extraordinary edition whose
+            # notes endpoint still contains records.
+            try:
+                listing = _json(client(f"{API_BASE}/notas/{stamp}"))
+            except CollectionError as listing_error:
+                if not re.search(r"\bHTTP 404\b", str(listing_error)):
+                    raise
+            else:
+                if any(not isinstance(listing.get(group), list) for group in EDITIONS.values()):
+                    raise CollectionError("SIDOF: estructura de notas desconocida al verificar el calendario")
+                if any(listing[group] for group in EDITIONS.values()):
+                    raise CollectionError("SIDOF: existen notas sin manifiesto diario; revisión incompleta")
+            return official_absence()
+        raise
     manifest = _json(manifest_result)
     diary_groups = {}
     for edition in EDITIONS:
@@ -176,9 +259,14 @@ def _load_day(client, day):
         if any(not isinstance(row, dict) for row in rows or []):
             raise CollectionError("SIDOF: diario inválido")
         diary_groups[edition] = {_id(row.get("codDiario"), "diario") for row in rows or []}
-    listing_result = client(f"{API_BASE}/notas/{stamp}")
+    try:
+        listing_result = client(f"{API_BASE}/notas/{stamp}")
+    except CollectionError as exc:
+        if re.search(r"\bHTTP 404\b", str(exc)) and not any(diary_groups.values()):
+            return official_absence()
+        raise
     listing = _json(listing_result)
-    indexed, pending = {}, []
+    indexed, pending, page_titles = {}, [], {}
     for edition, group in EDITIONS.items():
         if not isinstance(listing.get(group), list):
             raise CollectionError("SIDOF: falta una lista de notas por edición")
@@ -195,23 +283,27 @@ def _load_day(client, day):
                 continue
             indexed[code] = identity
             title = _text(row.get("titulo"))
+            if title and isinstance(row.get("pagina"), int) and isinstance(row.get("codSeccion"), str):
+                page_titles.setdefault((diary, row["codSeccion"], row["pagina"]), []).append(
+                    {"id": code, "title": title}
+                )
             if not title or relevant(title):
-                pending.append({**identity, "title": title})
+                pending.append(
+                    {
+                        **identity,
+                        "title": title,
+                        "page": row.get("pagina"),
+                        "section": row.get("codSeccion"),
+                    }
+                )
+    for item in pending:
+        item["page_titles"] = page_titles.get((item["diary"], item["section"], item["page"]), [])
     if len(indexed) > 10000:
         raise CollectionError("SIDOF: índice excede el límite de notas por día")
     diaries = sorted(set().union(*diary_groups.values()))
     absence, calendar_hash = False, None
     if not diaries and not indexed:
-        calendar_result = client(f"{API_BASE}/diarios/{day.year}")
-        calendar = _json(calendar_result)
-        if (
-            not isinstance(calendar.get("FechasSinPublicacion"), list)
-            or stamp not in calendar["FechasSinPublicacion"]
-        ):
-            raise CollectionError(
-                "SIDOF: respuesta vacía sin declaración explícita de ausencia de publicación"
-            )
-        absence, calendar_hash = True, hashlib.sha256(calendar_result.body).hexdigest()
+        return official_absence()
     elif not indexed or any(diary not in {i["diary"] for i in indexed.values()} for diary in diaries):
         raise CollectionError("SIDOF: hay ediciones declaradas sin sus notas; revisión incompleta")
     return pending, {
@@ -258,7 +350,8 @@ def collect_daily(urls, start, end, continuation, limit, *, fetcher=None):
     except (KeyError, ValueError, TypeError) as exc:
         raise CollectionError("Cursor SIDOF sin fechas válidas dentro del periodo") from exc
     own = fetcher is None
-    client = SafeFetcher() if own else fetcher
+    client = SafeFetcher(pdf_max_bytes=PDF_MAX_BYTES) if own else fetcher
+    recovery = JournalRecovery(client)
     calls, documents, checks, errors, deferred = 0, [], [], [], []
     max_calls = min(40, max(10, limit * 2))
     try:
@@ -267,16 +360,20 @@ def collect_daily(urls, start, end, continuation, limit, *, fetcher=None):
             day = date.fromisoformat(current["day"])
             try:
                 if not current["loaded"]:
-                    if calls + 3 > max_calls:
+                    if calls + 5 > max_calls:
                         break
-                    calls += 3  # index loading uses at most three requests
+                    calls += 5  # Daily index + API calendar + linked portal calendar.
                     pending, check = _load_day(client, day)
                     current.update(loaded=True, pending=pending, check=check)
                 elif current["pending"]:
                     item = current["pending"][0]
                     code = _id(item["id"], "código de cursor")
-                    calls += 1
-                    doc = _document(client(f"{API_BASE}/notas/nota/{code}"), item, day)
+                    if calls + 2 > max_calls:
+                        break
+                    calls += 2  # JSON detail and, only if needed, one original PDF.
+                    doc = _document(
+                        client(f"{API_BASE}/notas/nota/{code}"), item, day, recovery, current["check"]
+                    )
                     if isinstance(doc, dict):
                         current["check"]["unresolved"].append(doc)
                     elif doc:
@@ -289,6 +386,14 @@ def collect_daily(urls, start, end, continuation, limit, *, fetcher=None):
                     current["pending"].pop(0)
                 if current["loaded"] and not current["pending"]:
                     checks.append(current["check"])
+                    if current["check"]["unresolved"]:
+                        errors.append(
+                            f"{day}: SIDOF: {len(current['check']['unresolved'])} referencias sin contenido verificable"
+                        )
+                        # Retain a retryable date even after recording its partial
+                        # audit; an empty cursor must never clear missing content.
+                        current.update(loaded=False, pending=[], check=None, failed=True)
+                        deferred.append(current)
                     state["queue"].pop(0)
             except (CollectionError, ValueError, KeyError, TypeError) as exc:
                 # Keep the failed date/detail intact, while allowing other dates
@@ -304,7 +409,9 @@ def collect_daily(urls, start, end, continuation, limit, *, fetcher=None):
     coverage = (
         "SIDOF API: consulta por fecha de ediciones y notas; selección de NOM, proyectos, modificaciones, "
         "cancelaciones y reglas de comercio exterior por título, revisando también notas sin título. "
-        "Registros sin texto/título se conservan como referencias pendientes en el registro de consulta. "
+        "Las referencias sin contenido se recuperan desde la página del PDF oficial; "
+        "las fechas sin edición se contrastan con el calendario API y el calendario visual oficial. "
+        "Si falta evidencia, se conserva una fecha reintentable y su registro de consulta. "
         "No determina aplicabilidad a productos ni acredita cobertura normativa integral. "
         f"En este lote: {len(checks)} días consultados y {len(documents)} publicaciones seleccionadas; "
         f"{sum(len(check['unresolved']) for check in checks)} referencias pendientes de revisión."

@@ -29,15 +29,76 @@ def initialize_portal():
                     from .collectors.sidof import is_daily
 
                     source.schedule_start = (
-                        today - timedelta(days=6)
+                        today - timedelta(days=13)
                         if source.kind == "sidof" and is_daily(source.urls)
                         else today
                     )
                     source.schedule_enabled = True
             db.commit()
+        refresh_sidof_recovery(db)
         from .observability import record_pulse
 
         record_pulse(db)
+
+
+def refresh_sidof_recovery(db):
+    """Recheck recent dates once after installing the PDF/calendar recovery.
+
+    Scheduling must already be enabled. Existing history and administrator
+    choices remain available; a new run records the corrected evidence.
+    """
+    from .collectors.sidof import is_daily
+    from .collectors.core import _kind
+    from .models import Audit, Publication
+
+    if not get_settings().scheduler_enabled:
+        return
+    marker = "activar_recuperacion_sidof_063"
+    for source in db.scalars(
+        select(Source).where(
+            Source.active.is_(True), Source.schedule_enabled.is_(True), Source.kind == "sidof"
+        )
+    ):
+        if not is_daily(source.urls) or db.scalar(
+            select(Audit.id)
+            .where(Audit.action == marker, Audit.entity_type == "sources", Audit.entity_id == str(source.id))
+            .limit(1)
+        ):
+            continue
+        corrected = 0
+        for publication in db.scalars(
+            select(Publication).where(
+                Publication.source_id == source.id, Publication.kind == "norma_definitiva"
+            )
+        ):
+            if _kind(publication.title) == "norma_emergencia":
+                publication.kind = "norma_emergencia"
+                corrected += 1
+                db.add(
+                    Audit(
+                        actor="sistema",
+                        action="clasificar_norma_emergencia",
+                        entity_type="publications",
+                        entity_id=str(publication.id),
+                        before={"kind": "norma_definitiva"},
+                        after={"kind": publication.kind},
+                    )
+                )
+        source.next_due_at = None
+        db.add(
+            Audit(
+                actor="sistema",
+                action=marker,
+                entity_type="sources",
+                entity_id=str(source.id),
+                after={
+                    "recheck_scheduled": True,
+                    "method": "official_pdf_and_portal_calendar",
+                    "emergency_labels_corrected": corrected,
+                },
+            )
+        )
+    db.commit()
 
 
 def tick():

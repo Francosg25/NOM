@@ -13,6 +13,7 @@ class PublicationInput(Input):
         Literal[
             "proyecto",
             "norma_definitiva",
+            "norma_emergencia",
             "modificacion",
             "cancelacion",
             "acuerdo",

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Portal, { Reader } from "./Portal";
 import { LanguageProvider } from "./i18n";
@@ -37,6 +37,130 @@ describe("document reader", () => {
 });
 
 describe("public portal", () => {
+  it("opens a centered document window immediately and cannot reopen it after closing a pending load", async () => {
+    const user = userEvent.setup();
+    let finish: ((value: Response) => void) | undefined;
+    let detailSignal: AbortSignal | undefined;
+    vi.stubGlobal("fetch", vi.fn(async (input: string, init?: RequestInit) => {
+      const url = new URL(input, "http://localhost");
+      let data: unknown = {};
+      if (url.pathname === "/api/me") data = { role: "consulta" };
+      if (url.pathname === "/api/dashboard") data = { sources: [] };
+      if (url.pathname === "/api/jobs") data = { items: [] };
+      if (url.pathname === "/api/publications") data = { total: 1, items: [{ id: 7,
+        title: "NOM de prueba de lectura", source_name: "SIDOF", kind: "norma_emergencia" }] };
+      if (url.pathname === "/api/publications/7") {
+        expect(url.searchParams.get("include_content")).toBe("false");
+        detailSignal = init?.signal as AbortSignal;
+        return new Promise<Response>((resolve) => { finish = resolve; });
+      }
+      return new Response(JSON.stringify(data), { status: 200 });
+    }));
+    try {
+      render(<Portal />);
+      const opener = await screen.findByRole("button", { name: "NOM de prueba de lectura" });
+      await user.click(opener);
+      const dialog = await screen.findByRole("dialog", { name: "NOM de prueba de lectura" });
+      expect(dialog).toHaveClass("reader-document");
+      expect(dialog.parentElement).toHaveClass("reader-modal-backdrop");
+      expect(screen.getByText("LECTURA DE NORMA")).toBeVisible();
+      expect(screen.getByRole("status")).toHaveTextContent("Preparando lectura…");
+      await user.keyboard("{Escape}");
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(detailSignal?.aborted).toBe(true);
+      await act(async () => { finish?.(new Response(JSON.stringify({ id: 7, title: "Late response", versions: [] }))); });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(opener).toHaveFocus();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("pauses bulletin polling during reading and resumes it after closing the window", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    const user = userEvent.setup();
+    const fetcher = vi.fn(async (input: string) => {
+      const url = new URL(input, "http://localhost");
+      let data: unknown = {};
+      if (url.pathname === "/api/me") data = { role: "consulta" };
+      if (url.pathname === "/api/dashboard") data = { sources: [] };
+      if (url.pathname === "/api/jobs") {
+        expect(url.searchParams.get("summary")).toBe("true");
+        data = { items: [] };
+      }
+      if (url.pathname === "/api/publications") data = { total: 1, items: [{ id: 7, title: "NOM para consulta",
+        kind: "norma_emergencia", source_name: "SIDOF" }] };
+      if (url.pathname === "/api/publications/7") data = { id: 7, title: "NOM para consulta", versions: [{ id: 9 }] };
+      if (url.pathname === "/api/versions/9/reading") data = { version_id: 9, format: "structured",
+        blocks: [{ type: "paragraph", inlines: [{ type: "text", text: "Texto completo disponible." }] }] };
+      return new Response(JSON.stringify(data), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetcher);
+    try {
+      render(<Portal />);
+      await user.click(await screen.findByRole("button", { name: "NOM para consulta" }));
+      expect(await screen.findByText("Texto completo disponible.")).toBeVisible();
+      const before = fetcher.mock.calls.length;
+      await act(async () => { vi.advanceTimersByTime(120000); });
+      expect(fetcher).toHaveBeenCalledTimes(before);
+      await user.keyboard("{Escape}");
+      await act(async () => { vi.advanceTimersByTime(60000); });
+      await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(before + 4));
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("shows recovered official evidence without pending warnings and translates the completed check", async () => {
+    const user = userEvent.setup();
+    const source = { id: 1, kind: "sidof", name: "SIDOF", active: true,
+      urls: ["https://sidof.segob.gob.mx/dof/sidof"], publication_count: 1,
+      last_error: null, last_success_at: "2026-11-11T18:00:00Z", pending_dates: [],
+      recent_checked_dates: ["2026-11-06"], confirmed_absence_dates: ["2026-11-07"],
+      frequency_hours: 1, schedule_enabled: true };
+    vi.stubGlobal("fetch", vi.fn(async (input: string) => {
+      const url = new URL(input, "http://localhost");
+      let data: unknown = {};
+      if (url.pathname === "/api/me") data = { role: "consulta" };
+      if (url.pathname === "/api/dashboard") data = { monitor_enabled: true, scheduler_enabled: true, sources: [source] };
+      if (url.pathname === "/api/publications") data = { total: 0, items: [] };
+      if (url.pathname === "/api/jobs") data = { items: [{ id: "recovered", source_id: 1,
+        status: "succeeded", new_count: 0, modified_count: 0, error_count: 0 }] };
+      if (url.pathname === "/api/jobs/recovered") data = { error: null, continuation: null,
+        index_checks: [
+          { day: "2026-11-07", notes_checked: 0, selected_ids: [], unresolved: [],
+            declared_no_publication: true, calendar_page_url: "https://sidof.segob.gob.mx/welcome/07-11-2026",
+            calendar_url: "https://sidof.segob.gob.mx/assets/css/calendarCss/2026.css" },
+          { day: "2026-11-06", notes_checked: 85, selected_ids: [], unresolved: [],
+            recovered_references: [{ id: "DOF:1", title: "Recovered official heading", page: 4,
+              url: "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/100" }] },
+        ] };
+      return new Response(JSON.stringify(data), { status: 200 });
+    }));
+    try {
+      render(<Portal />);
+      await user.click(await screen.findByRole("button", { name: "Estado de fuentes" }));
+      expect(screen.getByText("Fechas sin publicación según el calendario oficial")).toBeVisible();
+      expect(screen.queryByText("Hay fechas pendientes de verificar.")).not.toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Ver revisión diaria" }));
+      expect(await screen.findByText("1 fechas con índice revisado en esta ejecución")).toBeVisible();
+      expect(screen.getByText("El calendario oficial de SIDOF identifica esta fecha sin publicación.")).toBeVisible();
+      expect(screen.queryByText(/referencias pendientes de revisión/)).not.toBeInTheDocument();
+      const evidence = screen.getByText("1 referencias recuperadas del PDF oficial");
+      await user.click(evidence);
+      expect(screen.getByRole("link", { name: "DOF:1 · Página 4" })).toHaveAttribute("href",
+        "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/100#page=4");
+      await user.keyboard("{Escape}");
+      await user.click(screen.getByRole("button", { name: "English" }));
+      await user.click(screen.getByRole("button", { name: "View daily check" }));
+      expect(await screen.findByText("SIDOF's official calendar identifies this as a non-publishing date.")).toBeVisible();
+      expect(screen.getByText("1 references recovered from the official PDF")).toBeVisible();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("keeps valid downloads visible while explaining partial coverage in both languages", async () => {
     const user = userEvent.setup();
     const fetch = vi.fn(async (input: string) => {
@@ -47,8 +171,9 @@ describe("public portal", () => {
         monitor_enabled: true, scheduler_enabled: true,
         sources: [{ id: 1, kind: "sidof", name: "SIDOF", active: true,
           urls: ["https://sidof.segob.gob.mx/dof/sidof"], publication_count: 1,
-          last_error: "2026-10-01: HTTP 404", last_download_at: "2026-10-02T15:00:00Z",
-          last_full_review_at: null, pending_dates: ["2026-10-01"], frequency_hours: 1,
+          last_error: "2026-10-01: SIDOF: fecha sin índice, pero sin declaración oficial de ausencia de publicación", last_download_at: "2026-10-02T15:00:00Z",
+          last_full_review_at: null, pending_dates: ["2026-10-01"],
+          recent_checked_dates: ["2026-10-02"], frequency_hours: 1,
           schedule_enabled: true, next_due_at: "2026-10-02T16:00:00Z" }],
       };
       if (url.pathname === "/api/publications") data = { total: 1, items: [{ id: 1,
@@ -69,6 +194,9 @@ describe("public portal", () => {
       expect(screen.getByText("Saved publications")).toBeVisible();
       expect(screen.getByText("Last complete period check")).toBeVisible();
       expect(screen.getByText("Next automatic check")).toBeVisible();
+      expect(screen.getByText("Dates without a verifiable index")).toBeVisible();
+      expect(screen.getByText("Dates with a reviewed index")).toBeVisible();
+      expect(screen.getByText(/SIDOF did not return an index/)).toBeVisible();
       await waitFor(() => expect(document.documentElement.lang).toBe("en"));
       expect(fetch.mock.calls.some(([url]) => url.includes("source_kind=sidof"))).toBe(true);
     } finally {

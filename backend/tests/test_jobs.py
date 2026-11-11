@@ -55,6 +55,24 @@ def test_deduplication_ignores_navigation_noise(database):
     assert db.scalar(select(func.count()).select_from(Alert).where(Alert.catalog_id.is_(None))) == 1
 
 
+def test_empty_incomplete_response_cannot_replace_a_readable_saved_version(database):
+    db, _, storage, source_id = database
+    source = db.get(Source, source_id)
+    ingest_document(db, source, document(), storage)
+    db.commit()
+    pub = db.scalar(select(Publication))
+    version_id = pub.current_version_id
+    incomplete = document(text="", raw=b'{"missing_content":true}')
+    incomplete.processing_note = "Sin contenido verificable; reintento pendiente."
+    assert ingest_document(db, source, incomplete, storage) == "unchanged"
+    db.commit()
+    assert pub.current_version_id == version_id and pub.processing_note is None
+    assert db.get(Version, version_id).content == document().content
+    assert db.scalar(select(func.count(Version.id))) == 1
+    retained = db.scalar(select(Audit).where(Audit.action == "conservar_version_valida"))
+    assert storage.read(retained.after["incomplete_evidence_key"]) == incomplete.raw
+
+
 def test_versions_and_reversions_reopen_decisions(database):
     db, _, storage, source_id = database
     item = CatalogItem(kind="familia", name="Familia configurable", keywords=["microactuador"])

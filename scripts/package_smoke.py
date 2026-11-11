@@ -73,7 +73,7 @@ def main():
 
         process = start()
         try:
-            assert json.loads(get('/api/health'))['frontend']['version'] == '0.6.0'
+            assert json.loads(get('/api/health'))['frontend']['version'] == '0.6.7'
             assert '<html' in get('/').decode()
             command('-c', "from app.db import SessionLocal; from app.jobs import ingest_document; "
                 "from app.models import Source; from app.collectors import Document; "
@@ -82,14 +82,18 @@ def main():
                 "ingest_document(db,source,Document('PACKAGE-CONTROLLED','https://sidof.segob.gob.mx/',"
                 "'Controlled package sample','Not an official publication',raw=b'package-evidence'),get_storage()); "
                 "db.commit(); db.close()")
-            before = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.6.0',
+            before = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.6.7',
                                         '--output', str(root / 'before.json')))
             assert before['passed'] and before['sample']['sha256'] == hashlib.sha256(b'package-evidence').hexdigest()
+            reading_path = '/api/versions/' + str(before['sample']['version_id']) + '/reading'
+            reading = json.loads(get(reading_path))
+            assert reading['blocks'][0]['inlines'][0]['text'] == 'Not an official publication'
             stop(process)
             process = start()
-            after = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.6.0',
+            after = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.6.7',
                 '--baseline', str(root / 'before.json'), '--output', str(root / 'after.json')))
             assert after['passed']
+            assert json.loads(get(reading_path)) == reading
             command('-m', 'app.cli', 'backup', '--destination', str(root / 'backup'))
             command('-m', 'app.cli', 'restore', '--source', str(root / 'backup'),
                     '--destination', str(root / 'restored'))
@@ -97,10 +101,11 @@ def main():
             env.update(DATABASE_URL='sqlite:///' + str(root / 'restored/nom.db'),
                        STORAGE_PATH=str(root / 'restored/evidence'))
             process = start()
-            restored = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.6.0',
+            restored = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.6.7',
                 '--baseline', str(root / 'before.json'), '--output', str(root / 'restored.json')))
             assert restored['passed']
-            print('PASS: production ZIP, real startup.sh, monitor readiness, restart and restored evidence.')
+            assert json.loads(get(reading_path)) == reading
+            print('PASS: production ZIP, real startup.sh, reading API, monitor readiness, restart and restored evidence.')
         finally:
             stop(process)
 

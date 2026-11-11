@@ -61,11 +61,7 @@ def init_sources(db):
 
 def retire_legacy_sources(db):
     """Keep official NOM-catalogue and SIDOF sources; preserve retired history."""
-    for source in db.scalars(
-        select(Source).where(
-            Source.kind.not_in(("sidof", "platiica_catalog", "demo"))
-        )
-    ):
+    for source in db.scalars(select(Source).where(Source.kind.not_in(("sidof", "platiica_catalog", "demo")))):
         if source.active or source.schedule_enabled:
             source.active = False
             source.schedule_enabled = False
@@ -280,6 +276,9 @@ def main():
     enq.add_argument("--start", type=date.fromisoformat)
     enq.add_argument("--end", type=date.fromisoformat)
     enq.add_argument("--resume", help="ID de un trabajo parcial/interrumpido/fallido que debe reanudarse")
+    backfill = sub.add_parser("backfill-sidof", help="Cargar un periodo histórico de SIDOF en la base activa")
+    backfill.add_argument("--start", type=date.fromisoformat, required=True)
+    backfill.add_argument("--end", type=date.fromisoformat, required=True)
     worker = sub.add_parser("worker", help="Procesar cola persistente; no programa consultas por sí mismo")
     mode = worker.add_mutually_exclusive_group(required=True)
     mode.add_argument("--once", action="store_true", help="Ejecutar un trabajo y terminar")
@@ -361,6 +360,15 @@ def main():
                 continuation, start, end = previous.continuation, previous.period_start, previous.period_end
             job = request_job(db, args.source_id, "cli-operador", start, end, continuation)
             print(f"Trabajo {job.id}: {job.status}; periodo {job.period_start} a {job.period_end}.")
+        elif args.command == "backfill-sidof":
+            source = db.scalar(select(Source).where(Source.kind == "sidof", Source.active.is_(True)))
+            if source is None or source.urls != [API_BASE]:
+                parser.error("No hay una fuente diaria SIDOF activa")
+            try:
+                job = request_job(db, source.id, "cli-backfill", args.start, args.end)
+            except ValueError as exc:
+                parser.error(str(exc))
+            print(f"Carga SIDOF {job.id}: {job.status}; periodo {job.period_start} a {job.period_end}.")
         elif args.command == "worker":
             from .operations import advance_schedule, reevaluate_batch, schedule_due
 

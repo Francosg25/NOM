@@ -130,6 +130,7 @@ class SafeFetcher:
         interval: float = 1.0,
         resolve_dns: bool | None = None,
         max_bytes: int = MAX_BYTES,
+        pdf_max_bytes: int | None = None,
         attempts: int = 3,
     ):
         if resolve_dns is None:
@@ -166,6 +167,7 @@ class SafeFetcher:
         self.interval = interval
         self.resolve_dns = resolve_dns
         self.max_bytes = max_bytes
+        self.pdf_max_bytes = pdf_max_bytes
         self.attempts = max(1, min(attempts, 3))
         self._last_request = 0.0
         self._robots: dict[str, RobotFileParser] = {}
@@ -176,6 +178,16 @@ class SafeFetcher:
 
     def _request(self, url: str) -> httpx.Response:
         validate_url(url, resolve_dns=self.resolve_dns)
+        # Only the official SIDOF journal download can use the larger PDF cap.
+        # Normal HTML/JSON, robots and redirects keep the ordinary response cap.
+        parsed = urlsplit(url)
+        byte_limit = (
+            self.pdf_max_bytes
+            if self.pdf_max_bytes is not None
+            and parsed.hostname == "sidof.segob.gob.mx"
+            and re.fullmatch(r"/dof/sidof/documentos/pdf/[0-9]{1,12}", parsed.path)
+            else self.max_bytes
+        )
         for attempt in range(self.attempts):
             delay = self.interval - (time.monotonic() - self._last_request)
             if delay > 0:
@@ -189,9 +201,9 @@ class SafeFetcher:
                     content = bytearray()
                     for chunk in response.iter_bytes():
                         content.extend(chunk)
-                        if len(content) > self.max_bytes:
+                        if len(content) > byte_limit:
                             raise CollectionError(
-                                "Respuesta supera el límite de 12 MiB; procesamiento pendiente"
+                                f"Respuesta supera el límite de {byte_limit} bytes; procesamiento pendiente"
                             )
                     # Return a detached response after the bounded stream closes.
                     headers = dict(response.headers)
@@ -286,6 +298,7 @@ def _kind(title: str) -> str:
         (r"modificaci[oó]n|modifica", "modificacion"),
         (r"\bacuerdo\b", "acuerdo"),
         (r"\baviso\b", "aviso"),
+        (r"norma oficial mexicana de emergencia|\bNOM-EM-", "norma_emergencia"),
         (r"norma oficial mexicana", "norma_definitiva"),
     ]
     return next(
