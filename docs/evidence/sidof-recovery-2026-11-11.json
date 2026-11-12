@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 16102)
-Total output lines: 1082
-
 {
   "version": "0.6.3",
   "period_start": "2026-11-02",
@@ -401,7 +398,252 @@ Total output lines: 1082
                 "page": 285,
                 "section": "UNICA",
                 "pdf_sha256": "0d188b1c9bbf2a26b59dca07a189ca7403a8dfc884858e1977a1ecc2f13a11ba",
-                "page_te…4102 tokens truncated…ob.mx/dof/sidof/documentos/pdf/330605",
+                "page_text_sha256": "da5187c01f20ffd22b8fed227cf711d6821d94fc4a69cbef2d64404bea3038b3",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803170",
+                "title": "FE de erratas a la denominación del Oficio Circular C/003/2026, publicado el 3 de noviembre de 2026.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330665",
+                "page": 288,
+                "section": "UNICA",
+                "pdf_sha256": "0d188b1c9bbf2a26b59dca07a189ca7403a8dfc884858e1977a1ecc2f13a11ba",
+                "page_text_sha256": "18cb1d0a3f7ad667f1d806fcb03d71d5991b94c854752ba132bed8b28ce2c471",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803172",
+                "title": "RESOLUCIÓN del Consejo General del Instituto Nacional Electoral sobre la procedencia constitucional y legal de las modificaciones a los documentos básicos del Partido Político Nacional denominado SOMOS, en cumplimiento del punto segundo de la Resolución INE/CG347/2026; así como de la imposibilid ad de pronunciarse respecto de las modificaciones realizadas a sus estatutos en ejercicio de su libertad de autoorganización.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330665",
+                "page": 289,
+                "section": "UNICA",
+                "pdf_sha256": "0d188b1c9bbf2a26b59dca07a189ca7403a8dfc884858e1977a1ecc2f13a11ba",
+                "page_text_sha256": "09f0145f86bb2c3127eb44a04314ff3b3c52cf14271be634e9403dbb5556003d",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803256",
+                "title": "ACUERDO por el que se dan a conocer los porcentajes, los mo ntos del estímulo fiscal y las cuotas disminuidas del impuesto especial sobre producción y servicios, así como las cantidades por litro aplicables a los combustibles que se indican, correspondientes al periodo que se especifica.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330685",
+                "page": 2,
+                "section": "UNICA",
+                "pdf_sha256": "478effe2742560dfcc8e1cdd8e0a051b49fb6143411e68cb68320a6e1e84ba28",
+                "page_text_sha256": "abbff5e923954c3698c694a7f2acf32bafa7d02af2c21678dc5f1a0d6851df8b",
+                "selected": false
+              }
+            ]
+          },
+          {
+            "day": "2026-11-05",
+            "diary_ids": [
+              "330645"
+            ],
+            "notes_checked": 120,
+            "details_required": 9,
+            "selected_ids": [],
+            "unresolved": [],
+            "declared_no_publication": false,
+            "calendar_sha256": null,
+            "manifest_sha256": "723846413d48ad25799e4269768814bf0c5699f93432f4d12838f2d6c1a7ae07",
+            "index_sha256": "733331bfb3821bada403a1f0f2fd5bcf11cb4353db6d2c40f7751af00915cf88",
+            "recovered_references": [
+              {
+                "id": "DOF:5803019",
+                "title": "ACUERDO de modificación de la delimi tación y determinación del recinto po rtuario de Puerto San Blas, en el Estado de Nayarit.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330645",
+                "page": 4,
+                "section": "UNICA",
+                "pdf_sha256": "cc1ae0579047108b9080a59da8f78f11a644bdb4a6d7f99a8b89803a29b58e7c",
+                "page_text_sha256": "aa860e009d70f80c0ba6c0d51ef80e50ff54db48047d20ee988a454b3f5a3088",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803021",
+                "title": "ACUERDO de la Comisión Nacional de Energía por el que se expiden las Disposic iones Administrativas de Carácter General que regulan la actividad de comercializació n de gas natural, petrolíferos, gas licuado de petróleo y petroquímicos.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330645",
+                "page": 16,
+                "section": "UNICA",
+                "pdf_sha256": "cc1ae0579047108b9080a59da8f78f11a644bdb4a6d7f99a8b89803a29b58e7c",
+                "page_text_sha256": "5597ce0b7c70bc21b51597620cdafde913ba5b0c4a476513f3c70c89323a649e",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803023",
+                "title": "CONVENIO de Coordinación y Colaboración para la cons trucción y equipamiento de planteles educativos de Educación Media Superior (Centros de Bachillerato Tecnológico), que celebran el Estado de Tamaulipas, el Instituto Tamaulipeco de Infraestructura Física Educativa, la Secretaría de Infraestructura, Comunicaciones y Transportes, la Secretaría de Educación Pública y el Instituto Nacional de la Infraestructura Física Educativa.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330645",
+                "page": 93,
+                "section": "UNICA",
+                "pdf_sha256": "cc1ae0579047108b9080a59da8f78f11a644bdb4a6d7f99a8b89803a29b58e7c",
+                "page_text_sha256": "f4811f81182f5bbca18bdb7f88765232aee82173f2599de044a005d0d624c7fa",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803025",
+                "title": "ACUERDO por el que se modifica el diverso técnico por el que se incorpora el aguacate como producto sujeto al Certificado Laboral para la Agroexportación.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330645",
+                "page": 105,
+                "section": "UNICA",
+                "pdf_sha256": "cc1ae0579047108b9080a59da8f78f11a644bdb4a6d7f99a8b89803a29b58e7c",
+                "page_text_sha256": "c861d71edbd04264d27d4b0758e2d30124e2f74ce8ac9726f7e1bc1940d4b0c9",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803027",
+                "title": "ACUERDO por el que se dan a conocer los días de diciembre de 2026 y del año 2027 que se consideran inhábiles para el Instituto Mexicano de la Propiedad Industrial.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330645",
+                "page": 107,
+                "section": "UNICA",
+                "pdf_sha256": "cc1ae0579047108b9080a59da8f78f11a644bdb4a6d7f99a8b89803a29b58e7c",
+                "page_text_sha256": "bb96618919b17c72c80df41016cd40fc31dd42e1cd5b2e4477e65973547e00d4",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803029",
+                "title": "ACUERDO mediante el cual la Comisión Nacional Antimonopolio da a conocer el calendario anual de labores para finales del dos mil veintiséis y el año dos mil veintisiete.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330645",
+                "page": 108,
+                "section": "UNICA",
+                "pdf_sha256": "cc1ae0579047108b9080a59da8f78f11a644bdb4a6d7f99a8b89803a29b58e7c",
+                "page_text_sha256": "8554daeb4df6042c767db9abe75e3d28826fce98abae164cac7a7c5e9ffcceed",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803031",
+                "title": "ACUERDO General del Pleno del Órgano de Administración Judicial por el que se regula el Proceso de Evaluación del Desempeño del Personal de Carrera Judicial del Poder Judicial de la Federación.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330645",
+                "page": 109,
+                "section": "UNICA",
+                "pdf_sha256": "cc1ae0579047108b9080a59da8f78f11a644bdb4a6d7f99a8b89803a29b58e7c",
+                "page_text_sha256": "ce91e83d3bebc09ad3f2e2f90cdc1c93561aa2d41dc40c5d16d492a034b6cf14",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803033",
+                "title": "TIPO de cambio para solventar obligaciones deno minadas en moneda extranjera pagaderas en la República Mexicana.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330645",
+                "page": 133,
+                "section": "UNICA",
+                "pdf_sha256": "cc1ae0579047108b9080a59da8f78f11a644bdb4a6d7f99a8b89803a29b58e7c",
+                "page_text_sha256": "157ae9f483873223bd2eec06bdc9a9e220d546771f0ed243aeeaf125d9cc59bf",
+                "selected": false
+              },
+              {
+                "id": "DOF:5803038",
+                "title": "ACUERDO del Consejo General del Instituto Nacional Elect oral por el que se apru eba la propuesta de la institución de educación superior que realizará el monitoreo  y análisis del contenido de  las transmisiones en los programas de radio y televisión que difundan noticias durante las precampañas y campañas federales del Proceso Electoral Federal 2026-2027.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330645",
+                "page": 134,
+                "section": "UNICA",
+                "pdf_sha256": "cc1ae0579047108b9080a59da8f78f11a644bdb4a6d7f99a8b89803a29b58e7c",
+                "page_text_sha256": "46153bc47f8fc32a962f2d3d5ccf40cc9766a8902bb43739767786e66f3634b6",
+                "selected": false
+              }
+            ]
+          }
+        ],
+        "documents": []
+      },
+      {
+        "complete": false,
+        "errors": [],
+        "checks": [
+          {
+            "day": "2026-11-04",
+            "diary_ids": [
+              "330605",
+              "330625"
+            ],
+            "notes_checked": 70,
+            "details_required": 11,
+            "selected_ids": [],
+            "unresolved": [],
+            "declared_no_publication": false,
+            "calendar_sha256": null,
+            "manifest_sha256": "6f556742282c42eef02ca3e304a0c89315665a4ed69a56e075e7d9f820016a97",
+            "index_sha256": "9aa854fd7a2b888fbe1179409effda1b497332420689a197e05ec388facf9acd",
+            "recovered_references": [
+              {
+                "id": "DOF:5802936",
+                "title": "ACUERDO por el que se destina a la Secretaría de Mari na el inmueble federal de nominado “Instalaciones Administrativas (oficinas)”, con Registro Federal Inmobiliario 9-21127-6 y superficie de 5,696.14 metros cuadrados, el cual proviene de un in mueble de mayor extensión, ubicado en Avenida Hero ica Escuela Naval Militar número 701, colonia Presidentes Ejidales Seg unda Sección, Código Postal 04470, Alcaldía Coyoacán, Ciudad de México.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330605",
+                "page": 4,
+                "section": "UNICA",
+                "pdf_sha256": "bbae8e830a66c027ecdd4b37e25b0ca5862ac743c73f5b7bb215d03962672cf7",
+                "page_text_sha256": "b4d25d393153c5068becc5b55b322289fd283f65fce47a01e766b175a76eee96",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802939",
+                "title": "Página 8 del Diario Oficial del 04/11/2026",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330605",
+                "page": 8,
+                "section": "UNICA",
+                "pdf_sha256": "bbae8e830a66c027ecdd4b37e25b0ca5862ac743c73f5b7bb215d03962672cf7",
+                "page_text_sha256": "313249457fee55535d8d627a733b1c14a4419a5b0e89d9c2736904b37c4b8a29",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802941",
+                "title": "CONVENIO de Coordinación y Colaboración para la cons trucción y equipamiento de planteles educativos de Educación Media Superior (Centros de  Bachillerato Tecnológico), que celeb ran el Estado de Nuevo León, el Instituto Constructor de Infraestructura Física Educat iva y Deportiva, la Secretaría de Infraestructura, Comunicaciones y Transportes, la Secretaría de Educación Pública y el Instituto Nacional de la Infraestructura Física Educativa.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330605",
+                "page": 13,
+                "section": "UNICA",
+                "pdf_sha256": "bbae8e830a66c027ecdd4b37e25b0ca5862ac743c73f5b7bb215d03962672cf7",
+                "page_text_sha256": "6596c9165b6e5e67118c883ea0adc23e0fa8fb4989a882c393f8abb066239596",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802943",
+                "title": "Página 25 del Diario Oficial del 04/11/2026",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330605",
+                "page": 25,
+                "section": "UNICA",
+                "pdf_sha256": "bbae8e830a66c027ecdd4b37e25b0ca5862ac743c73f5b7bb215d03962672cf7",
+                "page_text_sha256": "d435cb01d2eacb2199952cd5779d4b661564dea77440534b74cfd1ba4c7be005",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802945",
+                "title": "ÍNDICE 1. PRESENTACIÓN 2. VISIÓN 3. MISIÓN 4. OBJETIVOS ESTRATÉGICOS 5. ANTECEDENTES 6. MARCO JURÍDICO 7. ATRIBUCIONES 8. ESTRUCTURA ORGÁNICA Y ORGANIGRAMA 9. OBJETIVOS Y FUNCIONES",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330605",
+                "page": 49,
+                "section": "UNICA",
+                "pdf_sha256": "bbae8e830a66c027ecdd4b37e25b0ca5862ac743c73f5b7bb215d03962672cf7",
+                "page_text_sha256": "700b276803bbf83d52fdcf5fd36d9be745b9b5deb6f092c7c9a1188c647026e4",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802948",
+                "title": "AVISO mediante el cual se de signa a la Titular de la Jefatura de Serv icios Jurídicos para que supla las ausencias del Doctor Saúl Nevárez Jiménez, Titular del Órgan o de Operación Administrativa Desconcentrada Estatal Durango del Instituto Mexicano del Se guro Social, autorizándole a firm ar y despachar la documentación incluyendo la suscripción de las resoluciones que debe emitir este Órgano.",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330605",
+                "page": 139,
+                "section": "UNICA",
+                "pdf_sha256": "bbae8e830a66c027ecdd4b37e25b0ca5862ac743c73f5b7bb215d03962672cf7",
+                "page_text_sha256": "240cccf609a9dbb7a202dad03cd9d27f6b2b8677a21adf1322097925bf59dcd0",
+                "selected": false
+              },
+              {
+                "id": "DOF:5802950",
+                "title": "ÍNDICE TEMÁTICO Hechos: El treinta de diciembre de dos mil veinticinco se publicó en el Periódico Oficial del Estado de Coahuila de Zaragoza el Decreto número 420 por el que se reformó el artículo 67, fracción I, de la Ley de Hacienda para el Estado de Coahuila de Zaragoza. En ese artículo se estableció que el servicio que presta el Registro Civil de esa entidad federativa consistente en “registro de nacimientos” generará el cobro de derechos por $150.00 (ciento cincuenta pesos) y, acorde con el diverso primero tr ansitorio del citado decreto, entró en vigor a partir del uno de enero de dos mil veintiséis. Contra tal norma, la Comisión Nacional de los Derechos Humanos, por conducto de su presidenta, promueve acción de inconstitucionalidad en la que sostiene que el artículo 67, fracción I, de la Ley de",
+                "method": "official_pdf_page",
+                "url": "https://sidof.segob.gob.mx/dof/sidof/documentos/pdf/330605",
                 "page": 140,
                 "section": "UNICA",
                 "pdf_sha256": "bbae8e830a66c027ecdd4b37e25b0ca5862ac743c73f5b7bb215d03962672cf7",

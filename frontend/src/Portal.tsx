@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 21518)
-Total output lines: 2124
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import {
@@ -694,7 +691,924 @@ function Bulletin() {
   const open = async (id: number) => {
     const current = ++readerGeneration.current;
     readerRequest.current?.abort();
-    const controller = ne…9518 tokens truncated…                          ? "Última revisión completa"
+    const controller = new AbortController();
+    readerRequest.current = controller;
+    const summary = publications.find((item) => item.id === id) ||
+      productSearch?.results?.find((item: Row) => item.publication?.id === id)?.publication || {};
+    setDetail({ ...summary, id, title: summary.title || t("Preparando lectura…"), versions: [] });
+    setVersionId(null);
+    setReaderBusy(true);
+    setReaderError(false);
+    try {
+      const doc = await request(`/publications/${id}?include_content=false`, "GET", undefined, controller.signal);
+      if (current !== readerGeneration.current) return;
+      setDetail(doc);
+      setVersionId(doc.versions[0]?.id || null);
+    } catch {
+      if (current === readerGeneration.current) setReaderError(true);
+    } finally {
+      if (current === readerGeneration.current) setReaderBusy(false);
+    }
+  };
+  const closeReader = useCallback(() => {
+    readerGeneration.current += 1;
+    readerRequest.current?.abort();
+    setDetail(null);
+    setReaderBusy(false);
+    setReaderError(false);
+  }, []);
+  const closeInspection = useCallback(() => setInspection(null), []);
+  const download = async (version: Row) => {
+    try {
+      const current = await accessToken(token);
+      const response = await fetch(`/api/versions/${version.id}/evidence`, {
+        headers: current ? { Authorization: `Bearer ${current}` } : {},
+      });
+      if (!response.ok)
+        throw new Error(t("No fue posible recuperar esta copia."));
+      const url = URL.createObjectURL(await response.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `norma-${version.id}${version.media_type?.includes("pdf") ? ".pdf" : version.media_type?.includes("json") ? ".json" : ".html"}`;
+      a.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+  const saveSource = async (event: FormEvent<HTMLFormElement>, item: Row) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    setUpdating(true);
+    try {
+      await request(`/sources/${item.id}`, "PATCH", {
+        urls: String(form.get("urls"))
+          .split("\n")
+          .map((x) => x.trim())
+          .filter(Boolean),
+        frequency_hours: Number(form.get("frequency")),
+        expected_terms: String(form.get("expected"))
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean),
+        schedule_enabled: form.get("enabled") === "on",
+        schedule_start: String(form.get("start")) || dayStamp(),
+      });
+      setNotice("Seguimiento actualizado.");
+      await load(true);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setUpdating(false);
+    }
+  };
+  const latest = sources
+    .map((s) => s.last_download_at as string)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+  const activeSources = sources.filter((s) => s.active);
+  const failedSources = activeSources.filter((s) => s.last_error);
+  const allFailed =
+    activeSources.length > 0 && failedSources.length === activeSources.length;
+  const sourceName = (s?: Row) =>
+    s?.kind === "sidof"
+      ? t(
+          dailySource(s)
+            ? "SIDOF · publicaciones diarias"
+            : "SIDOF · documento de referencia",
+        )
+      : s?.kind === "platiica_catalog"
+        ? t("Catálogo Mexicano de Normas · PLATIICA")
+        : s?.name || t("Fuente");
+  const lead = publications[0];
+  const selected = detail?.versions.find((v: Row) => v.id === versionId);
+  const filtered = Boolean(
+    query || source || kind || changes || period !== "all",
+  );
+  const date = new Intl.DateTimeFormat(language === "en" ? "en-US" : "es-MX", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "America/Mexico_City",
+  }).format(new Date());
+  return (
+    <div className="newspaper">
+      <a className="skip-link" href="#contenido">
+        {t("Ir al contenido")}
+      </a>
+      <div className="edition-strip">
+        <span>
+          JE / NOM MONITOR <b className="release-mark">v{portalVersion}</b>
+        </span>
+        <div className="edition-right">
+          <span>{date}</span>
+          <div
+            className="language-switch"
+            role="group"
+            aria-label={t("Idioma")}
+          >
+            <button
+              lang="es"
+              aria-label="Español"
+              aria-pressed={language === "es"}
+              onClick={() => setLanguage("es")}
+            >
+              Español
+            </button>
+            <button
+              lang="en"
+              aria-label="English"
+              aria-pressed={language === "en"}
+              onClick={() => setLanguage("en")}
+            >
+              English
+            </button>
+          </div>
+        </div>
+      </div>
+      <header className="masthead">
+        <a
+          className="wordmark"
+          href="#actualidad"
+          onClick={() => navigate("actualidad")}
+          aria-label={t("NOM Monitor, inicio")}
+        >
+          norma<span className="wordmark-point">.</span>
+          <span className="wordmark-caption">
+            {t("UN BOLETÍN DE JOHNSON ELECTRIC")}
+          </span>
+        </a>
+        <button
+          className={`button ink ${activeJobs ? "is-running" : ""}`}
+          onClick={() => void refresh()}
+          disabled={!ready || updating || activeJobs}
+        >
+          <Icon name="refresh" />
+          {t(
+            activeJobs
+              ? "Consultando…"
+              : updating
+                ? "Solicitando…"
+                : "Consultar fuentes",
+          )}
+        </button>
+      </header>
+      <nav className="section-nav" aria-label={t("Navegación principal")}>
+        <div>
+          {views.map((item) => (
+            <button
+              key={item.id}
+              className={view === item.id ? "selected" : ""}
+              onClick={() => navigate(item.id)}
+              aria-current={view === item.id ? "page" : undefined}
+            >
+              {t(item.name)}
+            </button>
+          ))}
+        </div>
+        <span className="edition-label">
+          {t(
+            me?.auth_mode === "development"
+              ? "EDICIÓN LOCAL"
+              : "CONSULTA ABIERTA",
+          )}
+        </span>
+      </nav>
+      <main id="contenido">
+        {error && (
+          <div role="alert" className="notification error">
+            <span>
+              {t(
+                error === "Failed to fetch"
+                  ? "No se pudo conectar con el portal. Comprueba que INICIAR_LOCAL esté abierto y vuelve a cargar."
+                  : error,
+              )}
+            </span>
+            <button className="text-button" onClick={() => void retry()}>
+              {t("Volver a intentar")}
+            </button>
+          </div>
+        )}
+        {notice && (
+          <div role="status" className="notification notice">
+            {t(notice)}
+          </div>
+        )}
+        {!busy && failedSources.length > 0 && (
+          <section className="coverage-alert" role="status">
+            <span className="coverage-symbol" aria-hidden="true">
+              !
+            </span>
+            <div>
+              <strong>
+                {t(
+                  allFailed
+                    ? "Hay fechas pendientes de verificar."
+                    : "Hay fechas pendientes de verificar.",
+                )}
+              </strong>
+              <p>
+                {t(
+                  "SIDOF: {sidof} publicaciones. PLATIICA: {catalog} fichas guardadas. Abre el detalle para ver qué falta revisar.",
+                  {
+                    sidof: sources.filter((item) => item.kind === "sidof").reduce((sum, item) => sum + (item.publication_count || 0), 0),
+                    catalog: sources.filter((item) => item.kind === "platiica_catalog").reduce((sum, item) => sum + (item.publication_count || 0), 0),
+                  },
+                )}
+              </p>
+            </div>
+            <button className="text-button" onClick={() => navigate("fuentes")}>
+              {t("Ver qué pasó")}
+              <Icon name="arrow" />
+            </button>
+          </section>
+        )}
+        {config?.mode === "entra" && !me && !busy && (
+          <div className="notification">
+            <span>
+              {t("Esta instalación tiene acceso Microsoft habilitado.")}
+            </span>
+            <button
+              className="button ink"
+              onClick={() => void signIn().catch((e) => setError(e.message))}
+            >
+              {t("Iniciar sesión")}
+            </button>
+          </div>
+        )}
+        {view === "actualidad" && (
+          <section className="front-intro">
+            <div>
+              <span className="eyebrow">{t("EL BOLETÍN")}</span>
+              <h1>
+                {t("Publicaciones NOM")}
+                <br />
+                <span className="intro-subtitle">
+                  {t("Publicaciones oficiales de SIDOF.")}
+                </span>
+              </h1>
+            </div>
+            <div className="intro-note">
+              <p>
+                {t(
+                  "Consulta las fuentes, lee lo que se publicó y comprueba qué cambió en los documentos guardados.",
+                )}
+              </p>
+              <div className="last-check">
+                <i
+                  className={
+                    activeJobs
+                      ? "status-dot working"
+                      : latest
+                        ? "status-dot good"
+                        : "status-dot"
+                  }
+                />
+                <span>
+                  {activeJobs
+                    ? t("Revisión en curso")
+                    : latest
+                      ? t("Última descarga: {date}", {
+                          date: format(latest, true),
+                        })
+                      : allFailed
+                        ? t("La revisión necesita atención")
+                        : t("La primera consulta está pendiente")}
+                </span>
+              </div>
+            </div>
+          </section>
+        )}
+        {view === "guia" && <Guide go={navigate} />}
+        {view === "producto" && (
+          <section className="product-search-page">
+            <div className="section-intro">
+              <span className="eyebrow">{t("REVISIÓN PRELIMINAR")}</span>
+              <h1>
+                {t("Consultar por producto")}
+                <span className="accent">.</span>
+              </h1>
+              <p>
+                {t(
+                  "Ingresa una fracción arancelaria mexicana o describe el producto. Buscaremos coincidencias textuales en NOM vigentes del catálogo PLATIICA y publicaciones SIDOF guardadas.",
+                )}
+              </p>
+            </div>
+            <form className="product-search-form" onSubmit={(event) => void searchProduct(event)}>
+              <label>
+                {t("Buscar por")}
+                <select
+                  value={productMode}
+                  onChange={(event) => {
+                    setProductMode(event.target.value as "fraccion" | "descripcion");
+                    setProductSearch(null);
+                  }}
+                >
+                  <option value="fraccion">{t("Fracción arancelaria mexicana")}</option>
+                  <option value="descripcion">{t("Descripción del producto")}</option>
+                </select>
+              </label>
+              <label className="product-query">
+                {productMode === "fraccion"
+                  ? t("Fracción arancelaria / NICO")
+                  : t("Descripción, materiales o uso")}
+                <input
+                  required
+                  maxLength={500}
+                  value={productValue}
+                  onChange={(event) => setProductValue(event.target.value)}
+                  placeholder={
+                    productMode === "fraccion"
+                      ? t("Ej. 8501.10.01 o 8501.10.01 00")
+                      : t("Ej. motor eléctrico de corriente continua para actuador")
+                  }
+                />
+              </label>
+              <button className="button ink" type="submit" disabled={!ready || productBusy}>
+                <Icon name="search" />
+                {t(productBusy ? "Buscando…" : "Buscar posibles coincidencias")}
+              </button>
+            </form>
+            <p className="product-search-hint">
+              {t(
+                "La fracción admite 8 dígitos o 10 con NICO. Para descripción, incluye tipo de producto, material y uso cuando los conozcas.",
+              )}
+            </p>
+            {admin && (
+              <div className="product-tracking-control">
+                <p>
+                  {t(
+                    "Como administrador, puedes guardar esta entrada para que el monitor la compare con publicaciones actuales y futuras.",
+                  )}
+                </p>
+                <button
+                  className="button paper"
+                  type="button"
+                  onClick={() => void saveProductForMonitoring()}
+                  disabled={!productValue.trim() || productBusy}
+                >
+                  {t(productBusy ? "Guardando…" : "Guardar para seguimiento")}
+                </button>
+              </div>
+            )}
+            {admin && trackedProducts.length > 0 && (
+              <label className="tracked-product-select">
+                {t("Productos en seguimiento")}
+                <select
+                  value={trackedProduct?.id || ""}
+                  onChange={(event) => {
+                    const selected = trackedProducts.find(
+                      (item) => String(item.id) === event.target.value,
+                    );
+                    setTrackedProduct(selected || null);
+                    setProductAlerts([]);
+                    if (selected)
+                      void loadProductAlerts(selected.id).catch((e) =>
+                        setError((e as Error).message),
+                      );
+                  }}
+                >
+                  <option value="">{t("Selecciona un producto guardado")}</option>
+                  {trackedProducts.map((item) => (
+                    <option key={item.id} value={item.id}>{item.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {trackedProduct && (
+              <section className="tracked-product">
+                <div className="section-rule">
+                  <h2>{t("Seguimiento activo")}: {trackedProduct.name}</h2>
+                  <button
+                    className="text-button"
+                    onClick={() => void loadProductAlerts(trackedProduct.id).catch((e) => setError((e as Error).message))}
+                  >
+                    {t("Actualizar coincidencias")}
+                  </button>
+                </div>
+                <p className="product-search-hint">
+                  {t(
+                    "Las propuestas se generan al procesar publicaciones y requieren revisión humana; no son decisiones de aplicabilidad.",
+                  )}
+                </p>
+                {productAlerts.length === 0 ? (
+                  <p className="empty-edition">
+                    {t("Aún no hay propuestas de coincidencia para este producto.")}
+                  </p>
+                ) : (
+                  productAlerts.map((alert: Row) => (
+                    <article className="product-match" key={alert.id}>
+                      <button
+                        className="headline-link"
+                        onClick={() => void open(alert.publication_id)}
+                      >
+                        {alert.publication_title}
+                      </button>
+                      <p className="article-excerpt">{alert.reason}</p>
+                      <div className="article-meta">
+                        <span>{t(alert.status)}</span>
+                        <span>{t(alert.decision)}</span>
+                      </div>
+                    </article>
+                  ))
+                )}
+              </section>
+            )}
+            {productSearch && (
+              <section className="product-search-results" aria-live="polite">
+                <div className="section-rule">
+                  <h2>{t("Coincidencias para revisar")}</h2>
+                  <span>{t("{count} resultados", { count: productSearch.total })}</span>
+                </div>
+                <p className="product-search-hint">
+                  {t("Se revisaron {count} documentos de NOM vigentes y publicaciones SIDOF.", {
+                    count: productSearch.searched_publications,
+                  })}
+                </p>
+                <p className="product-search-hint">
+                  {t("Catálogo PLATIICA: {current} NOM vigentes entre {records} fichas guardadas.", {
+                    current: productSearch.catalog.current_norms,
+                    records: productSearch.catalog.records,
+                  })}
+                </p>
+                <p className="product-search-hint">
+                  {t("Completar la cola del sitemap no demuestra que PLATIICA publique todas las fichas en esos sitemaps.")}
+                </p>
+                {!productSearch.catalog.synchronized && (
+                  <p className="product-search-hint">
+                    {t("La última revisión del sitemap no terminó correctamente o la actualización automática está desactivada.")}
+                    {productSearch.catalog.pending_pages > 0 &&
+                      ` ${t("{count} fichas pendientes de revisar.", {
+                        count: productSearch.catalog.pending_pages,
+                      })}`}
+                  </p>
+                )}
+                {(productSearch.catalog.unresolved_status > 0 ||
+                  productSearch.catalog.missing_product_scope > 0) && (
+                  <p className="product-search-hint">
+                    {t("Hay fichas con estado o producto/servicio incompleto; no se incluyen como NOM vigentes.")}
+                  </p>
+                )}
+                <p className="product-search-disclaimer">{t(productSearch.disclaimer)}</p>
+                {productSearch.results.length === 0 ? (
+                  <div className="empty-edition">
+                    <h2>{t("No encontramos coincidencias en las publicaciones guardadas.")}</h2>
+                    <p>
+                      {t(
+                        "Esto no confirma que no existan NOM aplicables: el archivo puede estar incompleto o la publicación puede no mencionar esos términos.",
+                      )}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="product-match-list">
+                    {productSearch.results.map((result: Row) => {
+                      const publication = result.publication;
+                      const match = result.match;
+                      return (
+                        <article className="product-match" key={publication.id}>
+                          <div className="article-kicker">
+                            <span>{t(publication.source_name)}</span>
+                            <span>{t(types[publication.kind] || "Publicación")}</span>
+                            <b className="change-flag">
+                              {t(
+                                match.type === "fraccion_exacta"
+                                  ? "Coincidencia de fracción"
+                                  : match.type === "fraccion_base"
+                                    ? "Coincidencia de fracción base"
+                                    : "Coincidencia por descripción",
+                              )}
+                            </b>
+                          </div>
+                          <button
+                            className="headline-link"
+                            onClick={() => void open(publication.id)}
+                          >
+                            {publication.title}
+                          </button>
+                          <p className="article-excerpt" lang="es">{match.evidence}</p>
+                          {match.matched_terms.length > 0 && (
+                            <p className="matched-terms">
+                              {t("Términos encontrados")}: {match.matched_terms.join(", ")}
+                            </p>
+                          )}
+                          <div className="article-meta">
+                            {publication.norm_status && (
+                              <span>{t("Estado oficial")}: {publication.norm_status}</span>
+                            )}
+                            <span>
+                              {publication.published_on
+                                ? format(publication.published_on)
+                                : t("Sin fecha oficial confirmada")}
+                            </span>
+                            <span>{publication.official_id}</span>
+                          </div>
+                          {publication.product_scope && (
+                            <p className="matched-terms">
+                              {t("Producto/servicio en PLATIICA")}: {publication.product_scope}
+                            </p>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+                {productSearch.truncated && (
+                  <p className="product-search-hint">
+                    {t("Se muestran los primeros 30 resultados más relevantes.")}
+                  </p>
+                )}
+              </section>
+            )}
+          </section>
+        )}
+        {view === "archivo" && (
+          <section className="section-intro">
+            <span className="eyebrow">{t("LA HEMEROTECA")}</span>
+            <h1>
+              {t("Explorar publicaciones")}
+              <span className="accent">.</span>
+            </h1>
+            <p>
+              {t(
+                "Busca por título, norma o palabras del documento. Cada publicación conserva su fuente y sus versiones.",
+              )}
+            </p>
+          </section>
+        )}
+        {view === "historico" && (
+          <section className="section-intro">
+            <span className="eyebrow">{t("INVENTARIO PLATIICA")}</span>
+            <h1>
+              {t("Catálogo histórico de NOM")}
+              <span className="accent">.</span>
+            </h1>
+            <p>
+              {t(
+                "Consulta las fichas NOM guardadas desde PLATIICA, vigentes y no vigentes. La lista incluye solo registros ya importados; revisa el estado de sincronización antes de considerarla completa.",
+              )}
+            </p>
+          </section>
+        )}
+        {(view === "actualidad" || view === "archivo" || view === "historico") && (
+          <>
+            <form className="search-bar" onSubmit={(e) => e.preventDefault()}>
+              <Icon name="search" size={21} />
+              <input
+                aria-label={t("Buscar publicaciones")}
+                placeholder={t("Busca una NOM, un tema o una palabra…")}
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(1);
+                }}
+              />
+              {query && (
+                <button
+                  className="icon-button"
+                  type="button"
+                  aria-label={t("Limpiar búsqueda")}
+                  onClick={() => {
+                    setQuery("");
+                    setPage(1);
+                  }}
+                >
+                  <Icon name="close" />
+                </button>
+              )}
+              <span>{t("ARCHIVO OFICIAL")}</span>
+            </form>
+            <div
+              className={`source-wire ${view === "historico" ? "catalog-wire" : ""}`}
+              aria-label={t("Filtrar por fuente")}
+            >
+              <button
+                className={!source ? "active" : ""}
+                onClick={() => {
+                  setSource("");
+                  setPage(1);
+                }}
+              >
+                {t("Todas las fuentes")}
+              </button>
+              {sources
+                .filter(
+                  (s) =>
+                    s.active &&
+                    s.kind === (view === "historico" ? "platiica_catalog" : "sidof"),
+                )
+                .map((s) => (
+                  <button
+                    key={s.id}
+                    className={source === String(s.id) ? "active" : ""}
+                    onClick={() => {
+                      setSource(String(s.id));
+                      setPage(1);
+                    }}
+                  >
+                    <i
+                      className={`status-dot ${s.last_error ? "issue" : s.last_success_at ? "good" : ""}`}
+                    />
+                    {s.kind === "platiica_catalog" ? "PLATIICA" : s.kind.toUpperCase()}
+                    {s.kind === "sidof"
+                      ? ` · ${t(dailySource(s) ? "diario" : "referencia")}`
+                      : ""}
+                  </button>
+                ))}
+            </div>
+            {language === "en" && (
+              <p className="language-note">
+                {t(
+                  "La interfaz está en inglés. Los títulos y documentos oficiales se muestran en el español de la fuente.",
+                )}
+              </p>
+            )}
+            <div className="reading-layout">
+              <section className="news-column" aria-busy={busy}>
+                <div className="section-rule">
+                  <h2>
+                    {t(
+                      view === "actualidad"
+                        ? filtered
+                          ? "Tu selección"
+                          : "En portada"
+                        : view === "historico"
+                          ? "Fichas del catálogo"
+                          : "El archivo",
+                    )}
+                  </h2>
+                  <span>
+                    {busy
+                      ? t("Cargando…")
+                      : t(
+                          total === 1
+                            ? "{count} publicación"
+                            : "{count} publicaciones",
+                          { count: total },
+                        )}
+                  </span>
+                </div>
+                <div className="filter-line">
+                  <label>
+                    {t("Fecha oficial")}
+                    <select
+                      aria-label={t("Periodo de publicación")}
+                      value={period}
+                      onChange={(e) => {
+                        setPeriod(e.target.value);
+                        setPage(1);
+                      }}
+                    >
+                      <option value="all">{t("Todas las fechas")}</option>
+                      <option value="7">{t("Últimos 7 días")}</option>
+                      <option value="30">{t("Últimos 30 días")}</option>
+                    </select>
+                  </label>
+                  <label>
+                    {t("Tipo")}
+                    <select
+                      aria-label={t("Tipo de publicación")}
+                      value={kind}
+                      onChange={(e) => {
+                        setKind(e.target.value);
+                        setPage(1);
+                      }}
+                    >
+                      <option value="">{t("Todos los tipos")}</option>
+                      {Object.entries(types).map(([value, name]) => (
+                        <option key={value} value={value}>
+                          {t(name)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="check-filter">
+                    <input
+                      type="checkbox"
+                      checked={changes}
+                      onChange={(e) => {
+                        setChanges(e.target.checked);
+                        setPage(1);
+                      }}
+                    />
+                    {t("Con cambios")}
+                  </label>
+                  {filtered && (
+                    <button className="text-button" onClick={reset}>
+                      {t("Quitar filtros")}
+                    </button>
+                  )}
+                </div>
+                {!busy && publications.length === 0 ? (
+                  <div className="empty-edition">
+                    <span className="empty-number">Nº 00</span>
+                    <h2>
+                      {t(
+                        filtered
+                          ? "Ninguna publicación coincide."
+                          : view === "historico"
+                            ? "Aún no hay fichas NOM guardadas."
+                            : allFailed
+                              ? "Aún no hay documentos recuperados."
+                              : "Tu primera edición comienza aquí.",
+                      )}
+                    </h2>
+                    <p>
+                      {t(
+                        filtered
+                          ? "Prueba con otro tema o amplía el periodo. Las publicaciones sin fecha oficial no aparecen al filtrar por últimos días."
+                          : view === "historico"
+                            ? "La carga inicial se procesa por lotes. Abre Estado de fuentes para revisar el avance o los errores de PLATIICA."
+                            : allFailed
+                              ? "Las consultas a los sitios oficiales fallaron. Abre Estado de las fuentes para ver las direcciones y el motivo; puedes visitar cada sitio directamente."
+                              : "Consulta las fuentes para empezar a reunir publicaciones oficiales. Aquí aparecerán sus títulos, fechas y cambios, sin datos de ejemplo.",
+                      )}
+                    </p>
+                    <button
+                      className="button paper"
+                      onClick={
+                        filtered
+                          ? reset
+                          : view === "historico"
+                            ? () => navigate("fuentes")
+                            : allFailed
+                              ? () => navigate("fuentes")
+                              : () => void refresh()
+                      }
+                      disabled={
+                        view !== "historico" &&
+                        !allFailed &&
+                        !filtered &&
+                        (!ready || updating || activeJobs)
+                      }
+                    >
+                      {t(
+                        filtered
+                          ? "Ver todas las publicaciones"
+                          : view === "historico"
+                            ? "Ver estado de PLATIICA"
+                            : allFailed
+                              ? "Revisar las conexiones"
+                              : "Consultar fuentes",
+                      )}
+                      <Icon name="arrow" />
+                    </button>
+                    <div className="empty-stamp" aria-hidden="true">
+                      NOM
+                      <br />
+                      <span>{t("MÉXICO")}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {view === "actualidad" && page === 1 && lead && (
+                      <article className="lead-story">
+                        <div className="article-kicker">
+                          <span className="lead-label">
+                            {t("PRIMERA LECTURA")}
+                          </span>
+                          <span>{t(lead.source_name)}</span>
+                          {lead.has_changes && (
+                            <b className="change-flag">
+                              {t("Cambio detectado")}
+                            </b>
+                          )}
+                          {lead.is_demo && (
+                            <b className="demo-flag">
+                              {t("Muestra sintética")}
+                            </b>
+                          )}
+                        </div>
+                        <button
+                          className="lead-headline"
+                          lang="es"
+                          onClick={() => void open(lead.id)}
+                        >
+                          {lead.title}
+                        </button>
+                        {lead.excerpt && (
+                          <p className="lead-excerpt" lang="es">
+                            {lead.excerpt}
+                          </p>
+                        )}
+                        <div className="lead-bottom">
+                          <div className="article-meta">
+                            <span>
+                              {lead.published_on
+                                ? t("Publicado {date}", {
+                                    date: format(lead.published_on),
+                                  })
+                                : t("Fecha oficial por confirmar")}
+                            </span>
+                            <span>{t(types[lead.kind] || "Publicación")}</span>
+                          </div>
+                          <button
+                            className="text-button read-link"
+                            onClick={() => void open(lead.id)}
+                          >
+                            {t("Abrir documento")}
+                            <Icon name="arrow" />
+                          </button>
+                        </div>
+                      </article>
+                    )}
+                    {(view === "actualidad" && page === 1
+                      ? publications.slice(1)
+                      : publications
+                    ).map((item) => (
+                      <PublicationRow
+                        key={item.id}
+                        item={item}
+                        open={(id) => void open(id)}
+                      />
+                    ))}
+                  </>
+                )}
+                {total > 15 && (
+                  <div className="pagination">
+                    <button
+                      className="button paper"
+                      disabled={page === 1}
+                      onClick={() => setPage(page - 1)}
+                    >
+                      {t("Anterior")}
+                    </button>
+                    <span>
+                      {t("Página {page} de {total}", {
+                        page,
+                        total: Math.ceil(total / 15),
+                      })}
+                    </span>
+                    <button
+                      className="button paper"
+                      disabled={page * 15 >= total}
+                      onClick={() => setPage(page + 1)}
+                    >
+                      {t("Siguiente")}
+                    </button>
+                  </div>
+                )}
+                <p className="archive-note">
+                  {t(
+                    "Orden por fecha de publicación. Cuando la fecha oficial falta, se indica expresamente. Una detección de hoy puede corresponder a un documento anterior.",
+                  )}
+                </p>
+              </section>
+            </div>
+          </>
+        )}
+        {view === "fuentes" && (
+          <>
+            <section className="section-intro">
+              <span className="eyebrow">
+                {t("DE DÓNDE VIENE LA INFORMACIÓN")}
+              </span>
+              <h1>
+                {t("Estado de fuentes")}
+                <span className="accent">.</span>
+              </h1>
+              <p>
+                {t(
+                  "El boletín sigue las páginas configuradas en estas fuentes. Aquí puedes ver cuándo se consultaron y si una revisión quedó incompleta.",
+                )}
+              </p>
+            </section>
+            <div className="monitor-caption">
+              <i
+                className={`status-dot ${dashboard.monitor_enabled && dashboard.scheduler_enabled ? "good" : ""}`}
+              />
+              <span>
+                {t(
+                  dashboard.monitor_enabled && dashboard.scheduler_enabled
+                    ? "Consulta automática activa mientras el servidor esté encendido."
+                    : "La consulta automática está desactivada en esta ejecución.",
+                )}
+              </span>
+              <span>{t("La frecuencia se indica por fuente.")}</span>
+            </div>
+            <section className="source-directory">
+              {sources.map((item, index) => (
+                <article key={item.id} className="directory-entry">
+                  <span className="directory-number">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <div className="directory-copy">
+                    <div className="article-kicker">
+                      <span>{item.kind === "platiica_catalog" ? "PLATIICA" : item.kind.toUpperCase()}</span>
+                      <span className={item.last_error ? "issue-text" : ""}>
+                        {t(
+                          item.last_error
+                            ? "Revisión parcial del periodo"
+                            : item.latest_check_status === "queued"
+                              ? "Consulta en cola"
+                              : item.latest_check_status === "running"
+                                ? item.latest_check_heartbeat_at &&
+                                  Date.now() - Date.parse(item.latest_check_heartbeat_at) > 120_000
+                                  ? "Proceso sin señal reciente"
+                                  : "Consulta en curso"
+                            : item.last_success_at
+                              ? "Última revisión completa"
                               : "Pendiente de consultar",
                         )}
                       </span>
