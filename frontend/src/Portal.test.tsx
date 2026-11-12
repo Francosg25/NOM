@@ -250,6 +250,8 @@ describe("public portal", () => {
       })).toBeVisible();
       expect(screen.getByText("Estado oficial: Cancelada")).toBeVisible();
       expect(screen.getByText("Producto/servicio en PLATIICA: Productos de prueba")).toBeVisible();
+      expect(Array.from((screen.getByRole("combobox", { name: "Tipo de publicación" }) as HTMLSelectElement).options,
+        (option) => option.textContent)).toEqual(["Todos los tipos", "Norma vigente", "NOM no vigente"]);
       expect(fetch.mock.calls.some(([input]) => {
         const url = new URL(input, "http://localhost");
         return url.pathname === "/api/publications" &&

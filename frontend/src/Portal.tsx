@@ -34,6 +34,7 @@ const types: Record<string, string> = {
   aviso: "Aviso",
   clasificacion_pendiente: "Publicación",
 };
+const catalogueKinds = new Set(["norma_vigente", "norma_no_vigente"]);
 const jobNames: Record<string, string> = {
   queued: "En espera",
   running: "Consultando",
@@ -1376,11 +1377,17 @@ function Bulletin() {
                       }}
                     >
                       <option value="">{t("Todos los tipos")}</option>
-                      {Object.entries(types).map(([value, name]) => (
-                        <option key={value} value={value}>
-                          {t(name)}
-                        </option>
-                      ))}
+                      {Object.entries(types)
+                        .filter(([value]) =>
+                          view === "historico"
+                            ? catalogueKinds.has(value)
+                            : !catalogueKinds.has(value),
+                        )
+                        .map(([value, name]) => (
+                          <option key={value} value={value}>
+                            {t(name)}
+                          </option>
+                        ))}
                     </select>
                   </label>
                   <label className="check-filter">
