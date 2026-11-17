@@ -764,7 +764,7 @@ def test_publication_delivers_its_formatted_latest_version_and_runtime_identifie
     from app.reading import inline_text
     assert inline_text(latest['reading']['blocks'][0]['inlines']) == 'La regulación es legible.'
     health = client.get('/api/health').json()
-    assert health['backend'] == {'version': '0.6.7', 'document_reader': 'modal-v2'}
+    assert health['backend'] == {'version': '0.6.8', 'document_reader': 'modal-v2'}
     policy = response.headers['content-security-policy']
     assert "img-src 'self' data: https://sidof.segob.gob.mx;" in policy
     assert "script-src 'self';" in policy and "connect-src 'self';" in policy

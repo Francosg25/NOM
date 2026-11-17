@@ -105,7 +105,7 @@ describe("public portal", () => {
       expect(fetcher).toHaveBeenCalledTimes(before);
       await user.keyboard("{Escape}");
       await act(async () => { vi.advanceTimersByTime(60000); });
-      await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(before + 4));
+      await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(before + 3));
     } finally {
       vi.useRealTimers();
       vi.unstubAllGlobals();

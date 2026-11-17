@@ -1,6 +1,6 @@
 # norma. · NOM Monitor
 
-Versión **0.6.7**. Monitor de NOM con el catálogo oficial PLATIICA como inventario y SIDOF para revisar publicaciones diarias del DOF; interfaz Español/English y una lectura sencilla: una tipografía, fondo claro, búsqueda y publicaciones en una sola columna. Las NOM largas se consultan por partes para reducir el trabajo del navegador. [Rendimiento y pruebas de esta versión](docs/PERFORMANCE_0.6.7.md).
+Versión **0.6.8**. Monitor de NOM con el catálogo oficial PLATIICA como inventario y SIDOF para revisar publicaciones diarias del DOF; interfaz Español/English y una lectura sencilla: una tipografía, fondo claro, búsqueda y publicaciones en una sola columna. Las NOM largas se consultan por partes para reducir el trabajo del navegador. [Rendimiento y pruebas de esta versión](docs/PERFORMANCE_0.6.7.md).
 
 Incluye respaldos/restauración verificables, supervisión del monitor, sonda de despliegue, pruebas de navegador/accesibilidad y dependencias transitivas fijadas con hashes. Mantiene la instalación sencilla. [Operación y aceptación Azure](docs/OPERATIONS.md) · [Calidad y dependencias](docs/QUALITY.md) · [Revisión experta de cobertura](docs/COVERAGE_REVIEW.md). La aceptación de esta versión en Azure requiere comprobar el portal después del despliegue.
 
@@ -11,6 +11,8 @@ Incluye respaldos/restauración verificables, supervisión del monitor, sonda de
 3. Ejecuta **INICIAR_LOCAL.cmd** y abre http://127.0.0.1:8000.
 
 El ZIP incluye la interfaz compilada. No requiere Node para abrirlo. Usa Python 3.12 o 3.13 autorizado. Si actualizas una instalación existente, conserva su `.env` y la carpeta `data`; no borres la base ni las copias descargadas. Al actualizar desde Git, ejecuta ACTUALIZAR_INTERFAZ.cmd antes de iniciar.
+
+La navegación conserva hasta 12 listados en memoria durante la sesión y consulta cambios en segundo plano. Las publicaciones aparecen sin esperar al resumen ni a los trabajos. [Navegación y validación 0.6.8](docs/NAVIGATION_0.6.8.md).
 
 ## Actualización automática
 

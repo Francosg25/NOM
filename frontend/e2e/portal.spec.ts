@@ -1,6 +1,30 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+test("returning to saved news does not wait for a new API response", async ({ page }) => {
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => { release = resolve; });
+  let newsRequests = 0;
+  await page.route("**/api/publications?**", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.searchParams.get("source_kind") === "sidof" && ++newsRequests > 1) await pending;
+    await route.continue();
+  });
+  try {
+    await page.goto("/?lang=en");
+    const news = page.getByRole("button", { name: "Controlled NOM pump", exact: true });
+    await expect(news).toBeVisible();
+    await page.getByRole("button", { name: "NOM catalogue", exact: true }).click();
+    await expect(news).toHaveCount(0);
+    await page.getByRole("button", { name: "Latest publications", exact: true }).click();
+    // The second SIDOF request cannot complete until release() below.
+    await expect(news).toBeVisible();
+    await expect.poll(() => newsRequests).toBe(2);
+  } finally {
+    release();
+  }
+});
+
 test("real API search, language persistence and keyboard document reading", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Controlled NOM pump", exact: true })).toBeVisible();

@@ -11,6 +11,7 @@ import type { AuthConfig } from "./apiAccess";
 import { LanguageProvider, useLanguage } from "./i18n";
 import { version as portalVersion } from "../package.json";
 import DocumentReading, { createReadingLoader } from "./DocumentReading";
+import usePublicationList from "./usePublicationList";
 
 type Row = Record<string, any>;
 type View = "actualidad" | "archivo" | "historico" | "producto" | "fuentes" | "guia";
@@ -351,11 +352,10 @@ function Bulletin() {
   const [config, setConfig] = useState<AuthConfig | null>(null);
   const [token, setToken] = useState("");
   const [ready, setReady] = useState(false);
+  const [identityAttempt, setIdentityAttempt] = useState(0);
   const [me, setMe] = useState<Row | null>(null);
   const [dashboard, setDashboard] = useState<Row>({});
-  const [publications, setPublications] = useState<Row[]>([]);
-  const [jobs, setJobs] = useState<Row[]>([]);
-  const [total, setTotal] = useState(0);
+  const [allJobs, setJobs] = useState<Row[]>([]);
   const [query, setQuery] = useState("");
   const [productMode, setProductMode] = useState<"fraccion" | "descripcion">("fraccion");
   const [productValue, setProductValue] = useState("");
@@ -370,23 +370,22 @@ function Bulletin() {
   const [changes, setChanges] = useState(false);
   const [demo, setDemo] = useState(false);
   const [page, setPage] = useState(1);
-  const [busy, setBusy] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState("");
+  const [statusError, setStatusError] = useState("");
   const [notice, setNotice] = useState("");
   const [detail, setDetail] = useState<Row | null>(null);
   const [readerBusy, setReaderBusy] = useState(false);
   const [readerError, setReaderError] = useState(false);
   const readerGeneration = useRef(0);
   const readerRequest = useRef<AbortController | null>(null);
-  const portalRequest = useRef<AbortController | null>(null);
-  const portalLoading = useRef(false);
+  const statusRequest = useRef<{ controller: AbortController; promise: Promise<void> } | null>(null);
   const [inspection, setInspection] = useState<Row | null>(null);
   const [versionId, setVersionId] = useState<number | null>(null);
-  const generation = useRef(0);
   const sources: Row[] = (dashboard.sources || []).filter(
     (s: Row) => ["sidof", "platiica_catalog"].includes(s.kind) && s.active,
   );
+  const jobs = allJobs.filter((job) => sources.some((source) => source.id === job.source_id));
   const activeJobs = jobs.some((j) => ["queued", "running"].includes(j.status));
   const admin = me?.role === "administrador";
   const request = useCallback(
@@ -417,7 +416,7 @@ function Bulletin() {
     (path, signal) => request(path, "GET", undefined, signal)), [request]);
   useEffect(() => () => {
     readerRequest.current?.abort();
-    portalRequest.current?.abort();
+    statusRequest.current?.controller.abort();
   }, []);
   useEffect(() => {
     let live = true;
@@ -434,72 +433,82 @@ function Bulletin() {
       .catch((e) => {
         if (live) {
           setError(e.message);
-          setBusy(false);
         }
       });
     return () => {
       live = false;
     };
   }, []);
-  const load = useCallback(
-    async (quiet = false) => {
-      if (!ready || quiet && portalLoading.current) return;
-      portalRequest.current?.abort();
-      const controller = new AbortController();
-      portalRequest.current = controller;
-      portalLoading.current = true;
-      const id = ++generation.current;
-      if (!quiet) setBusy(true);
-      const params = new URLSearchParams({
-        page: String(page),
-        page_size: "15",
-        sort: "published",
-        source_kind: view === "historico" ? "platiica_catalog" : "sidof",
-        is_demo: String(demo),
-      });
-      if (query.trim()) params.set("q", query.trim());
-      if (source) params.set("source_id", source);
-      if (kind) params.set("kind", kind);
-      if (period !== "all")
-        params.set("published_since", dayStamp(Number(period) - 1));
-      if (changes) params.set("changes_only", "true");
-      try {
-        const [person, overview, list, runs] = await Promise.all([
-          request("/me", "GET", undefined, controller.signal),
-          request("/dashboard", "GET", undefined, controller.signal),
-          request(`/publications?${params}`, "GET", undefined, controller.signal),
-          request("/jobs?page_size=12&summary=true", "GET", undefined, controller.signal),
-        ]);
-        if (id !== generation.current) return;
-        setMe(person);
-        setDashboard(overview);
-        setPublications(list.items);
-        setTotal(list.total);
-        setJobs(
-          runs.items.filter((job: Row) =>
-            overview.sources.some(
-              (s: Row) =>
-                s.id === job.source_id &&
-                ["sidof", "platiica_catalog"].includes(s.kind),
-            ),
-          ),
-        );
-        setError("");
-      } catch (e) {
-        if (id === generation.current && !controller.signal.aborted) setError((e as Error).message);
-      } finally {
-        if (id === generation.current) {
-          setBusy(false);
-          portalLoading.current = false;
-        }
-      }
-    },
-    [ready, request, page, query, source, kind, period, changes, demo, view],
-  );
+  const publishedSince = period === "all" ? "" : dayStamp(Number(period) - 1);
+  const listPath = useMemo(() => {
+    if (!["actualidad", "archivo", "historico"].includes(view)) return null;
+    const params = new URLSearchParams({
+      page: String(page), page_size: "15", sort: "published",
+      source_kind: view === "historico" ? "platiica_catalog" : "sidof", is_demo: String(demo),
+    });
+    if (query.trim()) params.set("q", query.trim());
+    if (source) params.set("source_id", source);
+    if (kind) params.set("kind", kind);
+    if (publishedSince) params.set("published_since", publishedSince);
+    if (changes) params.set("changes_only", "true");
+    return `/publications?${params}`;
+  }, [page, query, source, kind, publishedSince, changes, demo, view]);
+  const prefetchPath = useMemo(() => {
+    if (!listPath || page !== 1 || query.trim() || source || kind || period !== "all" || changes) return null;
+    const params = new URLSearchParams(listPath.split("?")[1]);
+    params.set("source_kind", view === "historico" ? "sidof" : "platiica_catalog");
+    return `/publications?${params}`;
+  }, [listPath, page, query, source, kind, period, changes, view]);
+  const listing = usePublicationList(request, ready, listPath, query.trim() ? 250 : 0, prefetchPath);
+  const { items: publications, total } = listing;
+  const busy = !ready ? !error : listing.busy;
+  const displayError = error || listing.error || statusError;
+
+  // Identity belongs to the authenticated session, not to the selected tab.
   useEffect(() => {
-    const timer = window.setTimeout(() => void load(), query ? 250 : 0);
-    return () => clearTimeout(timer);
-  }, [load, query]);
+    if (!ready) return;
+    const controller = new AbortController();
+    setMe(null);
+    void request("/me", "GET", undefined, controller.signal).then((person) => {
+      if (!controller.signal.aborted) setMe(person);
+    }).catch((error: Error) => {
+      if (!controller.signal.aborted) setError(error.message);
+    });
+    return () => controller.abort();
+  }, [ready, request, identityAttempt]);
+
+  const loadStatus = useCallback((): Promise<void> => {
+    if (!ready) return Promise.resolve();
+    if (statusRequest.current) return statusRequest.current.promise;
+    const controller = new AbortController();
+    setStatusError("");
+    const promise = Promise.allSettled([
+      request("/dashboard", "GET", undefined, controller.signal).then((overview) => {
+        if (!controller.signal.aborted) setDashboard(overview);
+      }),
+      request("/jobs?page_size=12&summary=true", "GET", undefined, controller.signal).then((runs) => {
+        if (!controller.signal.aborted) setJobs(runs.items);
+      }),
+    ]).then((results) => {
+      if (controller.signal.aborted) return;
+      const failed = results.find((result) => result.status === "rejected");
+      if (failed?.status === "rejected") setStatusError((failed.reason as Error).message);
+    }).finally(() => {
+      if (statusRequest.current?.controller === controller) statusRequest.current = null;
+    });
+    statusRequest.current = { controller, promise };
+    return promise;
+  }, [ready, request]);
+  useEffect(() => {
+    void loadStatus();
+    return () => {
+      statusRequest.current?.controller.abort();
+      statusRequest.current = null;
+    };
+  }, [loadStatus]);
+  const load = useCallback(async (_quiet = false) => {
+    await Promise.all([listing.refresh(), loadStatus()]);
+  }, [listing.refresh, loadStatus]);
   useEffect(() => {
     // The server monitor continues running; the hidden bulletin need not poll
     // while the user is reading a document or inspecting an earlier check.
@@ -555,7 +564,11 @@ function Bulletin() {
         setConfig(await authConfig());
         setToken(await restoreSession());
         setReady(true);
-      } else await load();
+      } else {
+        setError("");
+        setIdentityAttempt((attempt) => attempt + 1);
+        await load();
+      }
     } catch (e) {
       setError((e as Error).message);
     }
@@ -564,6 +577,7 @@ function Bulletin() {
     setUpdating(true);
     try {
       const result = await request("/refresh", "POST");
+      listing.invalidate();
       setNotice(
         result.jobs.length
           ? "Consultando las fuentes. Los resultados aparecerán aquí al terminar."
@@ -878,13 +892,13 @@ function Bulletin() {
         </span>
       </nav>
       <main id="contenido">
-        {error && (
+        {displayError && (
           <div role="alert" className="notification error">
             <span>
               {t(
-                error === "Failed to fetch"
+                displayError === "Failed to fetch"
                   ? "No se pudo conectar con el portal. Comprueba que INICIAR_LOCAL esté abierto y vuelve a cargar."
-                  : error,
+                  : displayError,
               )}
             </span>
             <button className="text-button" onClick={() => void retry()}>
