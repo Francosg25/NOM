@@ -34,6 +34,11 @@ def run():
                     'https://sidof.segob.gob.mx/notas/docFuente/' + str(number),
                     title, 'Controlled sample text; this is not an official NOM.',
                     date(2026, 10, number), kind='proyecto', raw=b'controlled original'), get_storage())
+                if number == 1:
+                    ingest_document(db, source, Document('CONTROLLED-' + str(number),
+                        'https://sidof.segob.gob.mx/notas/docFuente/' + str(number),
+                        title, 'Controlled sample text; Revised technical limit: 50 kg.',
+                        date(2026, 10, number), kind='proyecto', raw=b'controlled revised original'), get_storage())
             db.commit()
         uvicorn.run('app.main:app', host='127.0.0.1', port=8765)
 

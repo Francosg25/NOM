@@ -1,6 +1,20 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+test("visit summary, publication facts and saved-version comparison work with the real API", async ({ page }) => {
+  await page.goto("/?lang=en");
+  await expect(page.getByRole("heading", { name: "Your first summary", exact: true })).toBeVisible();
+  await expect(page.getByText("Added to the portal does not mean published today.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Controlled NOM motor", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("region", { name: "Publication facts" })).toBeVisible();
+  await dialog.getByRole("button", { name: "Compare versions", exact: true }).click();
+  await expect(dialog.getByText("There are differences in the saved text.", { exact: true })).toBeVisible();
+  await expect(dialog.locator(".comparison-row ins").filter({ hasText: "50 kg" })).toBeVisible();
+  await dialog.getByRole("button", { name: "Close comparison", exact: true }).click();
+  await expect(dialog.locator(".comparison-row")).toHaveCount(0);
+});
+
 test("returning to saved news does not wait for a new API response", async ({ page }) => {
   let release!: () => void;
   const pending = new Promise<void>((resolve) => { release = resolve; });

@@ -30,6 +30,7 @@ from .db import get_db
 from .routers.operations import router as operations_router
 from .routers.publications import router as publications_router
 from .routers.product_search import router as product_search_router
+from .routers.bulletin import router as bulletin_router
 from .schemas import Input
 from .models import (
     Alert,
@@ -63,7 +64,7 @@ async def lifespan(app):
 
 app = FastAPI(
     title="JE NOM Monitor",
-    version="0.6.8",
+    version="0.7.0",
     lifespan=lifespan,
     docs_url=None if production else "/api/docs",
     openapi_url=None if production else "/api/openapi.json",
@@ -72,6 +73,7 @@ app = FastAPI(
 app.include_router(operations_router)
 app.include_router(publications_router)
 app.include_router(product_search_router)
+app.include_router(bulletin_router)
 app.add_middleware(GZipMiddleware, minimum_size=4096, compresslevel=3)
 
 

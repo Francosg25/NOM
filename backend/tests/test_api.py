@@ -764,7 +764,7 @@ def test_publication_delivers_its_formatted_latest_version_and_runtime_identifie
     from app.reading import inline_text
     assert inline_text(latest['reading']['blocks'][0]['inlines']) == 'La regulación es legible.'
     health = client.get('/api/health').json()
-    assert health['backend'] == {'version': '0.6.8', 'document_reader': 'modal-v2'}
+    assert health['backend'] == {'version': '0.7.0', 'document_reader': 'modal-v2'}
     policy = response.headers['content-security-policy']
     assert "img-src 'self' data: https://sidof.segob.gob.mx;" in policy
     assert "script-src 'self';" in policy and "connect-src 'self';" in policy
@@ -841,3 +841,140 @@ def test_dashboard_reads_index_coverage_without_loading_full_audit_documents(api
     assert source['recent_checked_dates'] == ['2026-11-06']
     assert source['confirmed_absence_dates'] == ['2026-11-08', '2026-11-07']
     assert loaded == []
+
+
+def bulletin_record(db, source, name, content='Controlled saved text.', demo=False):
+    publication = Publication(source_id=source.id, official_id=name, title=name,
+                              url='https://sidof.segob.gob.mx/', published_on=date(2000, 1, 1), is_demo=demo)
+    db.add(publication); db.flush()
+    bulletin_version(db, publication, content)
+    return publication
+
+
+def bulletin_version(db, publication, content):
+    current = db.get(Version, publication.current_version_id) if publication.current_version_id else None
+    version = Version(publication_id=publication.id, sequence=current.sequence + 1 if current else 1,
+                      content=content, content_hash=str(len(content)) + str(current.id if current else 0))
+    db.add(version); db.flush()
+    publication.current_version_id = version.id
+    return version
+
+
+def test_visit_summary_separates_saved_arrivals_catalogue_imports_and_changed_documents(api):
+    client, sessions, _, _ = api
+    with sessions() as db:
+        sidof = Source(name='SIDOF', kind='sidof', urls=[])
+        catalog = Source(name='PLATIICA', kind='platiica_catalog', urls=[])
+        db.add_all([sidof, catalog]); db.flush()
+        old = bulletin_record(db, sidof, 'Already saved SIDOF')
+        old_catalog = bulletin_record(db, catalog, 'Already saved catalogue')
+        db.commit()
+        old_id, sidof_id, catalog_id, old_catalog_id = old.id, sidof.id, catalog.id, old_catalog.id
+    first = client.get('/api/bulletin/updates', headers=READER).json()
+    assert first['first_visit'] and first['new_publications'] == 0 and first['new_catalog'] == 0
+    cursor = first['cursor']
+    with sessions() as db:
+        old = db.get(Publication, old_id)
+        bulletin_version(db, old, 'Version two.')
+        bulletin_version(db, old, 'Version three.')
+        sidof, catalog = db.get(Source, sidof_id), db.get(Source, catalog_id)
+        new = bulletin_record(db, sidof, 'Old official publication found today')
+        bulletin_version(db, new, 'Updated after initial capture.')
+        bulletin_record(db, catalog, 'Imported catalogue record')
+        bulletin_version(db, db.get(Publication, old_catalog_id), 'New catalogue copy.')
+        bulletin_record(db, sidof, 'Demonstration only', demo=True)
+        db.commit()
+        new_id = new.id
+    params = {'after_version_id': cursor['version_id'], 'anchor_hash': cursor['content_hash']}
+    summary = client.get('/api/bulletin/updates', headers=READER, params=params).json()
+    assert not summary['first_visit'] and not summary['reset']
+    assert summary['new_publications'] == 1 and summary['changed_publications'] == 1
+    assert summary['new_catalog'] == 1 and summary['changed_catalog'] == 1
+    for update_type, expected in [('new', new_id), ('changed', old_id)]:
+        listing = client.get('/api/publications', headers=READER, params={
+            'source_kind': 'sidof', 'update_type': update_type, 'after_version_id': cursor['version_id'],
+        }).json()
+        assert listing['total'] == 1 and listing['items'][0]['id'] == expected
+        assert listing['items'][0]['published_on'] == '2000-01-01'
+
+
+def test_visit_summary_reads_metadata_only_and_recovers_from_an_unknown_cursor(api):
+    from sqlalchemy import event
+    client, sessions, _, _ = api
+    with sessions() as db:
+        source = Source(name='SIDOF', kind='sidof', urls=[])
+        db.add(source); db.flush()
+        bulletin_record(db, source, 'Large saved document', 'Long technical text. ' * 10000)
+        db.commit()
+    statements = []
+    def capture(_connection, _cursor, statement, _parameters, _context, _many):
+        statements.append(statement.lower())
+    engine = sessions.kw['bind']
+    event.listen(engine, 'before_cursor_execute', capture)
+    try:
+        result = client.get('/api/bulletin/updates', headers=READER,
+                            params={'after_version_id': 9999, 'anchor_hash': 'unknown'})
+    finally:
+        event.remove(engine, 'before_cursor_execute', capture)
+    assert result.status_code == 200 and result.json()['reset']
+    assert result.json()['new_publications'] == 0
+    assert len(result.content) < 2000
+    import re
+    assert not any(re.search(r'\bversions\.content\b', statement) for statement in statements)
+    assert client.get('/api/publications?update_type=new', headers=READER).status_code == 422
+
+
+def test_visit_summary_keeps_a_partial_check_distinct_from_the_last_completed_check(api):
+    from datetime import datetime
+    from app.models import SourceRun
+    client, sessions, _, _ = api
+    with sessions() as db:
+        source = Source(name='SIDOF', kind='sidof', urls=[])
+        db.add(source); db.flush()
+        for number, status in [(1, 'succeeded'), (2, 'partial')]:
+            day = date(2026, 11, number)
+            job = Job(id=f'visit-{number}', source_id=source.id, status=status, requested_by='test',
+                      period_start=day, period_end=day)
+            db.add(job); db.flush()
+            db.add(SourceRun(job_id=job.id, source_id=source.id, status=status,
+                             period_start=day, period_end=day, finished_at=datetime(2026, 11, number)))
+        db.commit()
+    result = client.get('/api/bulletin/updates', headers=READER).json()
+    assert result['latest_check']['status'] == 'partial'
+    assert result['last_complete_check']['status'] == 'succeeded'
+    assert result['last_complete_check']['period_end'] == '2026-11-01'
+
+
+def test_comparison_is_paginated_and_never_combines_versions_of_different_publications(api):
+    client, sessions, _, _ = api
+    with sessions() as db:
+        source = Source(name='SIDOF', kind='sidof', urls=[])
+        db.add(source); db.flush()
+        pub = bulletin_record(db, source, 'Comparison fixture', ' '.join(f'Requisito {n}: 40 kg.' for n in range(35)))
+        old_id = pub.current_version_id
+        newer = bulletin_version(db, pub, ' '.join(f'Requisito {n}: 50 kg.' for n in range(35)))
+        other = bulletin_record(db, source, 'Another publication')
+        db.commit()
+        publication_id, new_id, other_version = pub.id, newer.id, other.current_version_id
+    path = f'/api/bulletin/publications/{publication_id}/comparison'
+    params = {'from_version_id': old_id, 'to_version_id': new_id, 'page_size': 2}
+    page_one = client.get(path, headers=READER, params=params)
+    assert page_one.status_code == 200
+    first = page_one.json()
+    from sqlalchemy import event
+    statements = []
+    def capture(_connection, _cursor, statement, _parameters, _context, _many):
+        statements.append(statement.lower())
+    engine = sessions.kw['bind']
+    event.listen(engine, 'before_cursor_execute', capture)
+    try:
+        second = client.get(path, headers=READER, params={**params, 'page': 2}).json()
+    finally:
+        event.remove(engine, 'before_cursor_execute', capture)
+    import re
+    assert not any(re.search(r'\bversions\.content\b', statement) for statement in statements)
+    assert first['classification'] == 'text_changed' and first['total'] > 2
+    assert len(first['items']) == len(second['items']) == 2
+    assert first['items'] != second['items']
+    assert client.get(path, headers=READER, params={**params, 'from_version_id': other_version}).status_code == 404
+    assert client.get(path, headers=READER, params={'from_version_id': new_id, 'to_version_id': old_id}).status_code == 422

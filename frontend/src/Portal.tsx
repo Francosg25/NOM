@@ -12,6 +12,8 @@ import { LanguageProvider, useLanguage } from "./i18n";
 import { version as portalVersion } from "../package.json";
 import DocumentReading, { createReadingLoader } from "./DocumentReading";
 import usePublicationList from "./usePublicationList";
+import { PublicationFacts, VersionComparison, VisitSummary } from "./BulletinEnhancements";
+import type { UpdateSelection } from "./BulletinEnhancements";
 
 type Row = Record<string, any>;
 type View = "actualidad" | "archivo" | "historico" | "producto" | "fuentes" | "guia";
@@ -350,6 +352,8 @@ function Bulletin() {
       : "actualidad",
   );
   const [config, setConfig] = useState<AuthConfig | null>(null);
+  const navigationHash = useRef(view);
+  const [updateSelection, setUpdateSelection] = useState<UpdateSelection | null>(null);
   const [token, setToken] = useState("");
   const [ready, setReady] = useState(false);
   const [identityAttempt, setIdentityAttempt] = useState(0);
@@ -451,14 +455,18 @@ function Bulletin() {
     if (kind) params.set("kind", kind);
     if (publishedSince) params.set("published_since", publishedSince);
     if (changes) params.set("changes_only", "true");
+    if (updateSelection) {
+      params.set("after_version_id", String(updateSelection.after));
+      params.set("update_type", updateSelection.type);
+    }
     return `/publications?${params}`;
-  }, [page, query, source, kind, publishedSince, changes, demo, view]);
+  }, [page, query, source, kind, publishedSince, changes, demo, view, updateSelection]);
   const prefetchPath = useMemo(() => {
-    if (!listPath || page !== 1 || query.trim() || source || kind || period !== "all" || changes) return null;
+    if (!listPath || page !== 1 || query.trim() || source || kind || period !== "all" || changes || updateSelection) return null;
     const params = new URLSearchParams(listPath.split("?")[1]);
     params.set("source_kind", view === "historico" ? "sidof" : "platiica_catalog");
     return `/publications?${params}`;
-  }, [listPath, page, query, source, kind, period, changes, view]);
+  }, [listPath, page, query, source, kind, period, changes, view, updateSelection]);
   const listing = usePublicationList(request, ready, listPath, query.trim() ? 250 : 0, prefetchPath);
   const { items: publications, total } = listing;
   const busy = !ready ? !error : listing.busy;
@@ -525,7 +533,10 @@ function Bulletin() {
     const changed = () => {
       const next = location.hash.slice(1);
       if (views.some((v) => v.id === next)) {
+        if (navigationHash.current === next) return;
+        navigationHash.current = next as View;
         setView(next as View);
+        setUpdateSelection(null);
         setSource("");
         setKind("");
         setPeriod("all");
@@ -542,7 +553,9 @@ function Bulletin() {
     return () => clearTimeout(timer);
   }, [notice]);
   const navigate = (next: View) => {
+    navigationHash.current = next;
     setView(next);
+    setUpdateSelection(null);
     location.hash = next;
     setSource("");
     setKind("");
@@ -551,6 +564,7 @@ function Bulletin() {
     setPage(1);
   };
   const reset = () => {
+    setUpdateSelection(null);
     setQuery("");
     setSource("");
     setKind("");
@@ -798,8 +812,9 @@ function Bulletin() {
         : s?.name || t("Fuente");
   const lead = publications[0];
   const selected = detail?.versions.find((v: Row) => v.id === versionId);
+  const summaryScope = config?.mode === "entra" ? me?.id ? `entra:${me.id}` : null : config ? "portal" : null;
   const filtered = Boolean(
-    query || source || kind || changes || period !== "all",
+    query || source || kind || changes || period !== "all" || updateSelection,
   );
   const date = new Intl.DateTimeFormat(language === "en" ? "en-US" : "es-MX", {
     weekday: "long",
@@ -996,6 +1011,16 @@ function Bulletin() {
             </div>
           </section>
         )}
+        {ready && summaryScope && <VisitSummary scope={summaryScope} demo={demo} request={request}
+          visible={view === "actualidad"} paused={Boolean(detail || inspection)} onSources={() => navigate("fuentes")}
+          onSelect={(selection) => {
+            if (!query.trim() && !source && !kind && period === "all" && !changes && page === 1 &&
+              updateSelection?.after === selection.after && updateSelection.type === selection.type &&
+              updateSelection.catalog === selection.catalog) void listing.refresh();
+            navigate(selection.catalog ? "historico" : "actualidad");
+            setQuery("");
+            setUpdateSelection(selection);
+          }} />}
         {view === "guia" && <Guide go={navigate} />}
         {view === "producto" && (
           <section className="product-search-page">
@@ -1365,6 +1390,9 @@ function Bulletin() {
                   </span>
                 </div>
                 <div className="filter-line">
+                  {updateSelection && <button type="button" className="text-button" onClick={() => setUpdateSelection(null)}>
+                    {t(updateSelection.type === "new" ? "Incorporadas desde tu visita anterior" : "Con versiones nuevas desde tu visita anterior")} · {t("Quitar selección del resumen")}
+                  </button>}
                   <label>
                     {t("Fecha oficial")}
                     <select
@@ -1950,6 +1978,7 @@ function Bulletin() {
                 checked={demo}
                 onChange={(e) => {
                   setDemo(e.target.checked);
+                  setUpdateSelection(null);
                   setPage(1);
                 }}
               />
@@ -1974,7 +2003,6 @@ function Bulletin() {
               </div>
               <h1 lang="es">{detail.title}</h1>
               <div className="document-meta">
-                {detail.published_on && <time dateTime={detail.published_on}>{format(detail.published_on)}</time>}
                 <span>{t("Texto oficial en español")}</span>
                 {link(detail.url) && (
                   <a href={link(detail.url)} target="_blank" rel="noreferrer">
@@ -1982,6 +2010,7 @@ function Bulletin() {
                   </a>
                 )}
               </div>
+              {!readerBusy && !readerError && <PublicationFacts publication={detail} capturedAt={selected?.captured_at} />}
             </div>
             {readerBusy ? (
               <div className="reader-skeleton" role="status">
@@ -2007,6 +2036,7 @@ function Bulletin() {
                     </select>
                   </label>
                 )}
+                <VersionComparison key={detail.id} publicationId={detail.id} versions={detail.versions} selectedId={selected.id} request={request} />
                 <DocumentReading key={selected.id} version={selected as { id: number; content?: string }} load={loadReading} />
                 <div className="document-utility">
                   {selected.evidence_key && (

@@ -65,6 +65,7 @@ describe("public portal", () => {
       expect(dialog.parentElement).toHaveClass("reader-modal-backdrop");
       expect(screen.getByText("LECTURA DE NORMA")).toBeVisible();
       expect(screen.getByRole("status")).toHaveTextContent("Preparando lectura…");
+      expect(screen.queryByRole("region", { name: "Ficha de la publicación" })).not.toBeInTheDocument();
       await user.keyboard("{Escape}");
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       expect(detailSignal?.aborted).toBe(true);
@@ -105,7 +106,7 @@ describe("public portal", () => {
       expect(fetcher).toHaveBeenCalledTimes(before);
       await user.keyboard("{Escape}");
       await act(async () => { vi.advanceTimersByTime(60000); });
-      await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(before + 3));
+      await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(before + 5));
     } finally {
       vi.useRealTimers();
       vi.unstubAllGlobals();

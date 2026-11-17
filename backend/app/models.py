@@ -19,6 +19,17 @@ class WorkerPulse(Base):
     consecutive_errors: Mapped[int] = mapped_column(default=0)
 
 
+class NotificationCursor(Base):
+    """Existing durable cursor table; mapping it does not enable email delivery."""
+
+    __tablename__ = "notification_cursors"
+    name: Mapped[str] = mapped_column(String(80), primary_key=True)
+    last_event_id: Mapped[int] = mapped_column(Integer, default=0)
+    retry_after_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error: Mapped[str | None] = mapped_column(Text)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class Source(Base):
     __tablename__ = "sources"
     id: Mapped[int] = mapped_column(primary_key=True)

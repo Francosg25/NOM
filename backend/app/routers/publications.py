@@ -47,6 +47,8 @@ def publications(
     sort: Literal["published", "detected"] = "detected",
     published_since: date | None = None,
     changes_only: bool = False,
+    after_version_id: int | None = Query(None, ge=0, le=9_007_199_254_740_991),
+    update_type: Literal["new", "changed"] | None = None,
     db: Session = Depends(get_db),
     user: Identity = Depends(identity),
 ):
@@ -86,6 +88,17 @@ def publications(
             .where(Version.id == Publication.current_version_id, Version.sequence > 1)
             .exists()
         )
+    if update_type:
+        if after_version_id is None:
+            raise HTTPException(422, "Indica el punto de inicio del resumen.")
+        new_ids = select(Version.publication_id).where(Version.id > after_version_id, Version.sequence == 1)
+        if update_type == "new":
+            stmt = stmt.where(Publication.id.in_(new_ids))
+        else:
+            changed_ids = select(Version.publication_id).where(
+                Version.id > after_version_id, Version.sequence > 1
+            )
+            stmt = stmt.where(Publication.id.in_(changed_ids), Publication.id.not_in(new_ids))
     rows, result = paginate(db, stmt, page, page_size)
     result["items"] = pub_dicts(db, rows)
     return result
