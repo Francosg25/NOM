@@ -147,10 +147,16 @@ em {
   color: #d8d8d4;
 }
 .language-note {
-  font-size: 10px;
-  color: var(--muted);
-  margin: -17px 0 25px;
-  max-width: 650px;
+  max-width: 90ch;
+  margin: 16px 0 24px;
+  padding: 14px 18px;
+  border: 1px solid #dce4ef;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #52617a;
+  font-size: 14px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
 }
 .original-language {
   color: var(--muted);

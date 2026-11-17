@@ -64,7 +64,7 @@ async def lifespan(app):
 
 app = FastAPI(
     title="JE NOM Monitor",
-    version="0.7.2",
+    version="0.7.3",
     lifespan=lifespan,
     docs_url=None if production else "/api/docs",
     openapi_url=None if production else "/api/openapi.json",
