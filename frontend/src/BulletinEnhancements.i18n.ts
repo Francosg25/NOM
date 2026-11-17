@@ -1,4 +1,9 @@
 export const enhancementEnglish: Record<string, string> = {
+  "NOM referenciadas": "Referenced NOMs",
+  "Acotaciones de la referencia": "Qualifications in the reference",
+  "Descripción en la tabla": "Description in the table",
+  "Acotación": "Qualification",
+  "NOM disponibles en el catálogo": "NOMs available in the catalogue",
   "No hay coincidencias textuales en las publicaciones guardadas.": "There are no text matches in saved publications.",
   "Las relaciones encontradas en el Anexo aparecen arriba. El número no necesita estar escrito dentro de la NOM.": "Relationships found in the Annex appear above. The number does not need to be written inside the NOM.",
   "Referencia por fracción arancelaria": "Tariff-code reference",

@@ -1,0 +1,219 @@
+.product-search-page .product-search-results {
+  padding: clamp(18px, 3vw, 32px);
+  min-width: 0;
+}
+
+.tariff-reference .section-rule,
+.product-text-results .section-rule {
+  padding: 0;
+  margin: 0 0 16px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  border: 0;
+}
+
+.tariff-reference .section-rule h2,
+.product-text-results .section-rule h2 {
+  margin: 0;
+  font-size: clamp(18px, 2vw, 21px);
+  line-height: 1.45;
+}
+
+.tariff-reference .section-rule > span {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #f0f4fb;
+  color: #52617a;
+  font-size: 13px;
+}
+
+.tariff-reference-intro > p,
+.tariff-reference-provenance p,
+.tariff-reference .tariff-reference-note {
+  max-width: 92ch;
+  margin: 0 0 14px;
+  color: #52617a;
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.tariff-reference .tariff-reference-note {
+  color: #5d6b80;
+  font-size: 14px;
+}
+
+.tariff-reference-provenance {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 20px;
+  margin: 0 0 14px;
+}
+
+.tariff-reference-provenance p { margin: 0; }
+.tariff-reference-provenance a,
+.tariff-reference-footer a { font-size: 14px; line-height: 1.65; }
+
+.tariff-reference .tariff-reference-list {
+  display: grid;
+  gap: 22px;
+  margin: 24px 0 0;
+}
+
+.tariff-reference .tariff-reference-card {
+  padding: clamp(18px, 2.5vw, 28px);
+  border: 1px solid #dce4ef;
+  border-radius: 16px;
+  background: #fff;
+  min-width: 0;
+}
+
+.tariff-card-heading .article-kicker {
+  gap: 8px 16px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.tariff-reference-card h3 {
+  margin: 0 0 14px;
+  color: #26344d;
+  font-size: 19px;
+  line-height: 1.5;
+}
+
+.tariff-reference-card h4 {
+  margin: 0 0 12px;
+  color: #52617a;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.6;
+}
+
+.tariff-reference-card .tariff-nom-codes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.tariff-nom-codes li {
+  padding: 7px 10px;
+  border: 1px solid #dce4ef;
+  border-radius: 8px;
+  background: #f6f8fc;
+  color: #334663;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.tariff-qualification {
+  margin: 22px 0;
+  padding: 20px;
+  border-radius: 12px;
+  background: #f7f9fc;
+}
+
+.tariff-qualification p,
+.tariff-detail-body p {
+  max-width: 90ch;
+  margin: 0 0 16px;
+  color: #3f506b;
+  font-size: 15px;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+
+.tariff-qualification p:last-child,
+.tariff-detail-body p:last-child { margin-bottom: 0; }
+
+.tariff-reference-details { display: grid; gap: 12px; }
+.tariff-reference-details details {
+  min-width: 0;
+  border: 1px solid #e0e6ef;
+  border-radius: 10px;
+}
+
+.tariff-reference-details summary {
+  padding: 15px 18px;
+  color: #3155a1;
+  font-size: 14px;
+  line-height: 1.6;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.tariff-reference-details summary::marker { color: #657b9f; }
+.tariff-reference-details details[open] summary { border-bottom: 1px solid #e0e6ef; }
+.tariff-reference-details .tariff-detail-body { padding: 18px; }
+.tariff-reference-details .tariff-nico-scroll { overflow-x: auto; }
+.tariff-nico-scroll table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.7; }
+.tariff-nico-scroll th,
+.tariff-nico-scroll td { padding: 12px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid #e0e6ef; }
+.tariff-nico-scroll th { color: #52617a; font-weight: 600; background: #f7f9fc; }
+.tariff-nico-scroll th:first-child { width: 64px; }
+.tariff-nico-scroll td { min-width: 140px; color: #3f506b; }
+.tariff-nico-scroll td:first-child { min-width: 48px; font-variant-numeric: tabular-nums; }
+.tariff-nico-scroll tr:last-child td { border-bottom: 0; }
+
+.tariff-saved-norms {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e6ef;
+}
+
+.tariff-saved-norms ul { display: grid; gap: 12px; list-style: none; margin: 0; padding: 0; }
+.tariff-saved-norms .tariff-norm-link {
+  display: grid;
+  gap: 7px;
+  width: 100%;
+  padding: 15px 18px;
+  border: 1px solid #dce5f4;
+  border-radius: 10px;
+  background: #f6f8fd;
+  color: #334663;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.7;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.tariff-norm-link .tariff-norm-action { color: #3155a1; font-size: 13px; font-weight: 650; }
+.tariff-saved-norms .tariff-norm-link:hover { background: #eef3fc; border-color: #9db2dc; }
+.tariff-norm-link:focus-visible,
+.tariff-reference-details summary:focus-visible,
+.tariff-nico-scroll:focus-visible { outline: 3px solid #8faee9; outline-offset: 3px; }
+.tariff-reference-footer { padding: 22px 2px 0; }
+
+.product-search-results .product-text-results { margin-top: 28px; padding-top: 28px; border-top: 1px solid #dce4ef; }
+.product-search-results > .product-text-results:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.product-text-results .product-search-hint { max-width: 96ch; margin: 0 0 10px; color: #5d6b80; font-size: 14px; line-height: 1.75; }
+.product-text-results .product-search-disclaimer { margin: 20px 0; padding: 16px 18px; border-radius: 10px; font-size: 14px; line-height: 1.75; }
+.product-text-results .empty-edition { min-height: 0; margin: 20px 0 0; padding: 22px; border-radius: 12px; }
+.product-text-results .empty-edition h2 { max-width: 64ch; margin: 0 0 12px; font-size: 18px; line-height: 1.5; }
+.product-text-results .empty-edition p { max-width: 90ch; margin: 0; color: #5d6b80; font-size: 14px; line-height: 1.75; }
+.product-text-results .product-match-list { display: grid; gap: 18px; margin-top: 22px; }
+.product-text-results .product-match { padding: 22px; border: 1px solid #dce4ef; }
+.product-text-results .product-match .article-excerpt { display: block; -webkit-line-clamp: unset; overflow: visible; font-size: 15px; line-height: 1.8; }
+.product-text-results .matched-terms,
+.product-text-results .article-meta { font-size: 13px; line-height: 1.75; }
+
+@media (max-width: 600px) {
+  .product-search-page .product-search-results { padding: 16px; }
+  .tariff-reference .tariff-reference-card { padding: 16px; }
+  .tariff-qualification { padding: 15px; }
+  .tariff-reference-provenance { display: grid; gap: 8px; }
+  .tariff-reference-details summary,
+  .tariff-reference-details .tariff-detail-body { padding: 14px; }
+  .tariff-saved-norms .tariff-norm-link { padding: 14px; }
+  .product-text-results .empty-edition,
+  .product-text-results .product-match { padding: 18px; }
+}

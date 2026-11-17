@@ -1160,6 +1160,7 @@ function Bulletin() {
             {productSearch && (
               <section className="product-search-results" aria-live="polite">
                 {productSearch.tariff_reference && <TariffReferenceResults reference={productSearch.tariff_reference} open={(id) => void open(id)} />}
+                <section className="product-text-results" aria-label={t("Coincidencias textuales en documentos guardados")}>
                 <div className="section-rule">
                   <h2>{t("Coincidencias textuales en documentos guardados")}</h2>
                   <span>{t("{count} resultados", { count: productSearch.total })}</span>
@@ -1263,6 +1264,7 @@ function Bulletin() {
                     {t("Se muestran los primeros 30 resultados más relevantes.")}
                   </p>
                 )}
+                </section>
               </section>
             )}
           </section>

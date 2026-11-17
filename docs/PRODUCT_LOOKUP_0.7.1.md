@@ -92,3 +92,14 @@ del arranque, reinicio y restauración junto con lectura y comparación de versi
 Playwright incluye el recorrido con API real en escritorio y móvil. Su ejecución
 visual sigue pendiente: este entorno bloquea el arranque de Chromium. No se
 presenta esa cobertura como una prueba visual ni una medición de Azure.
+
+
+## Presentación 0.7.2
+
+Las referencias tienen márgenes interiores propios y separación entre tarjetas.
+Las acotaciones completas se leen en párrafos por NOM, sin el recorte a dos líneas
+de los extractos del boletín. Los enlaces al catálogo se muestran en bloques
+separados y los NICO se organizan en una tabla con desplazamiento horizontal
+contenido en pantallas estrechas. La sección de coincidencias textuales tiene
+espaciado compacto y su estado vacío ya no hereda la altura mínima de portada.
+Se conservan los textos oficiales, las condiciones, las fuentes y la búsqueda.

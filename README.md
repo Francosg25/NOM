@@ -1,6 +1,6 @@
 # norma. · NOM Monitor
 
-Versión **0.7.1**. Monitor de NOM con el catálogo oficial PLATIICA como inventario y SIDOF para revisar publicaciones diarias del DOF; interfaz Español/English y una lectura sencilla: una tipografía, fondo claro, búsqueda y publicaciones en una sola columna. Las NOM largas se consultan por partes para reducir el trabajo del navegador. [Historial de rendimiento](docs/PERFORMANCE_0.6.7.md).
+Versión **0.7.2**. Monitor de NOM con el catálogo oficial PLATIICA como inventario y SIDOF para revisar publicaciones diarias del DOF; interfaz Español/English y una lectura sencilla: una tipografía, fondo claro, búsqueda y publicaciones en una sola columna. Las NOM largas se consultan por partes para reducir el trabajo del navegador. [Historial de rendimiento](docs/PERFORMANCE_0.6.7.md).
 
 Incluye respaldos/restauración verificables, supervisión del monitor, sonda de despliegue, pruebas de navegador/accesibilidad y dependencias transitivas fijadas con hashes. Mantiene la instalación sencilla. [Operación y aceptación Azure](docs/OPERATIONS.md) · [Calidad y dependencias](docs/QUALITY.md) · [Revisión experta de cobertura](docs/COVERAGE_REVIEW.md). La aceptación de esta versión en Azure requiere comprobar el portal después del despliegue.
 
@@ -14,7 +14,7 @@ El ZIP incluye la interfaz compilada. No requiere Node para abrirlo. Usa Python 
 
 La navegación conserva hasta 12 listados en memoria durante la sesión y consulta cambios en segundo plano. Las publicaciones aparecen sin esperar al resumen ni a los trabajos. [Navegación y validación 0.6.8](docs/NAVIGATION_0.6.8.md).
 
-El boletín incorpora un resumen desde la visita anterior en este navegador, una ficha con fechas y estado de la fuente, y una comparación de copias con texto agregado/eliminado. [Funciones y verificación 0.7.0](docs/BULLETIN_0.7.0.md). La versión 0.7.1 distingue las copias guardadas de las diferencias de texto y añade la referencia por fracción. [Alcance de la consulta 0.7.1](docs/PRODUCT_LOOKUP_0.7.1.md).
+El boletín incorpora un resumen desde la visita anterior en este navegador, una ficha con fechas y estado de la fuente, y una comparación de copias con texto agregado/eliminado. [Funciones y verificación 0.7.0](docs/BULLETIN_0.7.0.md). La versión 0.7.2 mejora los márgenes y la lectura de las referencias por fracción, muestra acotaciones completas y compacta los resultados vacíos. La versión 0.7.1 distingue las copias guardadas de las diferencias de texto y añade la referencia por fracción. [Alcance de la consulta 0.7.1](docs/PRODUCT_LOOKUP_0.7.1.md).
 
 ## Actualización automática
 

@@ -86,7 +86,7 @@ def main():
 
         process = start()
         try:
-            assert json.loads(get('/api/health'))['frontend']['version'] == '0.7.1'
+            assert json.loads(get('/api/health'))['frontend']['version'] == '0.7.2'
             assert '<html' in get('/').decode()
             reference_hash = tariff_lookup()
             command('-c', "from app.db import SessionLocal; from app.jobs import ingest_document; "
@@ -107,7 +107,7 @@ def main():
             changes = json.loads(get('/api/bulletin/updates?after_version_id=' + str(checkpoint['version_id']) +
                                      '&anchor_hash=' + checkpoint['content_hash']))
             assert changes['new_publications'] == 0 and changes['changed_publications'] == 1
-            before = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.1',
+            before = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.2',
                                         '--output', str(root / 'before.json')))
             assert before['passed'] and before['sample']['sha256'] == hashlib.sha256(b'package-evidence-revised').hexdigest()
             details = json.loads(get('/api/publications/' + str(before['sample']['publication_id']) + '?include_content=false'))
@@ -119,7 +119,7 @@ def main():
             assert reading['blocks'][0]['inlines'][0]['text'] == 'Not an official publication. Revised sample.'
             stop(process)
             process = start()
-            after = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.1',
+            after = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.2',
                 '--baseline', str(root / 'before.json'), '--output', str(root / 'after.json')))
             assert after['passed']
             assert json.loads(get(reading_path)) == reading
@@ -132,7 +132,7 @@ def main():
             env.update(DATABASE_URL='sqlite:///' + str(root / 'restored/nom.db'),
                        STORAGE_PATH=str(root / 'restored/evidence'))
             process = start()
-            restored = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.1',
+            restored = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.2',
                 '--baseline', str(root / 'before.json'), '--output', str(root / 'restored.json')))
             assert restored['passed']
             assert json.loads(get(reading_path)) == reading
