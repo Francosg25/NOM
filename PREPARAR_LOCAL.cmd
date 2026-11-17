@@ -8,7 +8,8 @@ if not exist ".venv\Scripts\python.exe" (
 ".venv\Scripts\python.exe" -m pip install --require-hashes -r backend\requirements.txt
 if errorlevel 1 goto :failed
 if not exist ".env" copy ".env.example" ".env" >nul
-if not exist "frontend\dist\portal-release.json" (
+".venv\Scripts\python.exe" scripts\start_local.py --check-frontend >nul 2>nul
+if errorlevel 1 (
   call ACTUALIZAR_INTERFAZ.cmd
   if errorlevel 1 goto :failed
 )

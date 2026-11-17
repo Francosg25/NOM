@@ -4,7 +4,7 @@ El portal utiliza PLATIICA para sincronizar las fichas del catálogo NOM y SIDOF
 
 ## Español
 
-La versión **0.4.1** tiene un encabezado grande **norma.**, fondo color papel y navegación horizontal. Arriba están los botones **Español** y **English**. Incluye consulta diaria SIDOF y validación nativa de certificados de Windows. Al actualizar, ejecuta PREPARAR_LOCAL.cmd para instalar la dependencia de Windows. Si ves una barra lateral verde con Inicio, Alertas y Productos, estás viendo una versión anterior.
+La versión **0.6.7** tiene un encabezado grande **norma.**, fondo color papel y navegación horizontal. Arriba están los botones **Español** y **English**. Incluye consulta diaria SIDOF y validación nativa de certificados de Windows. Al actualizar, ejecuta PREPARAR_LOCAL.cmd para instalar la dependencia de Windows. Si ves una barra lateral verde con Inicio, Alertas y Productos, estás viendo una versión anterior.
 
 ### Primera vez desde el ZIP
 
@@ -19,19 +19,20 @@ Para abrir directamente en inglés: <http://127.0.0.1:8000/?lang=en>. Para espa�
 
 ### Si usas Git o cambiaste el código
 
-Los cambios de esta entrega están en `feature/piloto-verificable`. Antes de actualizar, revisa tus cambios locales con `git status`; consérvalos si los tienes. Desde la carpeta NOM:
+Los cambios de esta entrega están en `PilotoAzure`. Puedes seguir usando tu carpeta principal `NOM`. Antes de actualizar, revisa tus cambios locales con `git status`; consérvalos si los tienes. Desde esa carpeta:
 
 ```text
 git fetch origin
-git switch feature/piloto-verificable
-git pull --ff-only origin feature/piloto-verificable
-ACTUALIZAR_INTERFAZ.cmd
+git switch PilotoAzure
+git pull --ff-only origin PilotoAzure
 INICIAR_LOCAL.cmd
 ```
 
-Si la rama local aún no existe, Git normalmente crea el seguimiento al hacer `git switch`. Si no lo hace, usa `git switch --track origin/feature/piloto-verificable`. Si Git informa conflictos o divergencia, no fuerces la actualización ni borres tus datos.
+Si la rama local aún no existe, Git normalmente crea el seguimiento al hacer `git switch`. Si no lo hace, usa `git switch --track origin/PilotoAzure`. Si Git informa conflictos o divergencia, no fuerces la actualización ni borres tus datos.
 
-`ACTUALIZAR_INTERFAZ.cmd` requiere Node.js y reconstruye la interfaz. Cierra antes el servidor anterior con Ctrl+C; después inicia y recarga con Ctrl+F5. Para preparar un clon nuevo que aún no tiene dependencias de Python, usa `PREPARAR_LOCAL.cmd`.
+`INICIAR_LOCAL.cmd` comprueba la compilación y ejecuta `ACTUALIZAR_INTERFAZ.cmd` si falta o pertenece a fuentes anteriores. La preparación también detecta una compilación anterior, aunque exista `portal-release.json`. Reconstruir requiere Node.js con npm; abrir una compilación vigente no lo requiere. `ACTUALIZAR_INTERFAZ.cmd` puede ejecutarse manualmente. Cierra antes el servidor anterior con Ctrl+C; después inicia y recarga con Ctrl+F5. Para preparar un clon nuevo que aún no tiene dependencias de Python, usa `PREPARAR_LOCAL.cmd`.
+
+Si `npm ci` muestra `EUSAGE` indicando que falta `package-lock.json`, el archivo también puede estar incompleto o ser JSON inválido. La publicación inicial de 0.6.7 incluía una copia incompleta; `PilotoAzure` ya contiene el archivo completo. Actualiza la carpeta desde esa rama. El comando ahora verifica el archivo antes de instalar y muestra su ruta si no se puede leer. No regenera automáticamente las versiones de las dependencias.
 
 ### Cómo usarlo
 
@@ -48,14 +49,14 @@ Tus datos locales se conservan según `DATABASE_URL` y `STORAGE_PATH` de `.env`;
 
 ## English
 
-Version **0.4.1** has a large **norma.** heading, a paper-colored background and horizontal navigation. **Español** and **English** are at the top. It includes daily SIDOF discovery and native Windows certificate validation. Run PREPARAR_LOCAL.cmd after updating to install the Windows dependency. A green sidebar with Home, Alerts and Products belongs to an older interface.
+Version **0.6.7** has a large **norma.** heading, a paper-colored background and horizontal navigation. **Español** and **English** are at the top. It includes daily SIDOF discovery and native Windows certificate validation. Run PREPARAR_LOCAL.cmd after updating to install the Windows dependency. A green sidebar with Home, Alerts and Products belongs to an older interface.
 
 1. Extract the entire ZIP into a new folder.
 2. Run `PREPARAR_LOCAL.cmd` using an installed, approved Python interpreter. The ZIP includes the compiled interface, so Node is not needed for this first trial.
 3. Run `INICIAR_LOCAL.cmd`. Keep the console open. Stop with Ctrl+C.
 4. Open <http://127.0.0.1:8000/?lang=en> for English. The language is remembered.
 
-If the launcher reports an old build, run `ACTUALIZAR_INTERFAZ.cmd` with Node.js installed, then start again. If port 8000 is occupied, stop the previous server first.
+The launcher rebuilds a missing or stale frontend using `ACTUALIZAR_INTERFAZ.cmd`; rebuilding requires Node.js and npm. The updater validates the committed lockfile before installing dependencies. Update your existing folder from `PilotoAzure` if it still has the incomplete lockfile from the initial 0.6.7 publication. If port 8000 is occupied, stop the previous server first.
 
 Select **Check sources**, then read **Latest publications**. SIDOF checks the last seven days; the first load can take several minutes while the portal remains available. Use **Search publications** to find a standard or keyword in the saved documents. Open a title to read it, inspect saved versions, download a copy or visit the official website. In **Source status**, **View daily check** shows each day's checked notes, selected IDs and unresolved references. **How it works** explains the workflow and coverage.
 

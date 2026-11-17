@@ -72,4 +72,11 @@ def start():
 
 
 if __name__ == '__main__':
+    if sys.argv[1:] == ['--check-frontend']:
+        try:
+            verify_frontend()
+        except (OSError, ValueError) as exc:
+            print(f'Interfaz pendiente de compilar: {exc}', flush=True)
+            raise SystemExit(1)
+        raise SystemExit(0)
     raise SystemExit(start())
