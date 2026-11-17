@@ -479,7 +479,8 @@ def test_bulletin_orders_by_official_date_and_filters_real_changes(api):
         ids = [newest.id, old.id, unknown.id]; db.commit()
     result = client.get('/api/publications?sort=published').json()['items']
     assert [item['id'] for item in result] == ids
-    assert result[0]['excerpt'] == 'Un extracto con espacios' and result[0]['has_changes']
+    assert result[0]['excerpt'] == 'Un extracto con espacios' and result[0]['has_previous_versions']
+    assert result[0]['has_changes'] is True
     assert client.get(f'/api/publications?published_since={main.mexico_today()}').json()['total'] == 1
     assert client.get('/api/publications?changes_only=true').json()['total'] == 1
 
@@ -667,6 +668,54 @@ def test_product_search_includes_only_current_platiica_norms_and_reports_sync(ap
     }
 
 
+def test_tariff_lookup_returns_dated_annex_relation_without_code_in_nom_text(api):
+    client, sessions, _, _ = api
+    with sessions() as db:
+        source = Source(name='PLATIICA controlado', kind='platiica_catalog', urls=[])
+        db.add(source); db.flush()
+        pub = Publication(source_id=source.id, official_id='PLATIICA:NOM-016-ENER-2016',
+                          title='NOM-016-ENER-2016, motores eléctricos', url='https://platiica.economia.gob.mx/',
+                          norm_status='Vigente', kind='norma_vigente')
+        wrong_year = Publication(source_id=source.id, official_id='PLATIICA:NOM-016-ENER-2099',
+                          title='NOM-016-ENER-2099, muestra con año distinto', url='https://platiica.economia.gob.mx/',
+                          norm_status='Vigente', kind='norma_vigente')
+        db.add_all([pub, wrong_year]); db.flush()
+        for item in (pub, wrong_year):
+            version = Version(publication_id=item.id, content='Requisitos de motores sin números arancelarios.', content_hash=f'controlled-{item.id}')
+            db.add(version); db.flush(); item.current_version_id = version.id
+        db.commit()
+        correct_id = pub.id
+    result = client.post('/api/product-search', json={'mode': 'fraccion', 'value': '8501.52.04/01'}).json()
+    assert result['total'] == 0  # A documented relationship is not a textual match.
+    reference = result['tariff_reference']
+    assert reference['document_date'] == '2026-04-02' and reference['requested_nico'] == '01'
+    assert reference['matches'][0]['nom_codes'] == ['NOM-016-ENER-2016']
+    assert [item['id'] for item in reference['saved_norms']] == [correct_id]
+    missing = client.post('/api/product-search', json={'mode': 'fraccion', 'value': '00000000'}).json()
+    assert missing['tariff_reference']['available'] and missing['tariff_reference']['matches'] == []
+
+
+def test_product_search_handles_digit_breaks_product_scope_and_exact_nico(api):
+    client, sessions, _, _ = api
+    with sessions() as db:
+        source = Source(name='SIDOF controlado', kind='sidof', urls=[])
+        db.add(source); db.flush()
+        pub = Publication(source_id=source.id, official_id='CONTROLLED-SPLIT-CODE',
+            title='Muestra controlada', url='https://sidof.segob.gob.mx/',
+            product_scope='Materiales cerámicos para ensayo', kind='acuerdo')
+        db.add(pub); db.flush()
+        version = Version(publication_id=pub.id, content='Referencia 8 5 0 1. 5 2. 0 4 01. Otros números: 8 de 50 y 152 y 04.', content_hash='split-code')
+        db.add(version); db.flush(); pub.current_version_id = version.id; db.commit()
+    base = client.post('/api/product-search', json={'mode': 'fraccion', 'value': '8501–52–04'}).json()
+    assert base['total'] == 1 and base['results'][0]['match']['type'] == 'fraccion_base'
+    exact = client.post('/api/product-search', json={'mode': 'fraccion', 'value': '8501520401'}).json()
+    assert exact['total'] == 1 and exact['results'][0]['match']['type'] == 'fraccion_exacta'
+    wrong_nico = client.post('/api/product-search', json={'mode': 'fraccion', 'value': '8501520402'}).json()
+    assert wrong_nico['results'][0]['match']['type'] == 'fraccion_base'
+    description = client.post('/api/product-search', json={'mode': 'descripcion', 'value': 'cerámicos'}).json()
+    assert description['total'] == 1 and description['tariff_reference'] is None
+
+
 def test_alerts_can_be_filtered_for_a_tracked_product(api):
     client, sessions, _, _ = api
     _, catalog_id, _, _, _ = seed(sessions)
@@ -764,7 +813,7 @@ def test_publication_delivers_its_formatted_latest_version_and_runtime_identifie
     from app.reading import inline_text
     assert inline_text(latest['reading']['blocks'][0]['inlines']) == 'La regulación es legible.'
     health = client.get('/api/health').json()
-    assert health['backend'] == {'version': '0.7.0', 'document_reader': 'modal-v2'}
+    assert health['backend'] == {'version': '0.7.1', 'document_reader': 'modal-v2'}
     policy = response.headers['content-security-policy']
     assert "img-src 'self' data: https://sidof.segob.gob.mx;" in policy
     assert "script-src 'self';" in policy and "connect-src 'self';" in policy

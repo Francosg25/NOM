@@ -13,6 +13,7 @@ import { version as portalVersion } from "../package.json";
 import DocumentReading, { createReadingLoader } from "./DocumentReading";
 import usePublicationList from "./usePublicationList";
 import { PublicationFacts, VersionComparison, VisitSummary } from "./BulletinEnhancements";
+import { TariffReferenceResults } from "./TariffReferenceResults";
 import type { UpdateSelection } from "./BulletinEnhancements";
 
 type Row = Record<string, any>;
@@ -284,8 +285,8 @@ function PublicationRow({
         <div className="article-kicker">
           <span>{t(item.source_name)}</span>
           <span>{t(types[item.kind] || "Publicación")}</span>
-          {item.has_changes && (
-            <b className="change-flag">{t("Cambio detectado")}</b>
+          {(item.has_previous_versions ?? item.has_changes) && (
+            <b className="change-flag">{t("Tiene versiones anteriores")}</b>
           )}
           {item.is_demo && (
             <b className="demo-flag">{t("Muestra sintética")}</b>
@@ -645,7 +646,7 @@ function Bulletin() {
     ]);
     if (
       productMode === "fraccion" &&
-      (!/^[0-9.\s-]+$/.test(productValue.trim()) || ![8, 10].includes(digits.length))
+      (!/^[0-9.\s/\-‐‑‒–—−]+$/.test(productValue.trim()) || ![8, 10].includes(digits.length))
     ) {
       setError("Ingresa una fracción mexicana de 8 dígitos, o 10 con NICO.");
       return;
@@ -1032,7 +1033,7 @@ function Bulletin() {
               </h1>
               <p>
                 {t(
-                  "Ingresa una fracción arancelaria mexicana o describe el producto. Buscaremos coincidencias textuales en NOM vigentes del catálogo PLATIICA y publicaciones SIDOF guardadas.",
+                  "Ingresa una fracción arancelaria mexicana o describe el producto. Consulta relaciones documentadas en el Anexo 2.4.1 de SNICE y coincidencias textuales en las publicaciones guardadas.",
                 )}
               </p>
             </div>
@@ -1158,8 +1159,9 @@ function Bulletin() {
             )}
             {productSearch && (
               <section className="product-search-results" aria-live="polite">
+                {productSearch.tariff_reference && <TariffReferenceResults reference={productSearch.tariff_reference} open={(id) => void open(id)} />}
                 <div className="section-rule">
-                  <h2>{t("Coincidencias para revisar")}</h2>
+                  <h2>{t("Coincidencias textuales en documentos guardados")}</h2>
                   <span>{t("{count} resultados", { count: productSearch.total })}</span>
                 </div>
                 <p className="product-search-hint">
@@ -1194,10 +1196,12 @@ function Bulletin() {
                 <p className="product-search-disclaimer">{t(productSearch.disclaimer)}</p>
                 {productSearch.results.length === 0 ? (
                   <div className="empty-edition">
-                    <h2>{t("No encontramos coincidencias en las publicaciones guardadas.")}</h2>
+                    <h2>{t("No hay coincidencias textuales en las publicaciones guardadas.")}</h2>
                     <p>
                       {t(
-                        "Esto no confirma que no existan NOM aplicables: el archivo puede estar incompleto o la publicación puede no mencionar esos términos.",
+                        productSearch.tariff_reference?.matches?.length
+                          ? "Las relaciones encontradas en el Anexo aparecen arriba. El número no necesita estar escrito dentro de la NOM."
+                          : "Esto no confirma que no existan NOM aplicables: el archivo puede estar incompleto o la publicación puede no mencionar esos términos.",
                       )}
                     </p>
                   </div>
@@ -1441,7 +1445,7 @@ function Bulletin() {
                         setPage(1);
                       }}
                     />
-                    {t("Con cambios")}
+                    {t("Con versiones anteriores")}
                   </label>
                   {filtered && (
                     <button className="text-button" onClick={reset}>
@@ -1518,9 +1522,9 @@ function Bulletin() {
                             {t("PRIMERA LECTURA")}
                           </span>
                           <span>{t(lead.source_name)}</span>
-                          {lead.has_changes && (
+                          {(lead.has_previous_versions ?? lead.has_changes) && (
                             <b className="change-flag">
-                              {t("Cambio detectado")}
+                              {t("Tiene versiones anteriores")}
                             </b>
                           )}
                           {lead.is_demo && (
@@ -1902,7 +1906,7 @@ function Bulletin() {
                       {t(
                         job.status === "failed"
                           ? "Revisión fallida; novedades sin confirmar"
-                          : "{new} nuevos · {changes} cambios",
+                          : "{new} nuevos · {changes} versiones nuevas",
                         {
                           new: job.new_count,
                           changes: job.modified_count,

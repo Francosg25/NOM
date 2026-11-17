@@ -297,7 +297,6 @@ const english: Record<string, string> = {
   "Fecha por confirmar": "Date to be confirmed",
   "ARCHIVO / LECTURA": "ARCHIVE / READING",
   "Cerrar lectura": "Close reader",
-  "Cambio detectado": "Change detected",
   "Muestra sintética": "Synthetic sample",
   "Sin fecha oficial confirmada": "Official date unconfirmed",
   "Detectado {date}": "Detected {date}",
@@ -364,7 +363,6 @@ const english: Record<string, string> = {
   Tipo: "Type",
   "Tipo de publicación": "Publication type",
   "Todos los tipos": "All types",
-  "Con cambios": "With changes",
   "Quitar filtros": "Clear filters",
   "Ninguna publicación coincide.": "No matching publications.",
   "Tu primera edición comienza aquí.": "Your first edition starts here.",
@@ -454,7 +452,7 @@ const english: Record<string, string> = {
   "Todavía no se ha solicitado una consulta.":
     "No check has been requested yet.",
   Fuente: "Source",
-  "{new} nuevos · {changes} cambios": "{new} new · {changes} changes",
+  "{new} nuevos · {changes} versiones nuevas": "{new} new · {changes} new saved versions",
   " · {count} errores": " · {count} errors",
   Retomar: "Resume",
   "Un punto de consulta para la normativa mexicana.":

@@ -1,6 +1,18 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+test("tariff lookup finds a dated Annex relationship independently of literal NOM text", async ({ page }) => {
+  await page.goto("/?lang=en");
+  await page.getByRole("button", { name: "Product lookup", exact: true }).click();
+  await page.getByLabel("Tariff code / NICO", { exact: true }).fill("8501.52.04/01");
+  await page.getByRole("button", { name: "Search for possible matches", exact: true }).click();
+  const reference = page.getByRole("region", { name: "Tariff-code reference" });
+  await expect(reference.getByRole("heading", { name: "Relationships in Annex 2.4.1" })).toBeVisible();
+  await expect(reference).toContainText("NOM-016-ENER-2016");
+  await expect(reference).toContainText("Apr 2, 2026");
+  await expect(reference).toContainText("The retrieval date does not establish current validity.");
+});
+
 test("visit summary, publication facts and saved-version comparison work with the real API", async ({ page }) => {
   await page.goto("/?lang=en");
   await expect(page.getByRole("heading", { name: "Your first summary", exact: true })).toBeVisible();

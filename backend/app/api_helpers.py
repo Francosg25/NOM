@@ -119,7 +119,10 @@ def pub_dict(db, obj, context=None, *, include_excerpt=True):
                 break
             excerpt = trimmed
     result["excerpt"] = excerpt[:420]
-    result["has_changes"] = bool(version and version.sequence > 1)
+    result["has_previous_versions"] = bool(version and version.sequence > 1)
+    # Retain the old API field for clients that still use the saved-copy
+    # filter. Neither field asserts a change in the text or legal instrument.
+    result["has_changes"] = result["has_previous_versions"]
     result["captured_at"] = version.captured_at.isoformat() if version else None
     return result
 

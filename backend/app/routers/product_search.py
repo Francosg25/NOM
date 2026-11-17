@@ -1,6 +1,7 @@
 """Explainable product search across active NOM fiches and saved SIDOF publications."""
 
 import re
+import unicodedata
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
@@ -10,6 +11,7 @@ from ..db import get_db
 from ..models import Job, Publication, Source, Version
 from ..schemas import ProductSearchInput
 from ..matching import normalized
+from ..tariff_reference import lookup_tariff, nom_codes
 
 router = APIRouter(prefix="/api", tags=["product search"])
 
@@ -44,8 +46,9 @@ def _description_terms(value: str) -> list[str]:
 
 
 def _tariff_pattern(value: str, allow_nico: bool = False) -> re.Pattern[str]:
-    nico = r"(?:[.\s-]*\d{2})?" if allow_nico else ""
-    return re.compile(r"(?<!\d)" + r"[.\s-]*".join(value) + nico + r"(?!\d)")
+    separator = r"[.\s/\-‐‑‒–—−\u00ad\u200b]*"
+    nico = rf"(?:{separator}\d{{2}})?" if allow_nico else ""
+    return re.compile(r"(?<!\d)" + separator.join(value) + nico + r"(?!\d)")
 
 
 def _excerpt(content: str, start: int, end: int) -> str:
@@ -167,7 +170,8 @@ def product_search(
     base_tariff = ""
     terms: list[str] = []
     if body.mode == "fraccion":
-        if not re.fullmatch(r"[0-9.\s-]+", value):
+        value = unicodedata.normalize("NFKC", value)
+        if not re.fullmatch(r"[0-9.\s/\-‐‑‒–—−]+", value):
             raise HTTPException(422, "Ingresa una fracción mexicana de 8 dígitos, o 10 con NICO.")
         tariff = re.sub(r"\D", "", value)
         if len(tariff) not in (8, 10):
@@ -176,12 +180,14 @@ def product_search(
         search_codes = [tariff] if len(tariff) == 8 else [tariff, base_tariff]
         patterns = []
         for code in search_codes:
-            chunks = [code[index : index + 2] for index in range(0, len(code), 2)]
-            patterns.append("%" + "%".join(chunks) + "%")
+            # Extraction can split a number inside any pair of digits, not
+            # just at the printed dots. Regex below rejects broad SQL hits.
+            patterns.append("%" + "%".join(code) + "%")
         stmt = stmt.where(
             or_(
                 *[Publication.title.ilike(pattern) for pattern in patterns],
                 *[Version.content.ilike(pattern) for pattern in patterns],
+                *[Publication.product_scope.ilike(pattern) for pattern in patterns],
             )
         )
     else:
@@ -192,21 +198,25 @@ def product_search(
             raise HTTPException(422, "Agrega palabras descriptivas del producto, como tipo, material o uso.")
         token_patterns = []
         for term in terms:
-            token_patterns.extend((f"%{term}%", "%" + "%".join(term) + "%"))
+            # A coarse SQL prefilter must not drop accented text before the
+            # accent-insensitive Python matcher gets a chance to inspect it.
+            letters = [character for character in term if character not in "aeioun"]
+            token_patterns.extend((f"%{term}%", "%" + "%".join(letters) + "%"))
         stmt = stmt.where(
             or_(
                 *[Publication.title.ilike(pattern) for pattern in token_patterns],
                 *[Version.content.ilike(pattern) for pattern in token_patterns],
+                *[Publication.product_scope.ilike(pattern) for pattern in token_patterns],
             )
         )
 
     rows = db.execute(stmt).all()
     results = []
-    tariff_pattern = _tariff_pattern(tariff) if tariff else None
+    tariff_pattern = _tariff_pattern(tariff, allow_nico=len(tariff) == 8) if tariff else None
     base_pattern = _tariff_pattern(base_tariff, allow_nico=True) if len(tariff) in (8, 10) else None
 
     for publication, version, source in rows:
-        content = f"{publication.title}\n{version.content}"
+        content = f"{publication.title}\n{version.content}\n{publication.product_scope or ''}"
         if tariff_pattern:
             match = tariff_pattern.search(content)
             match_type = "fraccion_exacta"
@@ -264,6 +274,27 @@ def product_search(
         ),
         reverse=True,
     )
+    reference = lookup_tariff(tariff) if tariff else None
+    if reference and reference["matches"]:
+        codes = {code for row in reference["matches"] for code in row["nom_codes"]}
+        saved = db.execute(
+            select(Publication.id, Publication.title, Publication.official_id)
+            .join(Source, Source.id == Publication.source_id)
+            .where(
+                Publication.is_demo.is_(False),
+                Source.kind == "platiica_catalog",
+                func.lower(Publication.norm_status) == "vigente",
+            )
+        ).all()
+        reference["saved_norms"] = [
+            {"id": row.id, "title": row.title, "codes": matched}
+            for row in saved
+            if (
+                matched := [
+                    code for code in nom_codes((row.title + " " + row.official_id).upper()) if code in codes
+                ]
+            )
+        ]
     return {
         "mode": body.mode,
         "value": re.sub(r"\D", "", value) if body.mode == "fraccion" else value,
@@ -272,6 +303,7 @@ def product_search(
         "catalog": catalog_sync,
         "results": results[:30],
         "truncated": len(results) > 30,
+        "tariff_reference": reference,
         "disclaimer": (
             "Coincidencias textuales en NOM vigentes guardadas desde PLATIICA y publicaciones SIDOF. No determinan "
             "si una NOM aplica al producto ni sustituyen la clasificación arancelaria "

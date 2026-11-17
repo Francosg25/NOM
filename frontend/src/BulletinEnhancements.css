@@ -23,6 +23,11 @@
 .publication-facts dd { margin: 0; font-size: .95rem; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
 .publication-facts > p { margin: 1rem 0 0; font-size: .9rem; line-height: 1.6; }
 .version-comparison { margin: 1rem 0 1.5rem; }
+.tariff-reference { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid #dce4ee; }
+.tariff-reference > p { font-size: .9rem; line-height: 1.6; }
+.tariff-reference h3 { margin: .5rem 0; font-size: 1.05rem; line-height: 1.5; }
+.tariff-reference details { margin: .7rem 0; font-size: .9rem; line-height: 1.6; }
+.tariff-reference summary { cursor: pointer; color: #2452b3; }
 .comparison-content { margin-top: 1rem; padding: 1.1rem; border: 1px solid #dce4ee; border-radius: 14px; background: #fff; }
 .comparison-content h2 { font-size: 1.1rem; margin-top: 0; }
 .comparison-content > p { font-size: .9rem; line-height: 1.6; }

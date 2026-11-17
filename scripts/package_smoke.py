@@ -42,6 +42,19 @@ def main():
             with urllib.request.urlopen(base + path, timeout=3) as response:
                 return response.read()
 
+        def tariff_lookup():
+            request = urllib.request.Request(base + '/api/product-search',
+                data=json.dumps({'mode': 'fraccion', 'value': '8501.52.04/01'}).encode(),
+                headers={'Content-Type': 'application/json'}, method='POST')
+            with urllib.request.urlopen(request, timeout=3) as response:
+                result = json.load(response)
+            reference = result['tariff_reference']
+            assert result['total'] == 0
+            assert reference['document_date'] == '2026-04-02'
+            assert reference['matches'][0]['nom_codes'] == ['NOM-016-ENER-2016']
+            assert reference['requested_nico'] == '01'
+            return reference['source_sha256']
+
         def command(*arguments):
             return subprocess.check_output([sys.executable, *arguments], cwd=app / 'backend',
                                            env=env, stderr=subprocess.STDOUT, text=True)
@@ -73,8 +86,9 @@ def main():
 
         process = start()
         try:
-            assert json.loads(get('/api/health'))['frontend']['version'] == '0.7.0'
+            assert json.loads(get('/api/health'))['frontend']['version'] == '0.7.1'
             assert '<html' in get('/').decode()
+            reference_hash = tariff_lookup()
             command('-c', "from app.db import SessionLocal; from app.jobs import ingest_document; "
                 "from app.models import Source; from app.collectors import Document; "
                 "from app.storage import get_storage; from sqlalchemy import select; "
@@ -93,7 +107,7 @@ def main():
             changes = json.loads(get('/api/bulletin/updates?after_version_id=' + str(checkpoint['version_id']) +
                                      '&anchor_hash=' + checkpoint['content_hash']))
             assert changes['new_publications'] == 0 and changes['changed_publications'] == 1
-            before = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.0',
+            before = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.1',
                                         '--output', str(root / 'before.json')))
             assert before['passed'] and before['sample']['sha256'] == hashlib.sha256(b'package-evidence-revised').hexdigest()
             details = json.loads(get('/api/publications/' + str(before['sample']['publication_id']) + '?include_content=false'))
@@ -105,11 +119,12 @@ def main():
             assert reading['blocks'][0]['inlines'][0]['text'] == 'Not an official publication. Revised sample.'
             stop(process)
             process = start()
-            after = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.0',
+            after = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.1',
                 '--baseline', str(root / 'before.json'), '--output', str(root / 'after.json')))
             assert after['passed']
             assert json.loads(get(reading_path)) == reading
             assert json.loads(get(comparison_path))['classification'] == 'text_changed'
+            assert tariff_lookup() == reference_hash
             command('-m', 'app.cli', 'backup', '--destination', str(root / 'backup'))
             command('-m', 'app.cli', 'restore', '--source', str(root / 'backup'),
                     '--destination', str(root / 'restored'))
@@ -117,12 +132,13 @@ def main():
             env.update(DATABASE_URL='sqlite:///' + str(root / 'restored/nom.db'),
                        STORAGE_PATH=str(root / 'restored/evidence'))
             process = start()
-            restored = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.0',
+            restored = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.1',
                 '--baseline', str(root / 'before.json'), '--output', str(root / 'restored.json')))
             assert restored['passed']
             assert json.loads(get(reading_path)) == reading
             assert json.loads(get(comparison_path))['classification'] == 'text_changed'
-            print('PASS: production ZIP, reading, visit summary, version comparison, restart and restored evidence.')
+            assert tariff_lookup() == reference_hash
+            print('PASS: production ZIP, tariff reference, reading, summary, comparison, restart and restored evidence.')
         finally:
             stop(process)
 

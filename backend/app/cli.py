@@ -240,6 +240,9 @@ def main():
     sub.add_parser("init-db", help="Aplicar migraciones y registrar fuentes iniciales sin publicaciones")
     sub.add_parser("init-sources", help="Registrar fuentes iniciales de forma idempotente")
     sub.add_parser(
+        "refresh-tariff-reference", help="Actualizar la referencia documental SNICE del Anexo 2.4.1"
+    )
+    sub.add_parser(
         "reevaluate",
         help="Proponer relaciones nuevas con el catálogo actual sin alterar decisiones existentes",
     )
@@ -290,6 +293,17 @@ def main():
         help="Atender programación habilitada; exige SCHEDULER_ENABLED=true",
     )
     args = parser.parse_args()
+    if args.command == "refresh-tariff-reference":
+        from .tariff_reference import refresh_reference, load_reference
+
+        refreshed = refresh_reference(force=True)
+        reference = load_reference()
+        print(
+            json.dumps(
+                {"refreshed": refreshed, "document_date": reference["document_date"] if reference else None}
+            )
+        )
+        return
     if args.command in ("backup", "restore"):
         from .recovery import create_backup, restore_backup
         from .db import engine

@@ -154,4 +154,19 @@ def start_monitor(stop: Event):
 
     thread = Thread(target=run, name="nom-monitor", daemon=True)
     thread.start()
+    if get_settings().scheduler_enabled:
+
+        def refresh_tariffs():
+            from .tariff_reference import refresh_reference
+
+            while not stop.is_set():
+                try:
+                    refresh_reference()
+                except Exception:
+                    log.warning("TARIFF_REFERENCE_REFRESH_UNAVAILABLE")
+                if stop.wait(3600):
+                    break
+
+        # A slow official download must not delay the UI or the SIDOF queue.
+        Thread(target=refresh_tariffs, name="nom-tariff-reference", daemon=True).start()
     return thread

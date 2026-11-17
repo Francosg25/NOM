@@ -193,6 +193,7 @@ export function VersionComparison({ publicationId, versions, selectedId, request
     <button type="button" className="button paper" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>{t(expanded ? "Cerrar comparación" : "Comparar versiones")}</button>
     {expanded && <div className="comparison-content">
       <h2>{t("Comparación de versiones guardadas")}</h2>
+      <p>{t("Son copias conservadas por NOM Monitor, no números de edición oficial de la NOM.")}</p>
       <p>{t("Se compara el texto extraído. Revisa las copias originales para tablas, imágenes y formato.")}</p>
       {!from ? <p>{t("Esta es la primera versión guardada.")}</p> : <>
         <label>{t("Comparar con la versión anterior")}
@@ -203,7 +204,11 @@ export function VersionComparison({ publicationId, versions, selectedId, request
         <p>{t("Versión seleccionada")}: {t("Versión {number}", { number: selected?.sequence || 0 })} · {format(selected?.captured_at, true)}</p>
         {failed ? <p role="status">{t("No se pudo cargar la comparación.")} <button type="button" className="text-button" onClick={() => setAttempt((value) => value + 1)}>{t("Reintentar")}</button></p>
           : !data ? <p role="status">{t("Comparando las copias…")}</p> : <>
-            <p className="comparison-caption" role="status">{t(captions[data.classification] || captions.unavailable)}</p>
+            <p className="comparison-caption" role="status">
+              <strong>{t(({ unchanged: "Texto sin cambios", spacing_only: "Diferencias de espacios o caracteres equivalentes",
+                text_changed: "Diferencias de texto detectadas" } as Record<string, string>)[data.classification] || "Comparación de texto")}</strong>
+              <br />{t(captions[data.classification] || captions.unavailable)}
+            </p>
             {data.classification === "text_changed" && <>
               <p>{t("{added} bloques agregados · {removed} eliminados · {modified} modificados", { added: data.added, removed: data.removed, modified: data.modified })}</p>
               <p className="comparison-legend"><del>{t("Texto eliminado")}</del> <ins>{t("Texto agregado")}</ins></p>

@@ -1,6 +1,6 @@
 # norma. · NOM Monitor
 
-Versión **0.7.0**. Monitor de NOM con el catálogo oficial PLATIICA como inventario y SIDOF para revisar publicaciones diarias del DOF; interfaz Español/English y una lectura sencilla: una tipografía, fondo claro, búsqueda y publicaciones en una sola columna. Las NOM largas se consultan por partes para reducir el trabajo del navegador. [Historial de rendimiento](docs/PERFORMANCE_0.6.7.md).
+Versión **0.7.1**. Monitor de NOM con el catálogo oficial PLATIICA como inventario y SIDOF para revisar publicaciones diarias del DOF; interfaz Español/English y una lectura sencilla: una tipografía, fondo claro, búsqueda y publicaciones en una sola columna. Las NOM largas se consultan por partes para reducir el trabajo del navegador. [Historial de rendimiento](docs/PERFORMANCE_0.6.7.md).
 
 Incluye respaldos/restauración verificables, supervisión del monitor, sonda de despliegue, pruebas de navegador/accesibilidad y dependencias transitivas fijadas con hashes. Mantiene la instalación sencilla. [Operación y aceptación Azure](docs/OPERATIONS.md) · [Calidad y dependencias](docs/QUALITY.md) · [Revisión experta de cobertura](docs/COVERAGE_REVIEW.md). La aceptación de esta versión en Azure requiere comprobar el portal después del despliegue.
 
@@ -14,7 +14,7 @@ El ZIP incluye la interfaz compilada. No requiere Node para abrirlo. Usa Python 
 
 La navegación conserva hasta 12 listados en memoria durante la sesión y consulta cambios en segundo plano. Las publicaciones aparecen sin esperar al resumen ni a los trabajos. [Navegación y validación 0.6.8](docs/NAVIGATION_0.6.8.md).
 
-El boletín incorpora un resumen desde la visita anterior en este navegador, una ficha con fechas y estado de la fuente, y una comparación de copias con texto agregado/eliminado. [Funciones y verificación 0.7.0](docs/BULLETIN_0.7.0.md).
+El boletín incorpora un resumen desde la visita anterior en este navegador, una ficha con fechas y estado de la fuente, y una comparación de copias con texto agregado/eliminado. [Funciones y verificación 0.7.0](docs/BULLETIN_0.7.0.md). La versión 0.7.1 distingue las copias guardadas de las diferencias de texto y añade la referencia por fracción. [Alcance de la consulta 0.7.1](docs/PRODUCT_LOOKUP_0.7.1.md).
 
 ## Actualización automática
 
@@ -26,7 +26,7 @@ El servidor consulta SIDOF cada hora y sincroniza el sitemap del catálogo PLATI
 - **Novedades** muestra las publicaciones recuperadas ordenadas por fecha oficial. La fecha de detección se conserva por separado.
 - **Buscar publicaciones** permite buscar por NOM o palabra, fecha, tipo y cambios guardados.
 - **Catálogo NOM** lista las fichas importadas desde PLATIICA, vigentes y no vigentes, con estado y ámbito de producto. Esta vista no incluye las publicaciones SIDOF y solo refleja lo que ya se importó; revisa **Estado de fuentes** y la cobertura antes de considerarla un inventario completo.
-- **Consultar producto** busca coincidencias textuales en NOM vigentes guardadas desde PLATIICA y en publicaciones SIDOF usando una fracción mexicana de 8 dígitos (o 10 con NICO) o una descripción. Muestra estado, ámbito de producto/servicio y evidencia para revisión. Una persona con rol administrador puede guardar la entrada en el catálogo para reevaluar publicaciones y proponer coincidencias; requieren revisión humana.
+- **Consultar producto** consulta relaciones documentadas fracción–NOM en una copia fechada del Anexo 2.4.1 de SNICE y busca coincidencias textuales en NOM vigentes guardadas desde PLATIICA y publicaciones SIDOF. Admite una fracción mexicana de 8 dígitos (o 10 con NICO) o una descripción. Muestra estado, ámbito de producto/servicio y evidencia para revisión. Una persona con rol administrador puede guardar la entrada en el catálogo para reevaluar publicaciones y proponer coincidencias; requieren revisión humana.
 - Abre un título para leer su contenido, consultar versiones, descargar la copia original y visitar SIDOF.
 - **Estado de fuentes** muestra la carga inicial, la programación y el historial de PLATIICA y SIDOF.
 
@@ -50,6 +50,6 @@ Windows usa validación nativa de certificados mediante truststore. Ejecuta **DI
 
 ## English
 
-SIDOF supplies the daily bulletin and PLATIICA supplies the historical NOM catalogue. Select English at the top. Search, filters, reading, versions and daily-check details remain available; official documents stay in Spanish. Product lookup searches saved publication text by a Mexican tariff code (8 digits, or 10 with NICO) or product description and shows evidence for human review. Administrators can save entries for ongoing monitoring and review proposed matches. It does not use an official tariff database or decide applicability. Legacy source records are retained, with their monitoring disabled. Partial checks may save valid publications and do not establish complete NOM coverage.
+SIDOF supplies the daily bulletin and PLATIICA supplies the historical NOM catalogue. Select English at the top. Search, filters, reading, versions and daily-check details remain available; official documents stay in Spanish. Product lookup searches saved publication text by a Mexican tariff code (8 digits, or 10 with NICO) or product description and shows evidence for human review. Administrators can save entries for ongoing monitoring and review proposed matches. Tariff lookup also reads a dated SNICE Annex 2.4.1 reference. It does not determine applicability or guarantee that the compilation includes later amendments. Legacy source records are retained, with their monitoring disabled. Partial checks may save valid publications and do not establish complete NOM coverage.
 
 [SIDOF diario](docs/SIDOF_DAILY.md) · [Conexiones](docs/CONNECTION.md) · [Azure](docs/AZURE.md) · [Validación](docs/VALIDATION.md)

@@ -9,7 +9,7 @@ vi.mock("./apiAccess", () => ({
 }));
 const json = (data: unknown) => new Response(JSON.stringify(data), { status: 200 });
 const publication = { id: 7, title: "NOM-TEST-001-2020 - Copia controlada", kind: "norma_definitiva",
-  source_name: "SIDOF", official_id: "DOF:7", published_on: "2020-01-01", url: "https://sidof.segob.gob.mx/" };
+  source_name: "SIDOF", official_id: "DOF:7", has_changes: true, published_on: "2020-01-01", url: "https://sidof.segob.gob.mx/" };
 
 describe("bulletin improvements integrated with navigation and reading", () => {
   it("rechecks a summary selection when the user clicks its current card again", async () => {
@@ -92,6 +92,9 @@ describe("bulletin improvements integrated with navigation and reading", () => {
     vi.stubGlobal("fetch", fetcher);
     try {
       render(<Portal />);
+      await screen.findByText("Tiene versiones anteriores");
+      expect(screen.queryByText("Cambio detectado")).not.toBeInTheDocument();
+      expect(screen.getByRole("checkbox", { name: "Con versiones anteriores" })).toBeVisible();
       await user.click(await screen.findByRole("button", { name: publication.title }));
       await screen.findByText("Texto controlado para lectura.");
       const facts = screen.getByRole("region", { name: "Ficha de la publicación" });
@@ -99,7 +102,8 @@ describe("bulletin improvements integrated with navigation and reading", () => {
       expect(within(facts).queryByText(/dic.*2026/)).not.toBeInTheDocument();
       expect(fetcher.mock.calls.some(([path]) => path.includes("/comparison"))).toBe(false);
       await user.click(screen.getByRole("button", { name: "Comparar versiones" }));
-      expect(await screen.findByText("El texto guardado es idéntico en ambas copias.")).toBeVisible();
+      expect(await screen.findByText("Texto sin cambios")).toBeVisible();
+      expect(screen.getByText("Son copias conservadas por NOM Monitor, no números de edición oficial de la NOM.")).toBeVisible();
       expect(fetcher.mock.calls.some(([path]) => path.includes("from_version_id=1&to_version_id=2"))).toBe(true);
       await user.selectOptions(screen.getByRole("combobox", { name: "Versión del documento" }), "1");
       await waitFor(() => expect(screen.getByText("Esta es la primera versión guardada.")).toBeVisible());
