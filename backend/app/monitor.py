@@ -109,6 +109,9 @@ def tick():
         from .observability import record_pulse
 
         record_pulse(db)
+        from .publication_history import index_history_batch
+
+        index_history_batch(db)
         if get_settings().scheduler_enabled:
             schedule_due(db)
         job = run_once(db)

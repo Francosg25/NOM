@@ -46,20 +46,25 @@ def publications(
     page_size: int = Query(25, ge=1, le=200),
     sort: Literal["published", "detected"] = "detected",
     published_since: date | None = None,
+    published_until: date | None = None,
+    direction: Literal["asc", "desc"] = "desc",
     changes_only: bool = False,
     after_version_id: int | None = Query(None, ge=0, le=9_007_199_254_740_991),
     update_type: Literal["new", "changed"] | None = None,
     db: Session = Depends(get_db),
     user: Identity = Depends(identity),
 ):
+    if published_since and published_until and published_since > published_until:
+        raise HTTPException(422, "La fecha inicial debe ser anterior o igual a la fecha final.")
     stmt = select(Publication).where(Publication.is_demo == is_demo)
     if source_kind:
         stmt = stmt.join(Source, Publication.source_id == Source.id).where(Source.kind == source_kind)
     stmt = (
         stmt.order_by(
-            Publication.published_on.desc().nulls_last(),
-            Publication.detected_at.desc(),
-            Publication.id.desc(),
+            (
+                Publication.published_on.asc() if direction == "asc" else Publication.published_on.desc()
+            ).nulls_last(),
+            Publication.id.asc() if direction == "asc" else Publication.id.desc(),
         )
         if sort == "published"
         else stmt.order_by(Publication.detected_at.desc(), Publication.id.desc())
@@ -82,6 +87,8 @@ def publications(
         stmt = stmt.where(Publication.source_id == source_id)
     if published_since:
         stmt = stmt.where(Publication.published_on >= published_since)
+    if published_until:
+        stmt = stmt.where(Publication.published_on <= published_until)
     if changes_only:
         stmt = stmt.where(
             select(Version.id)

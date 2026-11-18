@@ -86,7 +86,7 @@ def main():
 
         process = start()
         try:
-            assert json.loads(get('/api/health'))['frontend']['version'] == '0.7.3'
+            assert json.loads(get('/api/health'))['frontend']['version'] == '0.7.4'
             assert '<html' in get('/').decode()
             reference_hash = tariff_lookup()
             command('-c', "from app.db import SessionLocal; from app.jobs import ingest_document; "
@@ -94,7 +94,7 @@ def main():
                 "from app.storage import get_storage; from sqlalchemy import select; "
                 "db=SessionLocal(); source=db.scalar(select(Source).where(Source.kind=='sidof')); "
                 "ingest_document(db,source,Document('PACKAGE-CONTROLLED','https://sidof.segob.gob.mx/',"
-                "'Controlled package sample','Not an official publication',raw=b'package-evidence'),get_storage()); "
+                "'Controlled package sample NOM-016-ENER-2016','Not an official publication',raw=b'package-evidence'),get_storage()); "
                 "db.commit(); db.close()")
             checkpoint = json.loads(get('/api/bulletin/updates'))['cursor']
             command('-c', "from app.db import SessionLocal; from app.jobs import ingest_document; "
@@ -102,15 +102,20 @@ def main():
                 "from app.storage import get_storage; from sqlalchemy import select; "
                 "db=SessionLocal(); source=db.scalar(select(Source).where(Source.kind=='sidof')); "
                 "ingest_document(db,source,Document('PACKAGE-CONTROLLED','https://sidof.segob.gob.mx/',"
-                "'Controlled package sample','Not an official publication. Revised sample.',raw=b'package-evidence-revised'),get_storage()); "
+                "'Controlled package sample NOM-016-ENER-2016','Not an official publication. Revised sample.',raw=b'package-evidence-revised'),get_storage()); "
                 "db.commit(); db.close()")
             changes = json.loads(get('/api/bulletin/updates?after_version_id=' + str(checkpoint['version_id']) +
                                      '&anchor_hash=' + checkpoint['content_hash']))
             assert changes['new_publications'] == 0 and changes['changed_publications'] == 1
-            before = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.3',
+            before = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.4',
                                         '--output', str(root / 'before.json')))
             assert before['passed'] and before['sample']['sha256'] == hashlib.sha256(b'package-evidence-revised').hexdigest()
             details = json.loads(get('/api/publications/' + str(before['sample']['publication_id']) + '?include_content=false'))
+            history_path = '/api/history/publications/' + str(details['id'])
+            history = json.loads(get(history_path))
+            assert history['selected_norm_code'] == 'NOM-016-ENER-2016' and history['total'] == 1
+            assert history['items'][0]['reference_location'] == 'title' and history['items'][0]['excerpt'] == ''
+            assert json.loads(get('/api/history/coverage'))['total'] == 1
             assert len(details['versions']) == 2 and all('content' not in version for version in details['versions'])
             comparison_path = '/api/bulletin/publications/' + str(details['id']) + '/comparison?from_version_id=' + str(details['versions'][1]['id']) + '&to_version_id=' + str(details['versions'][0]['id'])
             assert json.loads(get(comparison_path))['classification'] == 'text_changed'
@@ -119,10 +124,11 @@ def main():
             assert reading['blocks'][0]['inlines'][0]['text'] == 'Not an official publication. Revised sample.'
             stop(process)
             process = start()
-            after = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.3',
+            after = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.4',
                 '--baseline', str(root / 'before.json'), '--output', str(root / 'after.json')))
             assert after['passed']
             assert json.loads(get(reading_path)) == reading
+            assert json.loads(get(history_path)) == history
             assert json.loads(get(comparison_path))['classification'] == 'text_changed'
             assert tariff_lookup() == reference_hash
             command('-m', 'app.cli', 'backup', '--destination', str(root / 'backup'))
@@ -132,13 +138,14 @@ def main():
             env.update(DATABASE_URL='sqlite:///' + str(root / 'restored/nom.db'),
                        STORAGE_PATH=str(root / 'restored/evidence'))
             process = start()
-            restored = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.3',
+            restored = json.loads(command('-m', 'app.deployment_check', '--url', base, '--version', '0.7.4',
                 '--baseline', str(root / 'before.json'), '--output', str(root / 'restored.json')))
             assert restored['passed']
             assert json.loads(get(reading_path)) == reading
+            assert json.loads(get(history_path)) == history
             assert json.loads(get(comparison_path))['classification'] == 'text_changed'
             assert tariff_lookup() == reference_hash
-            print('PASS: production ZIP, tariff reference, reading, summary, comparison, restart and restored evidence.')
+            print('PASS: production ZIP, historical references, coverage, tariff reference, reading, summary, comparison, restart and restored evidence.')
         finally:
             stop(process)
 

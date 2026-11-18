@@ -15,6 +15,8 @@ import usePublicationList from "./usePublicationList";
 import { PublicationFacts, VersionComparison, VisitSummary } from "./BulletinEnhancements";
 import { TariffReferenceResults } from "./TariffReferenceResults";
 import type { UpdateSelection } from "./BulletinEnhancements";
+import { ArchiveTools, PublicationHistory, emptyArchiveDates } from "./PublicationHistory";
+import type { ArchiveDates } from "./PublicationHistory";
 
 type Row = Record<string, any>;
 type View = "actualidad" | "archivo" | "historico" | "producto" | "fuentes" | "guia";
@@ -273,9 +275,11 @@ export function Reader({
 function PublicationRow({
   item,
   open,
+  history,
 }: {
   item: Row;
   open: (id: number) => void;
+  history: (item: Row) => void;
 }) {
   const { t, format } = useLanguage();
   return (
@@ -325,6 +329,7 @@ function PublicationRow({
             {t("Producto/servicio en PLATIICA")}: {item.product_scope}
           </p>
         )}
+        {!!item.norm_codes?.length && <button className="text-button history-row-action" onClick={() => history(item)}>{t("Ver historial relacionado")}</button>}
       </div>
       <button
         className="read-arrow"
@@ -371,6 +376,9 @@ function Bulletin() {
   const [productAlerts, setProductAlerts] = useState<Row[]>([]);
   const [source, setSource] = useState("");
   const [period, setPeriod] = useState("all");
+  const [archiveDates, setArchiveDates] = useState<ArchiveDates>(emptyArchiveDates);
+  const [historyPublication, setHistoryPublication] = useState<Row | null>(null);
+  const closeHistory = useCallback(() => setHistoryPublication(null), []);
   const [kind, setKind] = useState("");
   const [changes, setChanges] = useState(false);
   const [demo, setDemo] = useState(false);
@@ -444,30 +452,36 @@ function Bulletin() {
       live = false;
     };
   }, []);
-  const publishedSince = period === "all" ? "" : dayStamp(Number(period) - 1);
+  const publishedSince = view === "archivo" ? archiveDates.from : period === "all" ? "" : dayStamp(Number(period) - 1);
+  const publishedUntil = view === "archivo" ? archiveDates.to : "";
+  const pageSize = view === "archivo" ? 25 : 15;
   const listPath = useMemo(() => {
     if (!["actualidad", "archivo", "historico"].includes(view)) return null;
+    if (publishedSince && publishedUntil && publishedSince > publishedUntil) return null;
     const params = new URLSearchParams({
-      page: String(page), page_size: "15", sort: "published",
+      page: String(page), page_size: String(pageSize), sort: "published",
       source_kind: view === "historico" ? "platiica_catalog" : "sidof", is_demo: String(demo),
     });
     if (query.trim()) params.set("q", query.trim());
     if (source) params.set("source_id", source);
     if (kind) params.set("kind", kind);
     if (publishedSince) params.set("published_since", publishedSince);
+    if (publishedUntil) params.set("published_until", publishedUntil);
+    if (view === "archivo" && archiveDates.direction === "asc") params.set("direction", "asc");
     if (changes) params.set("changes_only", "true");
     if (updateSelection) {
       params.set("after_version_id", String(updateSelection.after));
       params.set("update_type", updateSelection.type);
     }
     return `/publications?${params}`;
-  }, [page, query, source, kind, publishedSince, changes, demo, view, updateSelection]);
+  }, [page, pageSize, query, source, kind, publishedSince, publishedUntil, archiveDates.direction, changes, demo, view, updateSelection]);
   const prefetchPath = useMemo(() => {
-    if (!listPath || page !== 1 || query.trim() || source || kind || period !== "all" || changes || updateSelection) return null;
+    if (!listPath || page !== 1 || query.trim() || source || kind || period !== "all" || changes || updateSelection || publishedSince || publishedUntil || archiveDates.direction !== "desc") return null;
     const params = new URLSearchParams(listPath.split("?")[1]);
     params.set("source_kind", view === "historico" ? "sidof" : "platiica_catalog");
+    params.set("page_size", "15");
     return `/publications?${params}`;
-  }, [listPath, page, query, source, kind, period, changes, view, updateSelection]);
+  }, [listPath, page, query, source, kind, period, changes, view, updateSelection, publishedSince, publishedUntil, archiveDates.direction]);
   const listing = usePublicationList(request, ready, listPath, query.trim() ? 250 : 0, prefetchPath);
   const { items: publications, total } = listing;
   const busy = !ready ? !error : listing.busy;
@@ -521,7 +535,7 @@ function Bulletin() {
   useEffect(() => {
     // The server monitor continues running; the hidden bulletin need not poll
     // while the user is reading a document or inspecting an earlier check.
-    if (detail || inspection) return;
+    if (detail || inspection || historyPublication) return;
     const timer = window.setInterval(
       () => {
         if (document.visibilityState === "visible") void load(true);
@@ -529,7 +543,7 @@ function Bulletin() {
       activeJobs ? 5000 : 60000,
     );
     return () => clearInterval(timer);
-  }, [load, activeJobs, !!detail, !!inspection]);
+  }, [load, activeJobs, !!detail, !!inspection, !!historyPublication]);
   useEffect(() => {
     const changed = () => {
       const next = location.hash.slice(1);
@@ -541,6 +555,7 @@ function Bulletin() {
         setSource("");
         setKind("");
         setPeriod("all");
+        setArchiveDates(emptyArchiveDates);
         setChanges(false);
         setPage(1);
       }
@@ -561,6 +576,7 @@ function Bulletin() {
     setSource("");
     setKind("");
     setPeriod("all");
+    setArchiveDates(emptyArchiveDates);
     setChanges(false);
     setPage(1);
   };
@@ -570,6 +586,7 @@ function Bulletin() {
     setSource("");
     setKind("");
     setPeriod("all");
+    setArchiveDates(emptyArchiveDates);
     setChanges(false);
     setPage(1);
   };
@@ -815,7 +832,7 @@ function Bulletin() {
   const selected = detail?.versions.find((v: Row) => v.id === versionId);
   const summaryScope = config?.mode === "entra" ? me?.id ? `entra:${me.id}` : null : config ? "portal" : null;
   const filtered = Boolean(
-    query || source || kind || changes || period !== "all" || updateSelection,
+    query || source || kind || changes || period !== "all" || updateSelection || (view === "archivo" && (archiveDates.from || archiveDates.to || archiveDates.direction !== "desc")),
   );
   const date = new Intl.DateTimeFormat(language === "en" ? "en-US" : "es-MX", {
     weekday: "long",
@@ -1273,12 +1290,12 @@ function Bulletin() {
           <section className="section-intro">
             <span className="eyebrow">{t("LA HEMEROTECA")}</span>
             <h1>
-              {t("Explorar publicaciones")}
+              {t("Archivo histórico de publicaciones")}
               <span className="accent">.</span>
             </h1>
             <p>
               {t(
-                "Busca por título, norma o palabras del documento. Cada publicación conserva su fuente y sus versiones.",
+                "Recorre proyectos, normas, modificaciones, acuerdos, avisos y cancelaciones por su fecha oficial.",
               )}
             </p>
           </section>
@@ -1370,6 +1387,10 @@ function Bulletin() {
                 )}
               </p>
             )}
+            {view === "archivo" && <ArchiveTools dates={archiveDates} change={(dates) => { setArchiveDates(dates); setPage(1); }}
+              request={request} demo={demo} admin={admin} sourceId={sources.find((s) => dailySource(s))?.id}
+              progress={jobs.map((job) => `${job.id}:${job.status}:${job.new_count}:${job.modified_count}`).join("|")}
+              queued={() => { listing.invalidate(); void load(true); }} sourcesView={() => navigate("fuentes")} />}
             <div className="reading-layout">
               <section className="news-column" aria-busy={busy}>
                 <div className="section-rule">
@@ -1399,7 +1420,7 @@ function Bulletin() {
                   {updateSelection && <button type="button" className="text-button" onClick={() => setUpdateSelection(null)}>
                     {t(updateSelection.type === "new" ? "Incorporadas desde tu visita anterior" : "Con versiones nuevas desde tu visita anterior")} · {t("Quitar selección del resumen")}
                   </button>}
-                  <label>
+                  {view !== "archivo" && <label>
                     {t("Fecha oficial")}
                     <select
                       aria-label={t("Periodo de publicación")}
@@ -1413,7 +1434,7 @@ function Bulletin() {
                       <option value="7">{t("Últimos 7 días")}</option>
                       <option value="30">{t("Últimos 30 días")}</option>
                     </select>
-                  </label>
+                  </label>}
                   <label>
                     {t("Tipo")}
                     <select
@@ -1576,11 +1597,12 @@ function Bulletin() {
                         key={item.id}
                         item={item}
                         open={(id) => void open(id)}
+                        history={setHistoryPublication}
                       />
                     ))}
                   </>
                 )}
-                {total > 15 && (
+                {total > pageSize && (
                   <div className="pagination">
                     <button
                       className="button paper"
@@ -1592,12 +1614,12 @@ function Bulletin() {
                     <span>
                       {t("Página {page} de {total}", {
                         page,
-                        total: Math.ceil(total / 15),
+                        total: Math.ceil(total / pageSize),
                       })}
                     </span>
                     <button
                       className="button paper"
-                      disabled={page * 15 >= total}
+                      disabled={page * pageSize >= total}
                       onClick={() => setPage(page + 1)}
                     >
                       {t("Siguiente")}
@@ -2017,6 +2039,7 @@ function Bulletin() {
                 )}
               </div>
               {!readerBusy && !readerError && <PublicationFacts publication={detail} capturedAt={selected?.captured_at} />}
+              {!!detail.norm_codes?.length && <button className="text-button" onClick={() => { setHistoryPublication(detail); closeReader(); }}>{t("Ver historial relacionado")}</button>}
             </div>
             {readerBusy ? (
               <div className="reader-skeleton" role="status">
@@ -2064,6 +2087,9 @@ function Bulletin() {
           </div>
         </Reader>
       )}
+      {historyPublication && !detail && <Reader title={t("Historial relacionado")} close={closeHistory}>
+        <PublicationHistory key={historyPublication.id} publication={historyPublication} request={request} open={(id) => void open(id)} />
+      </Reader>}
       {inspection && (
         <Reader title={t("Revisión diaria SIDOF")} close={closeInspection}>
           <div className="reader-body">

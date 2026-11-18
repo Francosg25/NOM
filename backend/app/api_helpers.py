@@ -64,7 +64,10 @@ def catalog_dict(obj):
 
 
 def pub_dict(db, obj, context=None, *, include_excerpt=True):
+    from .publication_history import primary_codes
+
     result = fields(obj)
+    result["norm_codes"] = primary_codes(obj)
     source = context[0].get(obj.source_id) if context else db.get(Source, obj.source_id)
     result["source_name"] = source.name if source else None
     latest_effective = (
@@ -127,7 +130,7 @@ def pub_dict(db, obj, context=None, *, include_excerpt=True):
     return result
 
 
-def pub_dicts(db, rows):
+def pub_dicts(db, rows, *, include_excerpt=True):
     if not rows:
         return []
     sources = {s.id: s for s in db.scalars(select(Source).where(Source.id.in_({p.source_id for p in rows})))}
@@ -144,12 +147,12 @@ def pub_dicts(db, rows):
     versions = {
         v.id: v
         for v in db.scalars(
-            select(Version).where(
-                Version.id.in_({p.current_version_id for p in rows if p.current_version_id})
-            )
+            select(Version)
+            .options(*([] if include_excerpt else [defer(Version.content)]))
+            .where(Version.id.in_({p.current_version_id for p in rows if p.current_version_id}))
         )
     }
-    return [pub_dict(db, p, (sources, records, versions)) for p in rows]
+    return [pub_dict(db, p, (sources, records, versions), include_excerpt=include_excerpt) for p in rows]
 
 
 def alert_dict(db, obj):

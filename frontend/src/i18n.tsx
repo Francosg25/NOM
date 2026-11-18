@@ -8,10 +8,12 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 import { enhancementEnglish } from "./BulletinEnhancements.i18n";
+import { historyEnglish } from "./PublicationHistory.i18n";
 
 type Language = "es" | "en";
 const english: Record<string, string> = {
   ...enhancementEnglish,
+  ...historyEnglish,
   "LECTURA DE NORMA": "STANDARD READER",
   "El documento no pudo cargarse. Vuelve a intentarlo.": "The document could not load. Please try again.",
   "Reintentar": "Try again",

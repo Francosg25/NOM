@@ -48,6 +48,25 @@ class Source(Base):
     next_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class PublicationHistoryIndex(Base):
+    """Marks the current saved copy indexed, including copies with no NOM references."""
+
+    __tablename__ = "publication_history_index"
+    publication_id: Mapped[int] = mapped_column(ForeignKey("publications.id"), primary_key=True)
+    version_id: Mapped[int] = mapped_column(ForeignKey("versions.id"))
+
+
+class PublicationNormReference(Base):
+    """An explicit identifier in a saved document; never an inferred legal relationship."""
+
+    __tablename__ = "publication_norm_references"
+    norm_code: Mapped[str] = mapped_column(String(100), primary_key=True)
+    publication_id: Mapped[int] = mapped_column(ForeignKey("publications.id"), primary_key=True)
+    version_id: Mapped[int] = mapped_column(ForeignKey("versions.id"))
+    location: Mapped[str] = mapped_column(String(20))
+    snippet: Mapped[str] = mapped_column(Text)
+
+
 class CatalogItem(Base):
     __tablename__ = "catalog"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -75,6 +94,7 @@ class Publication(Base):
     __table_args__ = (
         UniqueConstraint("source_id", "official_id", name="uq_publication_source_official"),
         Index("ix_publications_demo_detected", "is_demo", "detected_at"),
+        Index("ix_publications_demo_published", "is_demo", "published_on", "id"),
     )
     id: Mapped[int] = mapped_column(primary_key=True)
     source_id: Mapped[int] = mapped_column(ForeignKey("sources.id"))
@@ -183,7 +203,10 @@ class SourceRun(Base):
 
 class Audit(Base):
     __tablename__ = "audit"
-    __table_args__ = (Index("ix_audit_entity_action", "entity_type", "entity_id", "action", "id"),)
+    __table_args__ = (
+        Index("ix_audit_entity_action", "entity_type", "entity_id", "action", "id"),
+        Index("ix_audit_history_days", "action", "entity_type", "id"),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
     actor: Mapped[str] = mapped_column(String(200))
     action: Mapped[str] = mapped_column(String(80))

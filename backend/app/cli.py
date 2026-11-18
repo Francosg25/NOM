@@ -282,6 +282,9 @@ def main():
     backfill = sub.add_parser("backfill-sidof", help="Cargar un periodo histórico de SIDOF en la base activa")
     backfill.add_argument("--start", type=date.fromisoformat, required=True)
     backfill.add_argument("--end", type=date.fromisoformat, required=True)
+    sub.add_parser(
+        "index-publication-history", help="Preparar las referencias NOM guardadas, sin descargar documentos"
+    )
     worker = sub.add_parser("worker", help="Procesar cola persistente; no programa consultas por sí mismo")
     mode = worker.add_mutually_exclusive_group(required=True)
     mode.add_argument("--once", action="store_true", help="Ejecutar un trabajo y terminar")
@@ -383,6 +386,13 @@ def main():
             except ValueError as exc:
                 parser.error(str(exc))
             print(f"Carga SIDOF {job.id}: {job.status}; periodo {job.period_start} a {job.period_end}.")
+        elif args.command == "index-publication-history":
+            from .publication_history import index_history_batch
+
+            indexed = 0
+            while count := index_history_batch(db):
+                indexed += count
+            print(f"Historial preparado: {indexed} publicaciones; sin consultas externas.")
         elif args.command == "worker":
             from .operations import advance_schedule, reevaluate_batch, schedule_due
 
@@ -397,6 +407,9 @@ def main():
                     from .observability import record_pulse
 
                     record_pulse(db, name="worker")
+                    from .publication_history import index_history_batch
+
+                    index_history_batch(db)
                     if args.schedule:
                         schedule_due(db)
                     job = run_once(db)

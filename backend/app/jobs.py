@@ -361,6 +361,10 @@ def ingest_document(
     pub.current_version_id = version.id
     pub.title, pub.url, pub.kind = document.title, document.url, document.kind
     pub.published_on, pub.processing_note = document.published_on, document.processing_note
+    from .publication_history import index_publication
+
+    if source.kind == "sidof":
+        index_publication(db, pub, version)
     pub.review_status = "pendiente"
     # Any manually verified effective date belongs to the reviewed version.
     if previous:
