@@ -61,6 +61,48 @@ def test_migration_preserves_existing_records_and_notification_cursors(tmp_path,
         engine.dispose()
 
 
+def test_migration_resumes_after_first_table_was_created(tmp_path, monkeypatch):
+    from alembic import command
+    from alembic.config import Config
+    from sqlalchemy import create_engine, inspect, text
+    from app import db as database
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'partial-migration.db'}")
+    monkeypatch.setattr(database, "engine", engine)
+    config = Config("alembic.ini")
+    try:
+        command.upgrade(config, "fa91c2d6e842")
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    """CREATE TABLE publication_history_index (
+                    publication_id INTEGER NOT NULL PRIMARY KEY,
+                    version_id INTEGER NOT NULL,
+                    FOREIGN KEY(publication_id) REFERENCES publications (id),
+                    FOREIGN KEY(version_id) REFERENCES versions (id)
+                    )"""
+                )
+            )
+
+        command.upgrade(config, "head")
+        command.check(config)
+        inspector = inspect(engine)
+        assert {
+            "publication_history_index",
+            "publication_norm_references",
+        }.issubset(inspector.get_table_names())
+        assert {index["name"] for index in inspector.get_indexes("publications")} >= {
+            "ix_publications_demo_published"
+        }
+        assert {index["name"] for index in inspector.get_indexes("audit")} >= {"ix_audit_history_days"}
+        with engine.connect() as connection:
+            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == (
+                "b17d6408a075"
+            )
+    finally:
+        engine.dispose()
+
+
 def seed_history(sessions):
     with sessions() as db:
         sidof = Source(name="SIDOF controlado", kind="sidof", urls=["https://sidof.segob.gob.mx/dof/sidof"])
